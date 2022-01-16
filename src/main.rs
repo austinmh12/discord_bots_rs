@@ -50,6 +50,7 @@ async fn main() {
 	// prepend your bot token with "Bot ", which is required by discord.
 	let mut client = Client::builder(&token)
 		.event_handler(Handler)
+		.intents(GatewayIntents::GUILD_MESSAGES | GatewayIntents::GUILD_MESSAGE_REACTIONS | GatewayIntents::default())
 		.framework(framework)
 		.await
 		.expect("Error creating client");
