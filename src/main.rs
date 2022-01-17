@@ -44,13 +44,6 @@ impl EventHandler for Handler {
 				.react(&ctx, ReactionType::try_from("<:backchk:799333634263613440>").unwrap()).await;
 		}
 	}
-
-	// async fn reaction_add(&self, _ctx: Context, _add_reaction: Reaction) {
-	// 	if _add_reaction.emoji.unicode_eq("\u{2705}") {
-	// 		let msg = _add_reaction.message(_ctx).await.unwrap();
-	// 		let _ = msg.react(_ctx.http, EmojiId::from(799333634263613440));
-	// 	}
-	// }
 }
 
 #[tokio::main]
@@ -61,7 +54,7 @@ async fn main() {
 
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token
-	let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
+	let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
 
 	// Create a new instance of the client logging in as the bot. This will automatically
 	// prepend your bot token with "Bot ", which is required by discord.
