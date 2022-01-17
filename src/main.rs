@@ -5,10 +5,11 @@ use dotenv;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler, bridge::gateway::GatewayIntents};
 use serenity::model::{
-	channel::{Channel, Message},
+	channel::{Channel, Message, Reaction, ReactionType},
 	gateway::Ready,
 	misc::Mention,
 	user::User,
+	id::{EmojiId}
 };
 use serenity::framework::standard::{
     StandardFramework,
@@ -36,6 +37,20 @@ impl EventHandler for Handler {
 	async fn ready(&self, _: Context, ready: Ready) {
 		println!("{} is connected!", ready.user.name);
 	}
+
+	async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+		if reaction.emoji.unicode_eq("✅") {
+			let _ = reaction.message(&ctx).await.unwrap()
+				.react(&ctx, ReactionType::try_from("<:backchk:799333634263613440>").unwrap()).await;
+		}
+	}
+
+	// async fn reaction_add(&self, _ctx: Context, _add_reaction: Reaction) {
+	// 	if _add_reaction.emoji.unicode_eq("\u{2705}") {
+	// 		let msg = _add_reaction.message(_ctx).await.unwrap();
+	// 		let _ = msg.react(_ctx.http, EmojiId::from(799333634263613440));
+	// 	}
+	// }
 }
 
 #[tokio::main]
