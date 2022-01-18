@@ -5,21 +5,14 @@ use dotenv;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler, bridge::gateway::GatewayIntents};
 use serenity::model::{
-	channel::{Channel, Message, Reaction, ReactionType},
+	channel::{Reaction, ReactionType},
 	gateway::Ready,
-	misc::Mention,
-	user::User,
-	id::{EmojiId}
 };
 use serenity::framework::standard::{
     StandardFramework,
-    CommandResult,
     macros::{
-        command,
         group,
     },
-	Args,
-	Delimiter,
 };
 
 use commands::{meme::*};
