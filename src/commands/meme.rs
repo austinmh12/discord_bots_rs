@@ -2,7 +2,15 @@ use std::{
 	collections::HashMap,
 };
 
-use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::framework::standard::{
+	macros::{
+		command,
+		group,
+	},
+	Args,
+	Delimiter,
+	CommandResult
+};
 use serenity::model::{
 	channel::{Channel, Message},
 	gateway::Ready,
@@ -58,14 +66,24 @@ async fn amogus(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
-async fn sheesh(ctx: &Context, msg: &Message) -> CommandResult {
-	// let mut num_es = args.single::<i32>().unwrap();
-	// let mention = args.single::<Mention>().unwrap();
-
+async fn sheesh(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let _ = msg.delete(ctx).await;
-	
-	let nickname = msg.author_nick(ctx).await;
-	let _ = msg.channel_id.say(&ctx.http, format!("***SHEEEeeee***eeesh\n> - _{}_", nickname.unwrap())).await;
+	let nickname = msg.author_nick(ctx).await.unwrap();
+
+	let content = if args.is_empty() {
+		format!("***SHEEEeeee***eeesh\n> - _{}_", nickname)
+	} else if args.len() == 1 {
+		let num_es = args.single::<i32>().unwrap();
+		let es = (0..num_es).map(|_| "e").collect::<String>();
+		format!("***SHEEE{}***eeesh\n> - _{}_", es, nickname)
+	} else {
+		let num_es = args.single::<i32>().unwrap();
+		let es = (0..num_es).map(|_| "e").collect::<String>();
+		let mention = args.rest();
+		format!("***SHEEE{}***eeesh {}\n> - _{}_", es, mention, nickname)
+	};
+
+	let _ = msg.channel_id.say(&ctx.http, content).await;
 
 	Ok(())
 }
