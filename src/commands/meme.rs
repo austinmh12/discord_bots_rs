@@ -66,6 +66,7 @@ async fn amogus(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[max_args(2)]
 async fn sheesh(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let _ = msg.delete(ctx).await;
 	let nickname = msg.author_nick(ctx).await.unwrap();
@@ -73,9 +74,14 @@ async fn sheesh(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let content = if args.is_empty() {
 		format!("***SHEEEeeee***eeesh\n> - _{}_", nickname)
 	} else if args.len() == 1 {
-		let num_es = args.single::<i32>().unwrap();
-		let es = (0..num_es).map(|_| "e").collect::<String>();
-		format!("***SHEEE{}***eeesh\n> - _{}_", es, nickname)
+		let first_arg = args.single::<String>().unwrap();
+		if first_arg.contains("@") {
+			format!("***SHEEEeeee***eeesh {}\n> - _{}_", first_arg, nickname)
+		} else {
+			let num_es = first_arg.parse::<i32>().unwrap();
+			let es = (0..num_es).map(|_| "e").collect::<String>();
+			format!("***SHEEE{}***eeesh\n> - _{}_", es, nickname)
+		}
 	} else {
 		let num_es = args.single::<i32>().unwrap();
 		let es = (0..num_es).map(|_| "e").collect::<String>();
