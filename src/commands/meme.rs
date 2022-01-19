@@ -5,10 +5,8 @@ use std::{
 use serenity::framework::standard::{
 	macros::{
 		command,
-		group,
 	},
 	Args,
-	Delimiter,
 	CommandResult
 };
 use serenity::model::{
@@ -16,6 +14,7 @@ use serenity::model::{
 	gateway::Ready,
 	misc::Mention,
 	user::User,
+	id::UserId,
 };
 use serenity::prelude::*;
 
@@ -68,24 +67,26 @@ async fn amogus(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[max_args(2)]
 async fn sheesh(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let num_e_range = 4..3900;
 	let _ = msg.delete(ctx).await;
 	let nickname = msg.author_nick(ctx).await.unwrap();
-
-	let content = if args.is_empty() {
-		format!("***SHEEEeeee***eeesh\n> - _{}_", nickname)
-	} else if args.len() == 1 {
-		let first_arg = args.single::<String>().unwrap();
-		if first_arg.contains("@") {
-			format!("***SHEEEeeee***eeesh {}\n> - _{}_", first_arg, nickname)
+	
+	let num_es = match args.find::<i32>() {
+		Ok(n) => if num_e_range.contains(&n) {
+			n
 		} else {
-			let num_es = first_arg.parse::<i32>().unwrap();
-			let es = (0..num_es).map(|_| "e").collect::<String>();
-			format!("***SHEEE{}***eeesh\n> - _{}_", es, nickname)
-		}
+			4
+		},
+		Err(_) => 4
+	};
+	let mention = match args.find::<String>() {
+		Ok(m) => m,
+		Err(_) => "".to_string()
+	};
+	let es = (0..num_es).map(|_| "e").collect::<String>(); 
+	let content = if mention == "" {
+		format!("***SHEEE{}***eeesh\n> - _{}_", es, nickname)
 	} else {
-		let num_es = args.single::<i32>().unwrap();
-		let es = (0..num_es).map(|_| "e").collect::<String>();
-		let mention = args.rest();
 		format!("***SHEEE{}***eeesh {}\n> - _{}_", es, mention, nickname)
 	};
 
