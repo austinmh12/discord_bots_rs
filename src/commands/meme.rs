@@ -10,11 +10,7 @@ use serenity::framework::standard::{
 	CommandResult
 };
 use serenity::model::{
-	channel::{Channel, Message},
-	gateway::Ready,
-	misc::Mention,
-	user::User,
-	id::UserId,
+	channel::Message,
 };
 use serenity::prelude::*;
 
@@ -71,6 +67,7 @@ async fn sheesh(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let _ = msg.delete(ctx).await;
 	let nickname = msg.author_nick(ctx).await.unwrap();
 	
+	// Find is better for typed optional arguments.
 	let num_es = match args.find::<i32>() {
 		Ok(n) => if num_e_range.contains(&n) {
 			n
