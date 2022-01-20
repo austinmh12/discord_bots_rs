@@ -3,3 +3,6 @@
 .env
 
 *.lock
+
+*.db
+*.db*
