@@ -15,11 +15,15 @@ use serenity::framework::standard::{
     },
 };
 
-use commands::{meme::*};
+use commands::{meme::*, youtube::*};
 
 #[group]
 #[commands(sheesh, amogus, blue)]
 struct Meme;
+
+#[group]
+#[commands(subscribe, unsubscribe, subscriptions)]
+struct YouTube;
 
 struct Handler;
 
@@ -43,12 +47,13 @@ impl EventHandler for Handler {
 async fn main() {
 	let framework = StandardFramework::new()
 		.configure(|c| c.prefix("."))
-		.group(&MEME_GROUP);
+		.group(&MEME_GROUP)
+		.group(&YOUTUBE_GROUP);
 
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token. Make sure one is commented out.
-	let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
-	// let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
+	// let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
+	let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
 
 	// Create a new instance of the client logging in as the bot. This will automatically
 	// prepend your bot token with "Bot ", which is required by discord.
