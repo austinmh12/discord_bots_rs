@@ -107,24 +107,26 @@ async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 		})
 		.await;
 
-	// let selection_range = 1..5;
-	// if let Some(reply) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(10)).await {
-	// 	let user_selection = reply.content.parse::<i32>().unwrap();
-	// 	if selection_range.contains(&user_selection) {
-	// 		let _ = msg
-	// 			.channel_id
-	// 			.say(
-	// 				&ctx.http,
-	// 				format!("You subscribed to **{}**", channels_searched[(user_selection - 1) as usize].title)
-	// 			)
-	// 			.await;
-	// 			// Do database stuff to add the subscription
-	// 	} else {
-	// 		let _ = msg.channel_id.say(&ctx.http, format!("{} was not a valid selection", user_selection)).await;
-	// 	}
-	// } else {
-	// 	let _ = msg.channel_id.say(&ctx.http, "A selection was not made.").await;
-	// };
+	let selection_range = 1..5;
+	if let Some(reply) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(30)).await {
+		let user_selection = reply.content.parse::<i32>().unwrap();
+		if selection_range.contains(&user_selection) {
+			// check for existing subscription
+			let _ = msg
+				.channel_id
+				.say(
+					&ctx.http,
+					format!("You subscribed to **{}**", channels_searched[(user_selection - 1) as usize].title)
+				)
+				.await;
+				// Do database stuff to add the subscription
+				// Do database stuff to add channel
+		} else {
+			let _ = msg.channel_id.say(&ctx.http, format!("{} was not a valid selection", user_selection)).await;
+		}
+	} else {
+		let _ = msg.channel_id.say(&ctx.http, "A selection was not made.").await;
+	};
 
 	Ok(())
 }
