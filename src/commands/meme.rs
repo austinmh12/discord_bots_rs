@@ -17,6 +17,7 @@ use serenity::prelude::*;
 #[command]
 async fn amogus(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	// TODO: Try and get this as a global variable so that it isn't built every call of the command.
+	// I think this can be achieved by using an enum maybe? Or a struct with defaults?
 	let mut amogus_alphabet = HashMap::new();
 	amogus_alphabet.insert('a', "881569779637452811");
 	amogus_alphabet.insert('b', "881573421161537546");
