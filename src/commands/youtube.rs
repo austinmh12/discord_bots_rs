@@ -124,6 +124,14 @@ async fn delete_channel(channel: YouTubeChannel) {
 		.unwrap();
 }
 
+async fn update_channel(channel: YouTubeChannel) {
+	let database = get_database_connection().await;
+	sqlx::query!("update channels set video_count = ? where channel_id = ?", channel.video_count, channel.channel_id)
+		.execute(&database)
+		.await
+		.unwrap();
+}
+
 // Utilities for commands
 async fn search_youtube(search: &str) -> Result<Vec<YouTubeSearchResult>, reqwest::Error> {
 	dotenv::dotenv().ok();
