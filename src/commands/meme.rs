@@ -14,44 +14,47 @@ use serenity::model::{
 };
 use serenity::prelude::*;
 
+lazy_static! {
+	static ref AMOGUS_ALPHABET: HashMap<char, &'static str> = {
+		let mut m = HashMap::new();
+		m.insert('a', "881569779637452811");
+		m.insert('b', "881573421161537546");
+		m.insert('c', "881570972367486976");
+		m.insert('d', "881573101635256351");
+		m.insert('e', "881565979233107980");
+		m.insert('f', "881573138348003339");
+		m.insert('g', "881569855311073371");
+		m.insert('h', "881565907820892230");
+		m.insert('i', "881570959188975636");
+		m.insert('j', "881573167435493436");
+		m.insert('k', "881570985948618782");
+		m.insert('l', "881573187400396870");
+		m.insert('m', "881569802567688212");
+		m.insert('n', "881573209596629002");
+		m.insert('o', "881569826479435806");
+		m.insert('p', "881573226789105665");
+		m.insert('q', "881573242979094528");
+		m.insert('r', "881570944160788561");
+		m.insert('s', "881565820097032322");
+		m.insert('t', "881573258988773417");
+		m.insert('u', "881569871194882108");
+		m.insert('v', "881573272481853512");
+		m.insert('w', "881573289921765456");
+		m.insert('x', "881573308833878066");
+		m.insert('y', "881573324348612629");
+		m.insert('z', "881573340903514195");
+		m
+	};
+}
+
 #[command]
 async fn amogus(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Try and get this as a global variable so that it isn't built every call of the command.
-	// I think this can be achieved by using an enum maybe? Or a struct with defaults?
-	let mut amogus_alphabet = HashMap::new();
-	amogus_alphabet.insert('a', "881569779637452811");
-	amogus_alphabet.insert('b', "881573421161537546");
-	amogus_alphabet.insert('c', "881570972367486976");
-	amogus_alphabet.insert('d', "881573101635256351");
-	amogus_alphabet.insert('e', "881565979233107980");
-	amogus_alphabet.insert('f', "881573138348003339");
-	amogus_alphabet.insert('g', "881569855311073371");
-	amogus_alphabet.insert('h', "881565907820892230");
-	amogus_alphabet.insert('i', "881570959188975636");
-	amogus_alphabet.insert('j', "881573167435493436");
-	amogus_alphabet.insert('k', "881570985948618782");
-	amogus_alphabet.insert('l', "881573187400396870");
-	amogus_alphabet.insert('m', "881569802567688212");
-	amogus_alphabet.insert('n', "881573209596629002");
-	amogus_alphabet.insert('o', "881569826479435806");
-	amogus_alphabet.insert('p', "881573226789105665");
-	amogus_alphabet.insert('q', "881573242979094528");
-	amogus_alphabet.insert('r', "881570944160788561");
-	amogus_alphabet.insert('s', "881565820097032322");
-	amogus_alphabet.insert('t', "881573258988773417");
-	amogus_alphabet.insert('u', "881569871194882108");
-	amogus_alphabet.insert('v', "881573272481853512");
-	amogus_alphabet.insert('w', "881573289921765456");
-	amogus_alphabet.insert('x', "881573308833878066");
-	amogus_alphabet.insert('y', "881573324348612629");
-	amogus_alphabet.insert('z', "881573340903514195");
-
 	let amogus_sentence: String = args.raw()
 		.collect::<Vec<&str>>()
 		.join(" ")
 		.to_lowercase()
 		.chars()
-		.map(|x| match amogus_alphabet.get(&x) {
+		.map(|x| match AMOGUS_ALPHABET.get(&x) {
 			Some(&y) => format!("<:amogus_{}:{}>", x, y),
 			None => " ".to_string()
 		}).collect();
