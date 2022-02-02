@@ -55,8 +55,8 @@ async fn main() {
 
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token. Make sure one is commented out.
-	let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
-	// let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
+	// let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
+	let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
 
 	// Create a new instance of the client logging in as the bot. This will automatically
 	// prepend your bot token with "Bot ", which is required by discord.

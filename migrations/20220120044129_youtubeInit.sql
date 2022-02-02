@@ -1,4 +1,9 @@
 -- Add migration script here
+create table users (
+	guild_id INT
+	,discord_id INT
+);
+
 CREATE TABLE channels (
 	id TEXT
 	,name TEXT
