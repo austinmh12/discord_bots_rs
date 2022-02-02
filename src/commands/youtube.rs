@@ -58,15 +58,12 @@ impl YouTubeSearchResult {
 	}
 }
 
-#[command]
-#[aliases(sub)]
-#[min_args(1)]
-async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+// Utilities for commands
+async fn search_youtube(search: &str) -> Result<Vec<YouTubeSearchResult>, reqwest::Error> {
 	dotenv::dotenv().ok();
 	let youtube_api_key = dotenv::var("YTAPIKEY").unwrap();
-	let search_string = args.rest().replace(" ", "%20"); // Converts .subscribe linus tech tips to linus%20tech%20%tips
 	let mut resp: serde_json::Value = reqwest::Client::new()
-		.get(format!("https://www.googleapis.com/youtube/v3/search?part=snippet&q={}&type=channel&key={}", search_string, youtube_api_key))
+		.get(format!("https://www.googleapis.com/youtube/v3/search?part=snippet&q={}&type=channel&key={}", search, youtube_api_key))
 		.send()
 		.await?
 		.json()
@@ -81,18 +78,20 @@ async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 			snippet["thumbnails"]["default"]["url"].as_str().unwrap().to_string()
 		));
 	}
+	return Ok(channels_searched);
+}
+
+
+#[command]
+#[aliases(sub)]
+#[min_args(1)]
+async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	let search_string = args.rest().replace(" ", "%20"); // Converts .subscribe linus tech tips to linus%20tech%20%tips
+	let channels_searched = search_youtube(&search_string).await?;
 	let mut desc = String::from("Here are the results of your search, reply with a number to make a selection.\n");
 	for (i, channel) in channels_searched.iter().enumerate() {
 		desc.push_str(
-			&format!(
-				"**{}:** [{}]({})\n",
-				i + 1,
-				channel.title,
-				format!(
-					"https://www.youtube.com/channel/{}",
-					channel.channel_id
-				)
-			)
+			&format!("**{}:** [{}]({})\n", i + 1, channel.title, format!("https://www.youtube.com/channel/{}", channel.channel_id))
 		);
 	}
 	let _ = msg
