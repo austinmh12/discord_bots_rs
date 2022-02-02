@@ -67,6 +67,20 @@ impl YouTubeChannel {
 	}
 }
 
+struct Subscription {
+	pub discord_id: i32,
+	pub channel_id: String
+}
+
+impl Subscription {
+	pub fn new(discord_id: i32, channel_id: String) -> Self {
+		Self {
+			discord_id,
+			channel_id
+		}
+	}
+}
+
 // Database queries
 async fn get_database_connection() -> sqlx::Pool<sqlx::Sqlite> {
 	let database = sqlx::sqlite::SqlitePoolOptions::new()
@@ -130,6 +144,16 @@ async fn update_channel(channel: YouTubeChannel) {
 		.execute(&database)
 		.await
 		.unwrap();
+}
+
+async fn get_subscriptions_for_user(discord_id: i32) -> Vec<Subscription> {
+	let database = get_database_connection().await;
+	let subs = sqlx::query_as!(Subscription, "select * from subscriptions where discord_id = ?", discord_id)
+		.fetch_all(&database)
+		.await
+		.unwrap();
+
+	subs
 }
 
 // Utilities for commands
