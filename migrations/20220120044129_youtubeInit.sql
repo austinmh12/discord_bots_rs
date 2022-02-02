@@ -5,8 +5,8 @@ create table users (
 );
 
 CREATE TABLE channels (
-	id TEXT
-	,name TEXT
+	channel_id TEXT
+	,title TEXT
 	,thumbnail TEXT
 	,video_count INT
 );

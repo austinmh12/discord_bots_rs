@@ -28,7 +28,9 @@ struct Meme;
 #[commands(subscribe, unsubscribe, subscriptions)]
 struct YouTube;
 
-struct Handler;
+struct Handler {
+	database: sqlx::SqlitePool,
+}
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -58,10 +60,28 @@ async fn main() {
 	// let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
 	let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
 
+	// Initiate database connection, creating the file if needed
+	let database = sqlx::sqlite::SqlitePoolOptions::new()
+		.max_connections(5)
+		.connect_with(
+			sqlx::sqlite::SqliteConnectOptions::new()
+				.filename("bot.db")
+				.create_if_missing(true),
+		)
+		.await
+		.expect("Couldn't connect to database");
+	
+	// Run the migrations to update the schema to the latest version
+	sqlx::migrate!("./migrations").run(&database).await.expect("Couldn't run database migrations");
+
+	let handler = Handler {
+		database
+	};
+
 	// Create a new instance of the client logging in as the bot. This will automatically
 	// prepend your bot token with "Bot ", which is required by discord.
 	let mut client = Client::builder(&token)
-		.event_handler(Handler)
+		.event_handler(handler)
 		.intents(GatewayIntents::GUILD_MESSAGES | GatewayIntents::GUILD_MESSAGE_REACTIONS | GatewayIntents::default())
 		.framework(framework)
 		.await

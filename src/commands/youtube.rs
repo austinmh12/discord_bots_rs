@@ -19,29 +19,6 @@ use serenity::prelude::*;
 use serenity::collector::MessageCollectorBuilder;
 use serde_json;
 
-// struct YouTubeChannel {
-// 	pub id: String,
-// 	pub name: String,
-// 	pub thumbnail: String,
-// 	// pub colour: // Idk at the moment
-// 	pub video_count: i32,
-// 	pub upload_id: String,
-// 	pub latest_video: String,
-// }
-
-// impl YouTubeChannel {
-// 	pub fn new(id: String, name: String, thumbnail: String) -> Self {
-// 		Self {
-// 			id,
-// 			name,
-// 			thumbnail,
-// 			video_count: 0,
-// 			upload_id: "".to_string(),
-// 			latest_video: "".to_string()
-// 		}
-// 	}
-// }
-
 struct YouTubeSearchResult {
 	pub channel_id: String,
 	pub title: String,
@@ -56,6 +33,87 @@ impl YouTubeSearchResult {
 			thumbnail
 		}
 	}
+}
+
+struct YouTubeChannel {
+	pub channel_id: String,
+	pub title: String,
+	pub thumbnail: String,
+	pub video_count: i32
+}
+
+impl YouTubeChannel {
+	pub fn new(channel_id: String, title: String, thumbnail: String, video_count: i32) -> Self {
+		Self {
+			channel_id,
+			title,
+			thumbnail,
+			video_count
+		}
+	}
+
+	pub fn from_search(search_result: YouTubeSearchResult) -> Self {
+		let channel_id = search_result.channel_id;
+		let title = search_result.title;
+		let thumbnail = search_result.thumbnail;
+		let video_count = 0;
+		
+		Self {
+			channel_id,
+			title,
+			thumbnail,
+			video_count
+		}
+	}
+}
+
+// Database queries
+async fn get_database_connection() -> sqlx::Pool<sqlx::Sqlite> {
+	let database = sqlx::sqlite::SqlitePoolOptions::new()
+		.max_connections(5)
+		.connect_with(
+			sqlx::sqlite::SqliteConnectOptions::new()
+				.filename("sqlite:///bot.db")
+				.create_if_missing(true),
+		)
+		.await
+		.expect("Couldn't connect to database");
+	
+	database
+}
+
+async fn get_channels() -> Vec<YouTubeChannel> {
+	let database = get_database_connection().await;
+	let channels = sqlx::query_as!(YouTubeChannel, "select * from channels;")
+		.fetch_all(&database)
+		.await
+		.unwrap();
+
+	channels
+}
+
+async fn get_channel(channel_id: String) -> YouTubeChannel {
+	let database = get_database_connection().await;
+	let channel = sqlx::query_as!(YouTubeChannel, "select * from channels where channel_id = ?", channel_id)
+		.fetch_one(&database)
+		.await
+		.unwrap();
+
+	channel
+}
+
+async fn add_channel(channel: YouTubeChannel) {
+	let database = get_database_connection().await;
+	sqlx::query!(
+		"insert into channels values (?,?,?,?)",
+		channel.channel_id,
+		channel.title,
+		channel.thumbnail,
+		channel.video_count
+	)
+		.execute(&database)
+		.await
+		.unwrap();
 }
 
 // Utilities for commands
@@ -78,7 +136,8 @@ async fn search_youtube(search: &str) -> Result<Vec<YouTubeSearchResult>, reqwes
 			snippet["thumbnails"]["default"]["url"].as_str().unwrap().to_string()
 		));
 	}
-	return Ok(channels_searched);
+
+	Ok(channels_searched)
 }
 
 
