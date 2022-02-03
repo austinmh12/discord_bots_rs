@@ -156,6 +156,16 @@ async fn get_subscriptions_for_user(discord_id: i32) -> Vec<Subscription> {
 	subs
 }
 
+async fn get_subscriptions_for_channel(channel: YouTubeChannel) -> Vec<Subscription> {
+	let database = get_database_connection().await;
+	let subs = sqlx::query_as!(Subscription, "select * from subscriptions where channel_id = ?", channel.channel_id)
+		.fetch_all(&database)
+		.await
+		.unwrap();
+
+	subs
+}
+
 // Utilities for commands
 async fn search_youtube(search: &str) -> Result<Vec<YouTubeSearchResult>, reqwest::Error> {
 	dotenv::dotenv().ok();
