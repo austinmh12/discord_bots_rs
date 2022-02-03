@@ -176,6 +176,15 @@ async fn delete_subscription(sub: Subscription) {
 	sqlx::query!("delete from subscriptions where discord_id = ? and channel_id = ?", sub.discord_id, sub.channel_id)
 }
 
+async fn check_for_existing_sub(discord_id: i32, channel: YouTubeSearchResult) -> bool {
+	let user_subs = get_subscriptions_for_user(discord_id).await;
+	let sub_in_subs = user_subs.iter().any(|us| {
+		us.channel_id == channel.channel_id
+	});
+
+	sub_in_subs
+}
+
 // Utilities for commands
 async fn search_youtube(search: &str) -> Result<Vec<YouTubeSearchResult>, reqwest::Error> {
 	dotenv::dotenv().ok();
