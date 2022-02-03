@@ -206,9 +206,9 @@ async fn search_youtube(search: &str) -> Result<Vec<YouTubeSearchResult>, reqwes
 	for search_result in search_results {
 		let snippet = search_result["snippet"].as_object_mut().unwrap();
 		channels_searched.push(YouTubeSearchResult::new(
-			snippet["channelId"].as_str().unwrap().to_string(),
-			snippet["title"].as_str().unwrap().to_string(),
-			snippet["thumbnails"]["default"]["url"].as_str().unwrap().to_string()
+			String::from(snippet["channelId"].as_str().unwrap()),
+			String::from(snippet["title"].as_str().unwrap()),
+			String::from(snippet["thumbnails"]["default"]["url"].as_str().unwrap())
 		));
 	}
 
@@ -253,7 +253,7 @@ async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 				add_channel(YouTubeChannel::from_search(channel)).await;
 				add_subscription(Subscription {
 					discord_id: format!("{}", msg.author.id.0),
-					channel_id: channel_id.as_str().to_string()
+					channel_id: String::from(channel_id)
 				}).await;
 			}
 		} else {
