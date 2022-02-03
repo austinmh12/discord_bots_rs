@@ -25,7 +25,7 @@ use commands::{meme::*, youtube::*};
 struct Meme;
 
 #[group]
-#[commands(subscribe, unsubscribe, subscriptions)]
+#[commands(subscribe, unsubscribe, subscriptions, latest_video)]
 struct YouTube;
 
 struct Handler {

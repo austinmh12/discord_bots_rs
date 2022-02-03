@@ -400,6 +400,40 @@ async fn subscriptions(ctx: &Context, msg: &Message) -> CommandResult {
 	let mut desc = String::from("");
 	for (i, channel) in sub_channels.iter().enumerate() {
 		desc.push_str(
+			&format!("[{}]({})\n", channel.title, format!("https://www.youtube.com/channel/{}", channel.channel_id))
+		);
+	}
+	let _ = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e.title(format!("{}'s Subscriptions\n", nickname))
+					.description(desc)
+					.thumbnail(sub_channels[0].thumbnail.clone())
+					.colour(Colour::from_rgb(255, 50, 20))
+			})
+		})
+		.await;
+
+	Ok(())
+}
+
+#[command]
+#[aliases(latest)]
+async fn latest_video(ctx: &Context, msg: &Message) -> CommandResult {
+	let subs = get_subscriptions_for_user(format!("{}", msg.author.id.0)).await;
+	let mut sub_channels: Vec<YouTubeChannel> = <Vec<YouTubeChannel>>::new();
+	for sub in subs {
+		let channel = get_channel(sub.channel_id).await;
+		sub_channels.push(channel);
+	}
+
+	sub_channels.sort_by(|a, b| a.title.cmp(&b.title));
+
+	let nickname = msg.author_nick(ctx).await.unwrap();
+	let mut desc = String::from("What channel would you like to get the latest video for? (type the number)\n");
+	for (i, channel) in sub_channels.iter().enumerate() {
+		desc.push_str(
 			&format!("**{}:** [{}]({})\n", i + 1, channel.title, format!("https://www.youtube.com/channel/{}", channel.channel_id))
 		);
 	}
@@ -444,5 +478,4 @@ async fn subscriptions(ctx: &Context, msg: &Message) -> CommandResult {
 
 	Ok(())
 }
-
 // Background task to loop through set of YouTubeChannels and fetch video counts with reqwest
