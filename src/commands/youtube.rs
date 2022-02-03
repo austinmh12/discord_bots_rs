@@ -1,5 +1,8 @@
 use std::{
 	time::Duration,
+	sync::{
+		Arc,
+	}
 };
 
 use serenity::framework::standard::{
@@ -11,6 +14,7 @@ use serenity::framework::standard::{
 };
 use serenity::model::{
 	channel::Message,
+	id::{ChannelId}
 	//prelude::*,
 };
 use serenity::utils::Colour;
@@ -482,4 +486,34 @@ async fn latest_video(ctx: &Context, msg: &Message) -> CommandResult {
 
 	Ok(())
 }
+
 // Background task to loop through set of YouTubeChannels and fetch video counts with reqwest
+async fn check_for_new_videos(ctx: Arc<Context>) {
+	let discord_channel = ChannelId(623291442726436884);
+	let channels = get_channels().await;
+	for mut channel in channels {
+		let channel_subs = get_subscriptions_for_channel(channel.clone()).await;
+		if channel_subs.len() == 0 {
+			delete_channel(channel.clone()).await;
+			continue;
+		}
+
+		let video_count = channel.get_video_count().await;
+		if video_count > channel.clone().video_count {
+			channel.video_count = video_count;
+			update_channel(channel.clone()).await;
+			let video = channel.get_latest_video().await;
+			let _ = discord_channel
+				.send_message(&ctx.http, |m| {
+					m.embed(|e| {
+						e.title(video.title)
+							.description(format!("[Watch here!](https://www.youtube.com/watch?v={})\n\n{}", video.video_id, video.description))
+							.thumbnail(video.channel.thumbnail)
+							.colour(Colour::from_rgb(255, 50, 20))
+							.image(video.thumbnail)
+					})
+				})
+				.await;
+		}
+	}
+}
