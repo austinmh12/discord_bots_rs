@@ -267,7 +267,7 @@ async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
-#[min_args(1)]
+#[aliases(unsub)]
 async fn unsubscribe(ctx: &Context, msg: &Message) -> CommandResult {
 	// TODO: Implement this
 
@@ -283,6 +283,8 @@ async fn subscriptions(ctx: &Context, msg: &Message) -> CommandResult {
 		let channel = get_channel(sub.channel_id).await;
 		sub_channels.push(channel);
 	}
+
+	sub_channels.sort_by(|a, b| a.title.cmp(&b.title));
 
 	let nickname = msg.author_nick(ctx).await.unwrap();
 	let mut desc = String::from("");
