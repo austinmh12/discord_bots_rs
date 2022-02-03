@@ -68,12 +68,12 @@ impl YouTubeChannel {
 }
 
 struct Subscription {
-	pub discord_id: i32,
+	pub discord_id: u64,
 	pub channel_id: String
 }
 
 impl Subscription {
-	pub fn new(discord_id: i32, channel_id: String) -> Self {
+	pub fn new(discord_id: u64, channel_id: String) -> Self {
 		Self {
 			discord_id,
 			channel_id
@@ -117,6 +117,7 @@ async fn get_channel(channel_id: String) -> YouTubeChannel {
 }
 
 async fn add_channel(channel: YouTubeChannel) {
+	// TODO: Add a check to not add duplicates.
 	let database = get_database_connection().await;
 	sqlx::query!(
 		"insert into channels values (?,?,?,?)",
@@ -146,7 +147,7 @@ async fn update_channel(channel: YouTubeChannel) {
 		.unwrap();
 }
 
-async fn get_subscriptions_for_user(discord_id: i32) -> Vec<Subscription> {
+async fn get_subscriptions_for_user(discord_id: u64) -> Vec<Subscription> {
 	let database = get_database_connection().await;
 	let subs = sqlx::query_as!(Subscription, "select * from subscriptions where discord_id = ?", discord_id)
 		.fetch_all(&database)
@@ -176,7 +177,7 @@ async fn delete_subscription(sub: Subscription) {
 	sqlx::query!("delete from subscriptions where discord_id = ? and channel_id = ?", sub.discord_id, sub.channel_id)
 }
 
-async fn check_for_existing_sub(discord_id: i32, channel: YouTubeSearchResult) -> bool {
+async fn check_for_existing_sub(discord_id: u64, channel: YouTubeSearchResult) -> bool {
 	let user_subs = get_subscriptions_for_user(discord_id).await;
 	let sub_in_subs = user_subs.iter().any(|us| {
 		us.channel_id == channel.channel_id
@@ -238,16 +239,17 @@ async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	if let Some(reply) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(30)).await {
 		let user_selection = reply.content.parse::<i32>().unwrap();
 		if selection_range.contains(&user_selection) {
-			// check for existing subscription
-			let _ = msg
-				.channel_id
-				.say(
-					&ctx.http,
-					format!("You subscribed to **{}**", channels_searched[(user_selection - 1) as usize].title)
-				)
-				.await;
-				// Do database stuff to add the subscription
-				// Do database stuff to add channel
+			let channel = channels_searched[(user_selection - 1) as usize];
+			if check_for_existing_sub(msg.author.id.0, channel).await {
+				let _ = msg.channel_id.say(&ctx.http, format!("You are already subscribed to **{}**", channel.title)).await;
+			} else {
+				let _ = msg.channel_id.say(&ctx.http, format!("You subscribed to **{}**", channel.title)).await;
+				add_channel(YouTubeChannel::from_search(channel)).await;
+				add_subscription(Subscription {
+					discord_id: msg.author.id.0,
+					channel_id: channel.channel_id
+				}).await;
+			}
 		} else {
 			let _ = msg.channel_id.say(&ctx.http, format!("{} was not a valid selection", user_selection)).await;
 		}
