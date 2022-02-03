@@ -65,6 +65,49 @@ impl YouTubeChannel {
 			video_count
 		}
 	}
+
+	pub async fn get_upload_id(&self) -> String {
+		dotenv::dotenv().ok();
+		let youtube_api_key = dotenv::var("YTAPIKEY").unwrap();
+		let resp: serde_json::Value = reqwest::Client::new()
+			.get(format!("https://www.googleapis.com/youtube/v3/channels?key={}&id={}&part=contentDetails", youtube_api_key, self.channel_id))
+			.send().await.unwrap()
+			.json().await.unwrap();
+		let upload_id = resp["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"].as_str().unwrap();
+
+		String::from(upload_id)
+	}
+
+	pub async fn get_video_count(&self) -> i32 {
+		dotenv::dotenv().ok();
+		let youtube_api_key = dotenv::var("YTAPIKEY").unwrap();
+		let resp: serde_json::Value = reqwest::Client::new()
+			.get(format!("https://www.googleapis.com/youtube/v3/playlistItems?key={}&part=contentDetails&playlistId={}", youtube_api_key, self.get_upload_id().await))
+			.send().await.unwrap()
+			.json().await.unwrap();
+		let video_count = resp["pageInfo"]["totalResults"].as_i64().unwrap();
+
+		video_count as i32
+	}
+
+	pub async fn get_latest_video(&self) -> Video {
+		dotenv::dotenv().ok();
+		let youtube_api_key = dotenv::var("YTAPIKEY").unwrap();
+		let resp: serde_json::Value = reqwest::Client::new()
+			.get(format!("https://www.googleapis.com/youtube/v3/playlistItems?key={}&part=contentDetails,snippet&playlistId={}", youtube_api_key, self.get_upload_id().await))
+			.send().await.unwrap()
+			.json().await.unwrap();
+		let video = &resp["items"][0];
+
+		Video::new(
+			String::from(video["contentDetails"]["videoId"].as_str().unwrap()),
+			String::from(video["snippet"]["title"].as_str().unwrap()),
+			String::from(video["snippet"]["description"].as_str().unwrap()),
+			String::from(video["snippet"]["thumbnails"]["default"]["url"].as_str().unwrap()),
+			String::from(video["contentDetails"]["videoPublishedAt"].as_str().unwrap()),
+			self.clone()
+		)
+	}
 }
 
 struct Subscription {
@@ -77,6 +120,28 @@ impl Subscription {
 		Self {
 			discord_id,
 			channel_id
+		}
+	}
+}
+
+struct Video {
+	pub video_id: String,
+	pub title: String,
+	pub description: String,
+	pub uploaded: String,
+	pub thumbnail: String, // TODO: Make this a datetime for formatting reasons
+	pub channel: YouTubeChannel
+}
+
+impl Video {
+	pub fn new(video_id: String, title: String, description: String, uploaded: String, thumbnail: String, channel: YouTubeChannel) -> Self {
+		Self {
+			video_id,
+			title,
+			description,
+			uploaded,
+			thumbnail,
+			channel
 		}
 	}
 }
@@ -333,9 +398,9 @@ async fn subscriptions(ctx: &Context, msg: &Message) -> CommandResult {
 
 	let nickname = msg.author_nick(ctx).await.unwrap();
 	let mut desc = String::from("");
-	for channel in sub_channels.iter() {
+	for (i, channel) in sub_channels.iter().enumerate() {
 		desc.push_str(
-			&format!("[{}]({})\n", channel.title, format!("https://www.youtube.com/channel/{}", channel.channel_id))
+			&format!("**{}:** [{}]({})\n", i + 1, channel.title, format!("https://www.youtube.com/channel/{}", channel.channel_id))
 		);
 	}
 	let _ = msg
@@ -349,6 +414,33 @@ async fn subscriptions(ctx: &Context, msg: &Message) -> CommandResult {
 			})
 		})
 		.await;
+
+	let selection_range = 1..sub_channels.len() as i32 + 1;
+	if let Some(reply) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(30)).await {
+		let user_selection = reply.content.parse::<i32>().unwrap();
+		if selection_range.contains(&user_selection) {
+			let channel = &sub_channels[(user_selection - 1) as usize];
+			let latest_video = channel.get_latest_video().await;
+			let _ = msg
+				.channel_id
+				.send_message(&ctx.http, |m| {
+					m.embed(|e| {
+						e.title(latest_video.title)
+							.description(format!("[Watch here!](https://www.youtube.com/watch?v={})\n\n{}", latest_video.video_id, latest_video.description))
+							.thumbnail(latest_video.channel.thumbnail)
+							.colour(Colour::from_rgb(255, 50, 20))
+							.image(latest_video.thumbnail)
+							.timestamp(latest_video.uploaded)
+					})
+				})
+				.await;
+			
+		} else {
+			let _ = msg.channel_id.say(&ctx.http, format!("{} was not a valid selection", user_selection)).await;
+		}
+	} else {
+		let _ = msg.channel_id.say(&ctx.http, "A selection was not made.").await;
+	};
 
 	Ok(())
 }
