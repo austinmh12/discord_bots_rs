@@ -1,7 +1,7 @@
 -- Add migration script here
 create table users (
-	guild_id INT
-	,discord_id INT
+	guild_id BIGINT
+	,discord_id BIGINT
 );
 
 CREATE TABLE channels (
@@ -12,6 +12,6 @@ CREATE TABLE channels (
 );
 
 CREATE TABLE subscriptions (
-	discord_id INT
+	discord_id BIGINT
 	,channel_id TEXT
 );

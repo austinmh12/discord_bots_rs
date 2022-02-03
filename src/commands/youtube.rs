@@ -1,5 +1,4 @@
 use std::{
-	collections::HashMap,
 	time::Duration,
 };
 
@@ -170,11 +169,17 @@ async fn get_subscriptions_for_channel(channel: YouTubeChannel) -> Vec<Subscript
 async fn add_subscription(sub: Subscription) {
 	let database = get_database_connection().await;
 	sqlx::query!("insert into subscriptions values (?,?)", sub.discord_id, sub.channel_id)
+		.execute(&database)
+		.await
+		.unwrap();
 }
 
 async fn delete_subscription(sub: Subscription) {
 	let database = get_database_connection().await;
 	sqlx::query!("delete from subscriptions where discord_id = ? and channel_id = ?", sub.discord_id, sub.channel_id)
+		.execute(&database)
+		.await
+		.unwrap();
 }
 
 async fn check_for_existing_sub(discord_id: u64, channel: YouTubeSearchResult) -> bool {
