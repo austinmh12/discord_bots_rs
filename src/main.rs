@@ -1,7 +1,13 @@
 #[macro_use]
 extern crate lazy_static;
 
-mod commands;
+use std::{
+	sync::{
+		atomic::{AtomicBool, Ordering},
+		Arc,
+	},
+	time::Duration,
+};
 
 use dotenv;
 
@@ -18,6 +24,8 @@ use serenity::framework::standard::{
     },
 };
 
+mod commands;
+
 use commands::{meme::*, youtube::*};
 
 #[group]
@@ -30,14 +38,27 @@ struct YouTube;
 
 struct Handler {
 	database: sqlx::SqlitePool,
+	is_loop_running: AtomicBool,
 }
 
 #[async_trait]
 impl EventHandler for Handler {
 	// Set the handler to be called on the `ready` event. This is called when a shard is booted, and a READY payload is sent by Discord.
 	// This payload contains a bunch of data.
-	async fn ready(&self, _: Context, ready: Ready) {
+	async fn ready(&self, _ctx: Context, ready: Ready) {
 		println!("{} is connected!", ready.user.name);
+
+		let ctx = Arc::new(_ctx);
+
+		if !self.is_loop_running.load(Ordering::Relaxed) {
+			let ctx1 = Arc::new(ctx);
+			tokio::spawn(async move {
+				loop {
+					commands::youtube::check_for_new_videos(Arc::clone(&ctx1)).await;
+					tokio::time::sleep(Duration::from_secs(3600)).await;
+				}
+			});
+		}
 	}
 
 	async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
@@ -75,7 +96,8 @@ async fn main() {
 	sqlx::migrate!("./migrations").run(&database).await.expect("Couldn't run database migrations");
 
 	let handler = Handler {
-		database
+		database,
+		is_loop_running: AtomicBool::new(false),
 	};
 
 	// Create a new instance of the client logging in as the bot. This will automatically
