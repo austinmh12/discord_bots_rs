@@ -301,7 +301,6 @@ async fn unsubscribe(ctx: &Context, msg: &Message) -> CommandResult {
 	let selection_range = 1..sub_channels.len() as i32 + 1;
 	if let Some(reply) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(30)).await {
 		let user_selection = reply.content.parse::<i32>().unwrap();
-		println!("{}", user_selection);
 		if selection_range.contains(&user_selection) {
 			let channel = &sub_channels[(user_selection - 1) as usize];
 			let _ = msg.channel_id.say(&ctx.http, format!("You unsubscribed from **{}**", channel.title)).await;
