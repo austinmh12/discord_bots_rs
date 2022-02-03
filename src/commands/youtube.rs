@@ -98,12 +98,17 @@ impl YouTubeChannel {
 			.send().await.unwrap()
 			.json().await.unwrap();
 		let video = &resp["items"][0];
+		let thumbnails = video["snippet"]["thumbnails"].as_object().unwrap();
+		let thumbnail = match thumbnails.get("standard") {
+			Some(x) => String::from(x["url"].as_str().unwrap()),
+			None => String::from(thumbnails["default"]["url"].as_str().unwrap())
+		};
 
 		Video::new(
 			String::from(video["contentDetails"]["videoId"].as_str().unwrap()),
 			String::from(video["snippet"]["title"].as_str().unwrap()),
 			String::from(video["snippet"]["description"].as_str().unwrap()),
-			String::from(video["snippet"]["thumbnails"]["default"]["url"].as_str().unwrap()),
+			thumbnail,
 			String::from(video["contentDetails"]["videoPublishedAt"].as_str().unwrap()),
 			self.clone()
 		)
@@ -128,19 +133,19 @@ struct Video {
 	pub video_id: String,
 	pub title: String,
 	pub description: String,
-	pub uploaded: String,
-	pub thumbnail: String, // TODO: Make this a datetime for formatting reasons
+	pub thumbnail: String, 
+	pub uploaded: String, // TODO: Make this a datetime for formatting reasons
 	pub channel: YouTubeChannel
 }
 
 impl Video {
-	pub fn new(video_id: String, title: String, description: String, uploaded: String, thumbnail: String, channel: YouTubeChannel) -> Self {
+	pub fn new(video_id: String, title: String, description: String, thumbnail: String, uploaded: String, channel: YouTubeChannel) -> Self {
 		Self {
 			video_id,
 			title,
 			description,
-			uploaded,
 			thumbnail,
+			uploaded,
 			channel
 		}
 	}
@@ -454,17 +459,16 @@ async fn latest_video(ctx: &Context, msg: &Message) -> CommandResult {
 		let user_selection = reply.content.parse::<i32>().unwrap();
 		if selection_range.contains(&user_selection) {
 			let channel = &sub_channels[(user_selection - 1) as usize];
-			let latest_video = channel.get_latest_video().await;
+			let video = channel.get_latest_video().await;
 			let _ = msg
 				.channel_id
 				.send_message(&ctx.http, |m| {
 					m.embed(|e| {
-						e.title(latest_video.title)
-							.description(format!("[Watch here!](https://www.youtube.com/watch?v={})\n\n{}", latest_video.video_id, latest_video.description))
-							.thumbnail(latest_video.channel.thumbnail)
+						e.title(video.title)
+							.description(format!("[Watch here!](https://www.youtube.com/watch?v={})\n\n{}", video.video_id, video.description))
+							.thumbnail(video.channel.thumbnail)
 							.colour(Colour::from_rgb(255, 50, 20))
-							.image(latest_video.thumbnail)
-							.timestamp(latest_video.uploaded)
+							.image(video.thumbnail)
 					})
 				})
 				.await;
