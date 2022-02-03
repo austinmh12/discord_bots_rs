@@ -34,6 +34,7 @@ impl YouTubeSearchResult {
 	}
 }
 
+#[derive(Clone)]
 struct YouTubeChannel {
 	pub channel_id: String,
 	pub title: String,
@@ -269,7 +270,51 @@ async fn subscribe(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[aliases(unsub)]
 async fn unsubscribe(ctx: &Context, msg: &Message) -> CommandResult {
-	// TODO: Implement this
+	let subs = get_subscriptions_for_user(format!("{}", msg.author.id.0)).await;
+	let mut sub_channels: Vec<YouTubeChannel> = <Vec<YouTubeChannel>>::new();
+	for sub in subs {
+		let channel = get_channel(sub.channel_id).await;
+		sub_channels.push(channel);
+	}
+
+	sub_channels.sort_by(|a, b| a.title.cmp(&b.title));
+
+	let nickname = msg.author_nick(ctx).await.unwrap();
+	let mut desc = String::from("Which channel would you like to unsubscribe from? (type the number)\n");
+	for (i, channel) in sub_channels.iter().enumerate() {
+		desc.push_str(
+			&format!("**{}:** [{}]({})\n", i + 1, channel.title, format!("https://www.youtube.com/channel/{}", channel.channel_id))
+		);
+	}
+	let _ = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e.title(format!("{}'s Subscriptions\n", nickname))
+					.description(desc)
+					.thumbnail(sub_channels[0].thumbnail.clone())
+					.colour(Colour::from_rgb(255, 50, 20))
+			})
+		})
+		.await;
+
+	let selection_range = 1..5;
+	if let Some(reply) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(30)).await {
+		let user_selection = reply.content.parse::<i32>().unwrap();
+		if selection_range.contains(&user_selection) {
+			let channel = &sub_channels[(user_selection - 1) as usize];
+			let _ = msg.channel_id.say(&ctx.http, format!("You unsubscribed from **{}**", channel.title)).await;
+			let channel_id = &channel.channel_id;
+			delete_subscription(Subscription::new(format!("{}", msg.author.id.0), String::from(channel_id))).await;
+			if get_subscriptions_for_channel(channel.clone()).await.len() == 0 {
+				delete_channel(channel.clone()).await;
+			}
+		} else {
+			let _ = msg.channel_id.say(&ctx.http, format!("{} was not a valid selection", user_selection)).await;
+		}
+	} else {
+		let _ = msg.channel_id.say(&ctx.http, "A selection was not made.").await;
+	};
 
 	Ok(())
 }
