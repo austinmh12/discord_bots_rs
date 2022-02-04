@@ -376,7 +376,7 @@ async fn unsubscribe(ctx: &Context, msg: &Message) -> CommandResult {
 			m.embed(|e| {
 				e.title(format!("{}'s Subscriptions\n", nickname))
 					.description(desc)
-					.thumbnail(sub_channels[0].thumbnail.clone())
+					.thumbnail(msg.author.avatar_url().unwrap())
 					.colour(Colour::from_rgb(255, 50, 20))
 			})
 		})
@@ -428,7 +428,7 @@ async fn subscriptions(ctx: &Context, msg: &Message) -> CommandResult {
 			m.embed(|e| {
 				e.title(format!("{}'s Subscriptions\n", nickname))
 					.description(desc)
-					.thumbnail(sub_channels[0].thumbnail.clone())
+					.thumbnail(msg.author.avatar_url().unwrap())
 					.colour(Colour::from_rgb(255, 50, 20))
 			})
 		})
@@ -462,7 +462,7 @@ async fn latest_video(ctx: &Context, msg: &Message) -> CommandResult {
 			m.embed(|e| {
 				e.title(format!("{}'s Subscriptions\n", nickname))
 					.description(desc)
-					.thumbnail(sub_channels[0].thumbnail.clone())
+					.thumbnail(msg.author.avatar_url().unwrap())
 					.colour(Colour::from_rgb(255, 50, 20))
 			})
 		})
@@ -499,7 +499,6 @@ async fn latest_video(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-// TODO: Make the descriptions of videos split on the first \n if there is one
 // TODO: Make the new video thing check join all the discord Id's of the subscribers for the 
 	// New **channel.title** video @user, @user
 
