@@ -417,7 +417,7 @@ async fn subscriptions(ctx: &Context, msg: &Message) -> CommandResult {
 
 	let nickname = msg.author_nick(ctx).await.unwrap();
 	let mut desc = String::from("");
-	for (i, channel) in sub_channels.iter().enumerate() {
+	for channel in sub_channels.iter() {
 		desc.push_str(
 			&format!("[{}]({})\n", channel.title, format!("https://www.youtube.com/channel/{}", channel.channel_id))
 		);
@@ -520,16 +520,22 @@ pub async fn check_for_new_videos(ctx: Arc<Context>) {
 			update_channel(channel.clone()).await;
 			let video = channel.get_latest_video().await;
 			let desc = video.desc();
+			let mut subscribers = <Vec<String>>::new();
+			for channel_sub in channel_subs {
+				subscribers.push(format!("<@{}>", channel_sub.discord_id));
+			}
+			let content = subscribers.join(", ");
 			let _ = discord_channel
 				.send_message(&ctx.http, |m| {
-					m.embed(|e| {
-						e.title(video.title)
-							.description(desc)
-							.thumbnail(video.channel.thumbnail)
-							.colour(Colour::from_rgb(255, 50, 20))
-							.image(video.thumbnail)
-							.url(format!("https://www.youtube.com/watch?v={}", video.video_id))
-					})
+					m.content(format!("New **{}** video! {}", channel.title, content))
+						.embed(|e| {
+							e.title(video.title)
+								.description(desc)
+								.thumbnail(video.channel.thumbnail)
+								.colour(Colour::from_rgb(255, 50, 20))
+								.image(video.thumbnail)
+								.url(format!("https://www.youtube.com/watch?v={}", video.video_id))
+						})
 				})
 				.await;
 		}
