@@ -78,8 +78,8 @@ async fn main() {
 
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token. Make sure one is commented out.
-	// let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
-	let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
+	let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
+	// let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
 
 	// Initiate database connection, creating the file if needed
 	let database = sqlx::sqlite::SqlitePoolOptions::new()

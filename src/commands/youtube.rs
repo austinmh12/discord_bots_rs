@@ -499,13 +499,10 @@ async fn latest_video(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-// TODO: Make the new video thing check join all the discord Id's of the subscribers for the 
-	// New **channel.title** video @user, @user
-
 // Background task to loop through set of YouTubeChannels and fetch video counts with reqwest
 pub async fn check_for_new_videos(ctx: Arc<Context>) {
-	// let discord_channel = ChannelId(623291442726436884); // Youtuber Updates
-	let discord_channel = ChannelId(932619188323885076); // testing-bot
+	let discord_channel = ChannelId(623291442726436884); // Youtuber Updates
+	// let discord_channel = ChannelId(932619188323885076); // testing-bot
 	let channels = get_channels().await;
 	for mut channel in channels {
 		let channel_subs = get_subscriptions_for_channel(channel.clone()).await;
