@@ -153,6 +153,16 @@ impl Video {
 			channel
 		}
 	}
+
+	pub fn desc(&self) -> String {
+		let ret = if self.description.contains("\n") {
+			String::from(self.description.split("\n").collect::<Vec<&str>>()[0])
+		} else {
+			self.description.clone()
+		};
+
+		ret
+	}
 }
 
 // Database queries
@@ -464,15 +474,17 @@ async fn latest_video(ctx: &Context, msg: &Message) -> CommandResult {
 		if selection_range.contains(&user_selection) {
 			let channel = &sub_channels[(user_selection - 1) as usize];
 			let video = channel.get_latest_video().await;
+			let desc = video.desc();
 			let _ = msg
 				.channel_id
 				.send_message(&ctx.http, |m| {
 					m.embed(|e| {
 						e.title(video.title)
-							.description(format!("[Watch here!](https://www.youtube.com/watch?v={})\n\n{}", video.video_id, video.description))
+							.description(desc)
 							.thumbnail(video.channel.thumbnail)
 							.colour(Colour::from_rgb(255, 50, 20))
 							.image(video.thumbnail)
+							.url(format!("https://www.youtube.com/watch?v={}", video.video_id))
 					})
 				})
 				.await;
@@ -508,14 +520,16 @@ pub async fn check_for_new_videos(ctx: Arc<Context>) {
 			channel.video_count = video_count;
 			update_channel(channel.clone()).await;
 			let video = channel.get_latest_video().await;
+			let desc = video.desc();
 			let _ = discord_channel
 				.send_message(&ctx.http, |m| {
 					m.embed(|e| {
 						e.title(video.title)
-							.description(format!("[Watch here!](https://www.youtube.com/watch?v={})\n\n{}", video.video_id, video.description))
+							.description(desc)
 							.thumbnail(video.channel.thumbnail)
 							.colour(Colour::from_rgb(255, 50, 20))
 							.image(video.thumbnail)
+							.url(format!("https://www.youtube.com/watch?v={}", video.video_id))
 					})
 				})
 				.await;
