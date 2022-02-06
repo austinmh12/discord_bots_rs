@@ -1,0 +1,173 @@
+{
+  "db": "SQLite",
+  "022c90d1e7c3ba8be9e91b80351de946d919eaeb47c93773c3fa4a261d2e87bc": {
+    "query": "update channels set video_count = ? where channel_id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "3df7117530dda37f3109e8563648b3b998477d43c630030c5ee2eb42bad955a5": {
+    "query": "insert into subscriptions values (?,?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "3f99bbf96421324a19942295e1429a0ea830f7d06545c8e705efa1fee9ecd498": {
+    "query": "select * from subscriptions where discord_id = ?",
+    "describe": {
+      "columns": [
+        {
+          "name": "discord_id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "5abbcdfdea90876c8065f9e007a2dbbcf50b85e64129e37b001c5dacbfc97945": {
+    "query": "insert into channels values (?,?,?,?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
+  "6da4c76c8c88014f5613ef8c12a0f99ccbe5863c61e8ef76a7e68fee9b61a0d4": {
+    "query": "select channel_id, title, thumbnail, video_count as \"video_count: i32\" from channels;",
+    "describe": {
+      "columns": [
+        {
+          "name": "channel_id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "thumbnail",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "video_count: i32",
+          "ordinal": 3,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "8da9e399115f7b1e51e3276b43661044c2d377f0dc4ecc69d451a8f1722f6b9a": {
+    "query": "select * from subscriptions where channel_id = ?",
+    "describe": {
+      "columns": [
+        {
+          "name": "discord_id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
+  "afee0a1fcf83256becfb48f6a9cc00aa261e146c901ea1c565afceedf0596df4": {
+    "query": "select channel_id, title, thumbnail, video_count as \"video_count: i32\" from channels where channel_id = ?;",
+    "describe": {
+      "columns": [
+        {
+          "name": "channel_id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "title",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "thumbnail",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "video_count: i32",
+          "ordinal": 3,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "bcb9723bea9064e4000c2fefca5f881fbaa861b7b3a8e591de6001e467967806": {
+    "query": "delete from subscriptions where discord_id = ? and channel_id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 2
+      },
+      "nullable": []
+    }
+  },
+  "f595c8c2d23f61b95e7740d3e354e92ba56a25dde17499817ce7a9c7d11555c0": {
+    "query": "delete from channels where channel_id = ?",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": []
+    }
+  }
+}
