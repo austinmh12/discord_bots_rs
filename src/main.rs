@@ -37,7 +37,6 @@ struct Meme;
 struct YouTube;
 
 struct Handler {
-	database: sqlx::SqlitePool,
 	is_loop_running: AtomicBool,
 }
 
@@ -96,7 +95,6 @@ async fn main() {
 	sqlx::migrate!("./migrations").run(&database).await.expect("Couldn't run database migrations");
 
 	let handler = Handler {
-		database,
 		is_loop_running: AtomicBool::new(false),
 	};
 
