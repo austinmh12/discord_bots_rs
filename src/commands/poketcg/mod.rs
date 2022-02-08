@@ -42,22 +42,36 @@ use serenity::framework::standard::{
 	CommandResult
 };
 use serenity::model::{
-	channel::Message,
+	channel::{Message, ReactionType},
 	//id::{ChannelId}
 	//prelude::*,
 };
-//use serenity::utils::Colour;
+use serenity::utils::Colour;
 use serenity::prelude::*;
 //use serenity::collector::MessageCollectorBuilder;
 use serde_json;
 
 #[command]
 async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// let search_str = args.rest();
-	// let data = api_call("cards", search_str).await.unwrap();
-	// println!("{:?}", data);
-	let cards = card::get_cards().await;
-	println!("{} {}", cards[0].id, cards[0].name);
+	println!("Calling search");
+	let search_str = args.rest();
+	let left_arrow = ReactionType::try_from("⬅️").unwrap();
+	let right_arrow = ReactionType::try_from("➡️").unwrap();
+	println!("Got emojis");
+	let cards = card::get_cards_with_query(search_str).await;
+	println!("Got cards: {}", cards.len());
+	let cur_card = &cards[0];
+	let _ = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e.title(cur_card.name.clone())
+					.description(format!("**ID:** {}\n**Price:** ${:.2}\n", cur_card.id.clone(), cur_card.price.clone()))
+					.colour(Colour::from_rgb(255, 50, 20))
+					.image(cur_card.image.clone())
+			})
+			.reactions([left_arrow, right_arrow])
+		}).await;
 
 	Ok(())
 }
