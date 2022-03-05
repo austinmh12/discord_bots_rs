@@ -9,6 +9,7 @@ pub struct Card {
 	pub image: String
 }
 
+
 impl Card {
 	pub fn new(id: String, name: String, set_id: String, number: String, price: f32, image: String) -> Self {
 		Self {

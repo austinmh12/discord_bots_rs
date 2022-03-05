@@ -37,7 +37,7 @@ struct Meme;
 struct YouTube;
 
 #[group]
-#[commands(search)]
+#[commands(search, random)]
 struct PokeTCG;
 
 struct Handler {
@@ -76,8 +76,8 @@ impl EventHandler for Handler {
 async fn main() {
 	let framework = StandardFramework::new()
 		.configure(|c| c.prefix("."))
-		.group(&MEME_GROUP)
-		.group(&YOUTUBE_GROUP)
+		// .group(&MEME_GROUP)
+		// .group(&YOUTUBE_GROUP)
 		.group(&POKETCG_GROUP);
 
 	dotenv::dotenv().ok();
