@@ -59,46 +59,50 @@ use rand::seq::SliceRandom;
 async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-	let mut idx = 0;
+	let mut idx: i16 = 0;
 	let mut cur_card = &cards[idx as usize];
+	let mut message = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e.title(&cur_card.name)
+					.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &cur_card.id, &cur_card.price))
+					.colour(Colour::from_rgb(255, 50, 20))
+					.image(&cur_card.image);
+				
+				if cards.len() > 1 {
+					e.footer(|f| f.text(format!("{}/{}", idx + 1, cards.len())));
+				}
 
-	fn is_left_right() -> bool {
-		true
-	}
+				e
+			});
 
+			if cards.len() > 1 {
+				m.reactions([left_arrow.clone(), right_arrow.clone()]);
+			}
+
+			m
+		}).await.unwrap();
 	
 	loop {
-		let message = msg
-			.channel_id
-			.send_message(&ctx.http, |m| {
-				m.embed(|e| {
-					e.title(&cur_card.name)
-						.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &cur_card.id, &cur_card.price))
-						.colour(Colour::from_rgb(255, 50, 20))
-						.image(&cur_card.image)
-				});
-	
-				if cards.len() > 1 {
-					m.reactions([left_arrow.clone(), right_arrow.clone()]);
-				}
-	
-				m
-			}).await.unwrap();
-
+		if cards.len() <= 1 {
+			break; // Exit before anything. Probably a way to do this before entering.
+		}
 		if let Some(reaction) = &message
 			.await_reaction(&ctx)
 			.timeout(Duration::from_secs(30))
 			.author_id(msg.author.id)
+			.removed(true)
 			.await
 		{
 			let emoji = &reaction.as_inner_ref().emoji;
 			let _ = match emoji.as_data().as_str() {
 				"⬅️" => {
-					idx = (idx - 1) % cards.len();
+					idx = (idx - 1).rem_euclid(cards.len() as i16);
 					cur_card = &cards[idx as usize];
 				},
 				"➡️" => {
-					idx = (idx + 1) % cards.len();
+					idx = (idx + 1) % cards.len() as i16;
 					cur_card = &cards[idx as usize];
 				},
 				_ => continue
@@ -107,6 +111,15 @@ async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) 
 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 			break;
 		}
+		message.edit(&ctx, |m| {
+			m.embed(|e| {
+				e.title(&cur_card.name)
+					.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &cur_card.id, &cur_card.price))
+					.colour(Colour::from_rgb(255, 50, 20))
+					.image(&cur_card.image)
+					.footer(|f| f.text(format!("{}/{}", idx + 1, cards.len())))
+			})
+		}).await.unwrap();
 	}
 
 	Ok(())
@@ -116,24 +129,8 @@ async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) 
 async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	println!("Calling search");
 	let search_str = args.rest();
-	// let left_arrow = ReactionType::try_from("⬅️").unwrap();
-	let left_arrow = ReactionType::try_from("⬅️")?;
-	let right_arrow = ReactionType::try_from("➡️")?;
-	println!("Got emojis");
-	let cards = card::get_cards_with_query(search_str).await;
-	println!("Got cards: {}", cards.len());
-	let cur_card = &cards[0];
-	let _ = msg
-		.channel_id
-		.send_message(&ctx.http, |m| {
-			m.embed(|e| {
-				e.title(&cur_card.name)
-					.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &cur_card.id, &cur_card.price))
-					.colour(Colour::from_rgb(255, 50, 20))
-					.image(&cur_card.image)
-			})
-			.reactions([left_arrow, right_arrow])
-		}).await;
+	let cards = card::get_cards_with_query(format!("name:{}", search_str).as_str()).await;
+	paginated_embeds(ctx, msg, cards).await?;
 
 	Ok(())
 }
