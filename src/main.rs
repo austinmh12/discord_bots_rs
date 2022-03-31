@@ -1,3 +1,5 @@
+#[allow(unused)] // Ignore these warnings for now as I'm slowly learning and piecing things together
+
 #[macro_use]
 extern crate lazy_static;
 
