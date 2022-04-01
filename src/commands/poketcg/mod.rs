@@ -118,100 +118,240 @@ async fn paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<CreateEmbed>
 	Ok(())
 }
 
+// #[command("card")]
+// #[sub_commands(card_search, card_random)]
+// async fn card_main(ctx: &Context, msg: &Message) -> CommandResult {
+// 	let card_help_str = "Here are the available **card** commands:
+// 	**.card search**: Searches for a card with a matching name
+// 	**.card random**: Shows a random card";
+// 	msg.reply(&ctx.http, card_help_str).await?;
+
+// 	Ok(())
+// }
+
+// #[command("search")]
+// async fn card_search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+// 	println!("Calling search");
+// 	let search_str = args.rest();
+// 	let cards = card::get_cards_with_query(format!("name:{}", search_str).as_str()).await;
+// 	let mut card_embeds = vec![];
+// 	for card in cards {
+// 		card_embeds.push(card.embed());
+// 	}
+// 	paginated_embeds(ctx, msg, card_embeds).await?;
+
+// 	Ok(())
+// }
+
+// #[command("set")]
+// #[sub_commands(search_set)]
+// async fn set_main(ctx: &Context, msg: &Message) -> CommandResult {
+// 	let sets = sets::get_sets().await;
+// 	let mut set_embeds = vec![];
+// 	for set in sets {
+// 		set_embeds.push(set.embed());
+// 	}
+// 	paginated_embeds(ctx, msg, set_embeds).await?;
+
+// 	Ok(())
+// }
+
+#[command("my")]
+#[sub_commands(my_cards, my_packs, my_stats)]
+async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("cards")]
+async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("packs")]
+async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("stats")]
+async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("sell")]
+#[sub_commands(sell_card, sell_under, sell_dups, sell_all, sell_packs)]
+async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
 #[command("card")]
-#[sub_commands(card_search, card_random)]
-async fn card_main(ctx: &Context, msg: &Message) -> CommandResult {
-	let card_help_str = "Here are the available **card** commands:
-	**.card search**: Searches for a card with a matching name
-	**.card random**: Shows a random card";
-	msg.reply(&ctx.http, card_help_str).await?;
+async fn sell_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("under")]
+async fn sell_under(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("dups")]
+async fn sell_dups(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("all")]
+async fn sell_all(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("packs")]
+async fn sell_packs(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+
 
 	Ok(())
 }
 
 #[command("search")]
-async fn card_search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	println!("Calling search");
-	let search_str = args.rest();
-	let cards = card::get_cards_with_query(format!("name:{}", search_str).as_str()).await;
-	let mut card_embeds = vec![];
-	for card in cards {
-		card_embeds.push(card.embed());
-	}
-	paginated_embeds(ctx, msg, card_embeds).await?;
+#[sub_commands(search_card, search_set)]
+async fn search_main(ctx: &Context, msg: &Message) -> CommandResult {
+	// Should redirect to .search card, .search set
 
 	Ok(())
 }
 
-#[command("random")]
-async fn card_random(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	println!("Calling search");
-	let search_str = args.rest();
-	// let left_arrow = ReactionType::try_from("⬅️").unwrap();
-	// let right_arrow = ReactionType::try_from("➡️").unwrap();
-	let cards = card::get_cards_with_query(format!("name:{}", search_str).as_str()).await;
-	println!("Got cards: {}", cards.len());
-	let cur_card = &cards.choose(&mut rand::thread_rng()).unwrap();
-	let _ = msg
-		.channel_id
-		.send_message(&ctx.http, |m| {
-			m.embed(|e| {
-				e.title(cur_card.name.clone())
-					.description(format!("**ID:** {}\n**Price:** ${:.2}\n", cur_card.id.clone(), cur_card.price.clone()))
-					.colour(Colour::from_rgb(255, 50, 20))
-					.image(cur_card.image.clone())
-			})
-		}).await;
+#[command("card")]
+async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
 
 	Ok(())
 }
 
 #[command("set")]
-#[sub_commands(search_set)]
-async fn set_main(ctx: &Context, msg: &Message) -> CommandResult {
-	let sets = sets::get_sets().await;
-	let mut set_embeds = vec![];
-	for set in sets {
-		set_embeds.push(set.embed());
-	}
-	paginated_embeds(ctx, msg, set_embeds).await?;
-
-	Ok(())
-}
-
-#[command("search")]
 async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	
 
+	Ok(())
+}
+
+#[command("sets")]
+async fn sets_command(ctx: &Context, msg: &Message) -> CommandResult {
+	
 
 	Ok(())
 }
 
-/* Command list
- * mycards
- * sell
- * 		card
- * 		under
- * 		dups
- * 		all
- * 		packs
- * search
- * sets
- * set
- * packs
- * openpack
- * store
- * stats
- * daily
- * quiz
- * savelist
- * 		add
- * 		remove
- * 		clear
- * trade
- * 		card
- * 		pack
-*/
+#[command("set")]
+async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("openpack")]
+#[aliases("op")]
+async fn open_pack_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("store")]
+async fn store_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("daily")]
+#[aliases("d")]
+async fn daily_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("quiz")]
+async fn quiz_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("savelist")]
+#[aliases("sl")]
+#[sub_commands(savelist_add, savelist_list, savelist_clear, savelist_remove)]
+async fn savelist_main(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("list")]
+async fn savelist_list(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("add")]
+async fn savelist_add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("remove")]
+async fn savelist_remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("clear")]
+async fn savelist_clear(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("trade")]
+#[sub_commands(trade_card, trade_pack)]
+async fn trade_main(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("card")]
+async fn trade_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("pack")]
+async fn trade_pack(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
 
 /* Tasks
  * Refresh daily packs
@@ -232,5 +372,4 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
  * 		async fn paginated_embeds(pages: Vec<T>)
  * Need to find a way to implement the store
  * Need to find a way to implement the cache
- * Need to learn how to add and wait for reactions
 */
