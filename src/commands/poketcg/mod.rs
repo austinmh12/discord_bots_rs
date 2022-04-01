@@ -61,37 +61,30 @@ pub trait PaginateEmbed {
 }
 
 // paginated embeds to search through cards
-// TODO: Look into making a PaginateEmbed trait
-async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) -> Result<(), String> {
+async fn paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<CreateEmbed>) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let mut idx: i16 = 0;
-	let mut cur_card = &cards[idx as usize];
+	// let mut cur_embed = &embeds[idx as usize].to_owned();
 	let mut message = msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
-			m.embed(|e| {
-				e.title(&cur_card.name)
-					.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &cur_card.id, &cur_card.price))
-					.colour(Colour::from_rgb(255, 50, 20))
-					.image(&cur_card.image);
-				
-				if cards.len() > 1 {
-					e.footer(|f| f.text(format!("{}/{}", idx + 1, cards.len())));
-				}
+			let mut cur_embed = embeds[idx as usize].clone();
+			// let mut e = cur_card.embed();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			m.set_embed(cur_embed);
 
-				e
-			});
-
-			if cards.len() > 1 {
+			if embeds.len() > 1 {
 				m.reactions([left_arrow.clone(), right_arrow.clone()]);
 			}
 
-			m
+			m			
 		}).await.unwrap();
 	
 	loop {
-		if cards.len() <= 1 {
+		if embeds.len() <= 1 {
 			break; // Exit before anything. Probably a way to do this before entering.
 		}
 		if let Some(reaction) = &message
@@ -102,15 +95,9 @@ async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) 
 			.await
 		{
 			let emoji = &reaction.as_inner_ref().emoji;
-			let _ = match emoji.as_data().as_str() {
-				"⬅️" => {
-					idx = (idx - 1).rem_euclid(cards.len() as i16);
-					cur_card = &cards[idx as usize];
-				},
-				"➡️" => {
-					idx = (idx + 1) % cards.len() as i16;
-					cur_card = &cards[idx as usize];
-				},
+			match emoji.as_data().as_str() {
+				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
+				"➡️" => idx = (idx + 1) % embeds.len() as i16,
 				_ => continue
 			};
 		} else {
@@ -118,13 +105,13 @@ async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) 
 			break;
 		}
 		message.edit(&ctx, |m| {
-			m.embed(|e| {
-				e.title(&cur_card.name)
-					.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &cur_card.id, &cur_card.price))
-					.colour(Colour::from_rgb(255, 50, 20))
-					.image(&cur_card.image)
-					.footer(|f| f.text(format!("{}/{}", idx + 1, cards.len())))
-			})
+			let mut cur_embed = embeds[idx as usize].clone();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			m.set_embed(cur_embed);
+
+			m
 		}).await.unwrap();
 	}
 
@@ -147,7 +134,11 @@ async fn card_search(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	println!("Calling search");
 	let search_str = args.rest();
 	let cards = card::get_cards_with_query(format!("name:{}", search_str).as_str()).await;
-	paginated_embeds(ctx, msg, cards).await?;
+	let mut card_embeds = vec![];
+	for card in cards {
+		card_embeds.push(card.embed());
+	}
+	paginated_embeds(ctx, msg, card_embeds).await?;
 
 	Ok(())
 }
