@@ -159,28 +159,28 @@ async fn paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<CreateEmbed>
 #[command("my")]
 #[sub_commands(my_cards, my_packs, my_stats)]
 async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("cards")]
 async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("packs")]
 async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("stats")]
 async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
@@ -188,42 +188,42 @@ async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("sell")]
 #[sub_commands(sell_card, sell_under, sell_dups, sell_all, sell_packs)]
 async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("card")]
 async fn sell_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("under")]
 async fn sell_under(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("dups")]
 async fn sell_dups(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("all")]
 async fn sell_all(ctx: &Context, msg: &Message) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("packs")]
 async fn sell_packs(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-
+	// TODO: Set up database
 
 	Ok(())
 }
@@ -267,7 +267,7 @@ async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 #[command("openpack")]
 #[aliases("op")]
 async fn open_pack_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
@@ -282,7 +282,7 @@ async fn store_command(ctx: &Context, msg: &Message, args: Args) -> CommandResul
 #[command("daily")]
 #[aliases("d")]
 async fn daily_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
@@ -298,35 +298,35 @@ async fn quiz_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult
 #[aliases("sl")]
 #[sub_commands(savelist_add, savelist_list, savelist_clear, savelist_remove)]
 async fn savelist_main(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("list")]
 async fn savelist_list(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("add")]
 async fn savelist_add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("remove")]
 async fn savelist_remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("clear")]
 async fn savelist_clear(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
@@ -334,14 +334,14 @@ async fn savelist_clear(ctx: &Context, msg: &Message, args: Args) -> CommandResu
 #[command("trade")]
 #[sub_commands(trade_card, trade_pack)]
 async fn trade_main(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
 
 #[command("card")]
 async fn trade_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Set up database
 
 	Ok(())
 }
