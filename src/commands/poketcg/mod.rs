@@ -273,7 +273,9 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command("sets")]
 async fn sets_command(ctx: &Context, msg: &Message) -> CommandResult {
-	
+	let sets = sets::get_sets().await;
+	let embeds = sets.iter().map(|s| s.embed()).collect::<Vec<_>>();
+	paginated_embeds(ctx, msg, embeds).await?;
 
 	Ok(())
 }
