@@ -244,8 +244,12 @@ async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	let search_str = args.rest();
 	let cards = card::get_cards_with_query(&format!("name:{}", search_str))
 		.await;
-	let embeds = cards.iter().map(|c| c.embed()).collect::<Vec<_>>();
-	paginated_embeds(ctx, msg, embeds).await?;
+	if cards.len() == 0 {
+		msg.reply(&ctx.http, "No cards found with that name.").await?;
+	} else {
+		let embeds = cards.iter().map(|c| c.embed()).collect::<Vec<_>>();
+		paginated_embeds(ctx, msg, embeds).await?;
+	}
 
 	Ok(())
 }
