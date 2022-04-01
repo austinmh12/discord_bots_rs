@@ -253,6 +253,8 @@ async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 
 	Ok(())
 }
+// NtS: Maybe make .search card name <cardName> and .search card id <cardId> ?
+// NtS: (N)ote (t)o (S)elf
 
 #[command("set")]
 async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
