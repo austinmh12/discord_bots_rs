@@ -56,6 +56,7 @@ use serde_json;
 use rand::seq::SliceRandom;
 
 // paginated embeds to search through cards
+// TODO: Look into making a PaginateEmbed trait
 async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
