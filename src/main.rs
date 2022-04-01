@@ -40,7 +40,7 @@ struct Meme;
 struct YouTube;
 
 #[group]
-#[commands(search, random)]
+#[commands(card_main)]
 struct PokeTCG;
 
 struct Handler {

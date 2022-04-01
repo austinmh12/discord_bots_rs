@@ -37,7 +37,7 @@ pub mod sets;
 
 use serenity::framework::standard::{
 	macros::{
-		command,
+		command, group,
 	},
 	Args,
 	CommandResult
@@ -127,8 +127,19 @@ async fn paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>) 
 	Ok(())
 }
 
-#[command]
-async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+#[command("card")]
+#[sub_commands(card_search, card_random)]
+async fn card_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let card_help_str = "Here are the available **card** commands:
+	**.card search**: Searches for a card with a matching name
+	**.card random**: Shows a random card";
+	msg.reply(&ctx.http, card_help_str).await?;
+
+	Ok(())
+}
+
+#[command("search")]
+async fn card_search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	println!("Calling search");
 	let search_str = args.rest();
 	let cards = card::get_cards_with_query(format!("name:{}", search_str).as_str()).await;
@@ -137,8 +148,8 @@ async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	Ok(())
 }
 
-#[command]
-async fn random(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+#[command("random")]
+async fn card_random(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	println!("Calling search");
 	let search_str = args.rest();
 	// let left_arrow = ReactionType::try_from("⬅️").unwrap();
