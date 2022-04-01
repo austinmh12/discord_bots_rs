@@ -3,13 +3,15 @@ use serde_json::json;
 use super::*;
 use crate::sets::Set;
 
+#[derive(Clone)]
 pub struct Card {
 	pub id: String,
 	pub name: String,
 	pub set: Set, // This will eventually be a Set object
 	pub number: String,
 	pub price: f32,
-	pub image: String
+	pub image: String,
+	pub rarity: String
 }
 
 impl Card {
@@ -46,7 +48,8 @@ impl Card {
 			set: Set::from_json(obj.get("set").unwrap()),
 			number: String::from(obj["number"].as_str().unwrap()),
 			price: price as f32,
-			image: String::from(obj["images"]["large"].as_str().unwrap())
+			image: String::from(obj["images"]["large"].as_str().unwrap()),
+			rarity: String::from(obj["rarity"].as_str().unwrap())
 		}
 	}
 }
@@ -56,7 +59,7 @@ impl PaginateEmbed for Card {
 		let mut ret = CreateEmbed::default();
 		ret
 			.title(&self.name)
-			.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &self.id, &self.price))
+			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n", &self.id, &self.rarity, &self.price))
 			.colour(Colour::from_rgb(255, 50, 20))
 			.image(&self.image);
 

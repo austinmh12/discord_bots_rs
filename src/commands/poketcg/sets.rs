@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Clone)]
 pub struct Set {
 	pub id: String,
 	pub name: String,
