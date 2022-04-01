@@ -26,6 +26,20 @@ impl Set {
 	}
 }
 
+impl PaginateEmbed for Set {
+	fn embed(&self) -> CreateEmbed {
+		let mut ret = CreateEmbed::default();
+		ret
+			.title(&self.name)
+			.description(format!("**Series:** {}\n**Total cards:** ${}\n**Pack price:** 0.01\n**ID:** {}", &self.series, &self.printed, &self.id))
+			.colour(Colour::from_rgb(255, 50, 20))
+			.image(&self.logo)
+			.thumbnail(&self.symbol);
+
+		ret
+	}
+}
+
 pub async fn get_sets() -> Vec<Set> {
 	let mut ret = vec![];
 	let data = api_call("sets", None)

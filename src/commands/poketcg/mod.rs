@@ -169,16 +169,20 @@ async fn card_random(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 #[command("set")]
 #[sub_commands(search_set)]
 async fn set_main(ctx: &Context, msg: &Message) -> CommandResult {
-	let search_help_str = "Here are the available **set** commands:
-	**.set search**: Searches for a set with a matching name.";
-	msg.reply(&ctx.http, search_help_str).await?;
+	let sets = sets::get_sets().await;
+	let mut set_embeds = vec![];
+	for set in sets {
+		set_embeds.push(set.embed());
+	}
+	paginated_embeds(ctx, msg, set_embeds).await?;
 
 	Ok(())
 }
 
 #[command("search")]
 async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	let sets = sets::get_sets().await;
+	
+
 
 	Ok(())
 }
