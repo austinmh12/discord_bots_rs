@@ -9,7 +9,6 @@ pub struct Card {
 	pub image: String
 }
 
-
 impl Card {
 	pub fn new(id: String, name: String, set_id: String, number: String, price: f32, image: String) -> Self {
 		Self {
@@ -30,6 +29,19 @@ impl Card {
 			price: 0.01,
 			image: String::from(obj["images"]["large"].as_str().unwrap())
 		}
+	}
+}
+
+impl PaginateEmbed for Card {
+	fn embed(&self) -> CreateEmbed {
+		let mut ret = CreateEmbed::default();
+		ret
+			.title(&self.name)
+			.description(format!("**ID:** {}\n**Price:** ${:.2}\n", &self.id, &self.price))
+			.colour(Colour::from_rgb(255, 50, 20))
+			.image(&self.image);
+
+		ret
 	}
 }
 

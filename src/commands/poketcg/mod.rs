@@ -35,13 +35,13 @@ pub mod sets;
 // 	collections::HashMap,
 // };
 
-use serenity::framework::standard::{
+use serenity::{framework::standard::{
 	macros::{
-		command, group,
+		command,
 	},
 	Args,
 	CommandResult
-};
+}, builder::CreateEmbed};
 use serenity::model::{
 	channel::{Message, ReactionType},
 	//id::{ChannelId}
@@ -55,6 +55,10 @@ use std::time::Duration;
 //use serenity::collector::MessageCollectorBuilder;
 use serde_json;
 use rand::seq::SliceRandom;
+
+pub trait PaginateEmbed {
+	fn embed(&self) -> CreateEmbed;
+}
 
 // paginated embeds to search through cards
 // TODO: Look into making a PaginateEmbed trait
