@@ -1,32 +1,51 @@
+use serde_json::json;
+
 use super::*;
+use crate::sets::Set;
 
 pub struct Card {
 	pub id: String,
 	pub name: String,
-	pub set_id: String, // This will eventually be a Set object
+	pub set: Set, // This will eventually be a Set object
 	pub number: String,
 	pub price: f32,
 	pub image: String
 }
 
 impl Card {
-	pub fn new(id: String, name: String, set_id: String, number: String, price: f32, image: String) -> Self {
-		Self {
-			id,
-			name,
-			set_id,
-			number,
-			price,
-			image
-		}
-	}
 	pub fn from_json(obj: &serde_json::Value) -> Self {
+		let price = match obj.pointer("/tcgplayer/prices/normal/market") {
+			Some(x) => x.as_f64().unwrap(),
+			None => match obj.pointer("/tcgplayer/prices/normal/mid") {
+				Some(y) => y.as_f64().unwrap(),
+				None => match obj.pointer("/tcgplayer/prices/holofoil/market") {
+					Some(z) => z.as_f64().unwrap(),
+					None => match obj.pointer("/tcgplayer/prices/holofoil/mid") {
+						Some(t) => t.as_f64().unwrap(),
+						None => match obj.pointer("/tcgplayer/prices/reverseHolofoil/market") {
+							Some(w) => w.as_f64().unwrap(),
+							None => match obj.pointer("/tcgplayer/prices/reverseHolofoil/mid") {
+								Some(a) => a.as_f64().unwrap(),
+								None => match obj.pointer("/tcgplayer/prices/1stEditionNormal/market") {
+									Some(b) => b.as_f64().unwrap(),
+									None => match obj.pointer("/cardmarket/prices/averageSellPrice") {
+										Some(c) => c.as_f64().unwrap(),
+										None => 0.01
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+
 		Self {
 			id: String::from(obj["id"].as_str().unwrap()),
 			name: String::from(obj["name"].as_str().unwrap()),
-			set_id: String::from(obj["set"]["id"].as_str().unwrap()),
+			set: Set::from_json(obj.get("set").unwrap()),
 			number: String::from(obj["number"].as_str().unwrap()),
-			price: 0.01,
+			price: price as f32,
 			image: String::from(obj["images"]["large"].as_str().unwrap())
 		}
 	}
