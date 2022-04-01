@@ -54,8 +54,17 @@ pub async fn get_sets() -> Vec<Set> {
 	ret
 }
 
-pub fn get_set(id: &String) -> Set {
-	unimplemented!();
+pub async fn get_set(id: &str) -> Option<Set> {
+	let data = api_call(&format!("sets/{}", id), None)
+		.await
+		.unwrap();
+	let set_data = data.get("data");
+	let set = match set_data {
+		Some(x) => Some(Set::from_json(x)),
+		None => None
+	};
+
+	set
 }
 
 pub async fn get_sets_with_query(query: &str) -> Vec<Set> {

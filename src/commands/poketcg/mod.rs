@@ -282,7 +282,14 @@ async fn sets_command(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("set")]
 async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	let set_id = args.rest();
+	let set = sets::get_set(set_id).await;
+	match set {
+		Some(x) => paginated_embeds(ctx, msg, vec![x.embed()]).await?,
+		None => {
+			msg.reply(&ctx.http, "No set found with that id.").await?;
+		}
+	}
 
 	Ok(())
 }
