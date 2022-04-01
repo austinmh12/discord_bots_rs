@@ -231,21 +231,32 @@ async fn sell_packs(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command("search")]
 #[sub_commands(search_card, search_set)]
 async fn search_main(ctx: &Context, msg: &Message) -> CommandResult {
-	// Should redirect to .search card, .search set
+	let search_help_str = "Here are the available **search** commands:
+	**.search card:** Searches for a card with a matching name
+	**.search set:** Searches for a set with a matching name";
+	msg.reply(&ctx.http, search_help_str).await?;
 
 	Ok(())
 }
 
 #[command("card")]
 async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	let search_str = args.rest();
+	let cards = card::get_cards_with_query(&format!("name:{}", search_str))
+		.await;
+	let embeds = cards.iter().map(|c| c.embed()).collect::<Vec<_>>();
+	paginated_embeds(ctx, msg, embeds).await?;
 
 	Ok(())
 }
 
 #[command("set")]
 async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	let search_str = args.rest();
+	let sets = sets::get_sets_with_query(&format!("name:{}", search_str))
+		.await;
+	let embeds = sets.iter().map(|c| c.embed()).collect::<Vec<_>>();
+	paginated_embeds(ctx, msg, embeds).await?;
 
 	Ok(())
 }
