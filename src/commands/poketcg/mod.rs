@@ -259,8 +259,12 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	let search_str = args.rest();
 	let sets = sets::get_sets_with_query(&format!("name:{}", search_str))
 		.await;
-	let embeds = sets.iter().map(|c| c.embed()).collect::<Vec<_>>();
-	paginated_embeds(ctx, msg, embeds).await?;
+	if sets.len() == 0 {
+		msg.reply(&ctx.http, "No sets found with that name.").await?;
+	} else {
+		let embeds = sets.iter().map(|c| c.embed()).collect::<Vec<_>>();
+		paginated_embeds(ctx, msg, embeds).await?;
+	}
 
 	Ok(())
 }
