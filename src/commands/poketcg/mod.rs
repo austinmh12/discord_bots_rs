@@ -305,7 +305,7 @@ async fn open_pack_command(ctx: &Context, msg: &Message, args: Args) -> CommandR
 
 #[command("store")]
 async fn store_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+	// TODO: Store this in the database? Might be easier
 
 	Ok(())
 }
@@ -381,6 +381,12 @@ async fn trade_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn trade_pack(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	
 
+	Ok(())
+}
+
+#[command("admin")]
+// TODO: Add the owner or admin check
+async fn admin_main(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
