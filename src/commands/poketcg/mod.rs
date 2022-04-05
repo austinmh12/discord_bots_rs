@@ -56,6 +56,7 @@ use std::time::Duration;
 //use serenity::collector::MessageCollectorBuilder;
 use serde_json;
 use rand::seq::SliceRandom;
+use crate::OWNER_CHECK;
 
 pub trait PaginateEmbed {
 	fn embed(&self) -> CreateEmbed;
@@ -67,12 +68,10 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
 	let mut idx: i16 = 0;
-	// let mut cur_embed = &embeds[idx as usize].to_owned();
 	let mut message = msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
 			let mut cur_embed = embeds[idx as usize].clone();
-			// let mut e = cur_card.embed();
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
@@ -249,7 +248,6 @@ async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "No cards found with that name.").await?;
 	} else {
-		// let embeds = cards.iter().map(|c| c.embed()).collect::<Vec<_>>();
 		paginated_embeds(ctx, msg, cards).await?;
 	}
 
@@ -266,7 +264,6 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	if sets.len() == 0 {
 		msg.reply(&ctx.http, "No sets found with that name.").await?;
 	} else {
-		// let embeds = sets.iter().map(|c| c.embed()).collect::<Vec<_>>();
 		paginated_embeds(ctx, msg, sets).await?;
 	}
 
@@ -276,7 +273,6 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command("sets")]
 async fn sets_command(ctx: &Context, msg: &Message) -> CommandResult {
 	let sets = sets::get_sets().await;
-	// let embeds = sets.iter().map(|s| s.embed()).collect::<Vec<_>>();
 	paginated_embeds(ctx, msg, sets).await?;
 
 	Ok(())
@@ -386,12 +382,26 @@ async fn trade_pack(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command("admin")]
+#[sub_commands(admin_show_pack)]
+#[checks(Owner)]
 // TODO: Add the owner or admin check
-async fn admin_main(ctx: &Context, msg: &Message) -> CommandResult {
+async fn admin_main() -> CommandResult {
 	Ok(())
 }
 
+#[command("pack")]
+#[checks(Owner)]
+async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let set_id = args.find::<String>().unwrap();
+	let amount = match args.find::<i32>() {
+		Ok(x) => x as usize,
+		Err(_) => 1usize
+	};
+	let pack = packs::Pack::from_set_id(set_id.as_str(), amount).await.unwrap();
+	paginated_embeds(ctx, msg, pack.cards).await.unwrap();
 
+	Ok(())
+}
 
 /* Tasks
  * Refresh daily packs

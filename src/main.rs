@@ -14,7 +14,7 @@ use std::{
 
 use dotenv;
 
-use serenity::async_trait;
+use serenity::{async_trait, model::channel::Message, framework::standard::{CommandOptions, Reason}};
 use serenity::client::{Client, Context, EventHandler, bridge::gateway::GatewayIntents};
 use serenity::model::{
 	channel::{Reaction, ReactionType},
@@ -24,7 +24,9 @@ use serenity::framework::standard::{
     StandardFramework,
     macros::{
         group,
+		check
     },
+	Args,
 };
 
 mod commands;
@@ -43,9 +45,20 @@ struct YouTube;
 #[commands(
 	search_main,
 	sets_command,
-	set_command
+	set_command,
+	admin_main
 )]
 struct PokeTCG;
+
+#[check]
+#[name="Owner"]
+async fn owner_check(_: &Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> Result<(), Reason> {
+	if msg.author.id != 223616191246106624 {
+		return Err(Reason::User("Not the owner.".to_string()));
+	}
+
+	Ok(())
+}
 
 struct Handler {
 	is_loop_running: AtomicBool,

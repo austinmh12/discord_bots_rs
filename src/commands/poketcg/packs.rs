@@ -51,7 +51,7 @@ pub struct Pack {
 }
 
 impl Pack {
-	async fn from_set_id(set_id: &str) -> Result<Self, String> {
+	pub async fn from_set_id(set_id: &str, amount: usize) -> Result<Self, String> {
 		let set = get_set(set_id)
 			.await
 			.unwrap();
@@ -75,20 +75,31 @@ impl Pack {
 		let mut cards = vec![];
 		cards.extend(
 			commons
-				.choose_multiple(&mut thread_rng(), 6)
+				.choose_multiple(&mut thread_rng(), 6 * amount)
 				.cloned()
 		);
 		cards.extend(
 			uncommons
-				.choose_multiple(&mut thread_rng(), 3)
+				.choose_multiple(&mut thread_rng(), 3 * amount)
 				.cloned()
 		);
-		cards.push(
-			rares
-				.choose_weighted(&mut thread_rng(), |r| RARITY_MAPPING.get(r.rarity.as_str()).unwrap())
-				.unwrap()
-				.to_owned()
-		);
+		let mut rares_with_weights = vec![];
+		for rare in rares {
+			let weight = RARITY_MAPPING.get(rare.rarity.as_str()).unwrap_or(&0).to_owned();
+			rares_with_weights.push((rare, weight));
+		}
+		let chosen_rares = rares_with_weights
+			.choose_multiple_weighted(
+				&mut thread_rng(),
+				amount,
+				|rw| rw.1 as i32
+			)
+			.unwrap()
+			.collect::<Vec<_>>()
+			.iter()
+			.map(|rw| rw.0.clone())
+			.collect::<Vec<Card>>();
+		cards.extend(chosen_rares);
 
 		Ok(Self {
 			set,

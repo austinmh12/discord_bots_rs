@@ -53,7 +53,6 @@ impl Card {
 			number: String::from(obj["number"].as_str().unwrap()),
 			price: price as f32,
 			image: String::from(obj["images"]["large"].as_str().unwrap()),
-			// rarity: String::from(obj["rarity"].as_str().unwrap())
 			rarity
 		}
 	}
