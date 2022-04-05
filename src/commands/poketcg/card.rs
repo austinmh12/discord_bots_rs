@@ -41,6 +41,10 @@ impl Card {
 				}
 			}
 		};
+		let rarity = match obj.get("rarity") {
+			Some(x) => String::from(x.as_str().unwrap()),
+			None => String::from("Unknown")
+		};
 
 		Self {
 			id: String::from(obj["id"].as_str().unwrap()),
@@ -49,7 +53,8 @@ impl Card {
 			number: String::from(obj["number"].as_str().unwrap()),
 			price: price as f32,
 			image: String::from(obj["images"]["large"].as_str().unwrap()),
-			rarity: String::from(obj["rarity"].as_str().unwrap())
+			// rarity: String::from(obj["rarity"].as_str().unwrap())
+			rarity
 		}
 	}
 }

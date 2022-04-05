@@ -62,9 +62,10 @@ pub trait PaginateEmbed {
 }
 
 // paginated embeds to search through cards
-async fn paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<CreateEmbed>) -> Result<(), String> {
+async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds: Vec<T>) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
+	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
 	let mut idx: i16 = 0;
 	// let mut cur_embed = &embeds[idx as usize].to_owned();
 	let mut message = msg
@@ -248,8 +249,8 @@ async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "No cards found with that name.").await?;
 	} else {
-		let embeds = cards.iter().map(|c| c.embed()).collect::<Vec<_>>();
-		paginated_embeds(ctx, msg, embeds).await?;
+		// let embeds = cards.iter().map(|c| c.embed()).collect::<Vec<_>>();
+		paginated_embeds(ctx, msg, cards).await?;
 	}
 
 	Ok(())
@@ -265,8 +266,8 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	if sets.len() == 0 {
 		msg.reply(&ctx.http, "No sets found with that name.").await?;
 	} else {
-		let embeds = sets.iter().map(|c| c.embed()).collect::<Vec<_>>();
-		paginated_embeds(ctx, msg, embeds).await?;
+		// let embeds = sets.iter().map(|c| c.embed()).collect::<Vec<_>>();
+		paginated_embeds(ctx, msg, sets).await?;
 	}
 
 	Ok(())
@@ -275,8 +276,8 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command("sets")]
 async fn sets_command(ctx: &Context, msg: &Message) -> CommandResult {
 	let sets = sets::get_sets().await;
-	let embeds = sets.iter().map(|s| s.embed()).collect::<Vec<_>>();
-	paginated_embeds(ctx, msg, embeds).await?;
+	// let embeds = sets.iter().map(|s| s.embed()).collect::<Vec<_>>();
+	paginated_embeds(ctx, msg, sets).await?;
 
 	Ok(())
 }
@@ -286,7 +287,7 @@ async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	let set_id = args.rest();
 	let set = sets::get_set(set_id).await;
 	match set {
-		Some(x) => paginated_embeds(ctx, msg, vec![x.embed()]).await?,
+		Some(x) => paginated_embeds(ctx, msg, vec![x]).await?,
 		None => {
 			msg.reply(&ctx.http, "No set found with that id.").await?;
 		}
@@ -389,6 +390,8 @@ async fn trade_pack(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn admin_main(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
+
+
 
 /* Tasks
  * Refresh daily packs

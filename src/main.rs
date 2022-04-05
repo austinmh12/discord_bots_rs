@@ -83,15 +83,15 @@ impl EventHandler for Handler {
 async fn main() {
 	let framework = StandardFramework::new()
 		.configure(|c| c.prefix("."))
-		.group(&MEME_GROUP)
+		// .group(&MEME_GROUP)
 		// .group(&YOUTUBE_GROUP)
-		// .group(&POKETCG_GROUP);
+		.group(&POKETCG_GROUP)
 		;
 
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token. Make sure one is commented out.
-	let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
-	// let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
+	// let token = dotenv::var("AUSTINTOKEN").expect("Expected a token in the environment");
+	let token = dotenv::var("TESTBOT").expect("Expected a token in the environment");
 
 	// Initiate database connection, creating the file if needed
 	let database = sqlx::sqlite::SqlitePoolOptions::new()
