@@ -22,6 +22,8 @@ use serenity::prelude::*;
 //use serenity::collector::MessageCollectorBuilder;
 use serde_json;
 
+use crate::commands::get_database_connection;
+
 struct YouTubeSearchResult {
 	pub channel_id: String,
 	pub title: String,
@@ -47,15 +49,6 @@ struct YouTubeChannel {
 }
 
 impl YouTubeChannel {
-	pub fn new(channel_id: String, title: String, thumbnail: String, video_count: i32) -> Self {
-		Self {
-			channel_id,
-			title,
-			thumbnail,
-			video_count
-		}
-	}
-
 	pub fn from_search(search_result: &YouTubeSearchResult) -> Self {
 		let channel_id = search_result.channel_id.as_str().to_string();
 		let title = search_result.title.as_str().to_string();
@@ -163,21 +156,6 @@ impl Video {
 
 		ret
 	}
-}
-
-// Database queries
-async fn get_database_connection() -> sqlx::Pool<sqlx::Sqlite> {
-	let database = sqlx::sqlite::SqlitePoolOptions::new()
-		.max_connections(5)
-		.connect_with(
-			sqlx::sqlite::SqliteConnectOptions::new()
-				.filename("bot.db")
-				.create_if_missing(true),
-		)
-		.await
-		.expect("Couldn't connect to database");
-	
-	database
 }
 
 async fn get_channels() -> Vec<YouTubeChannel> {
