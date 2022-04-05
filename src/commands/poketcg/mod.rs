@@ -403,26 +403,6 @@ async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	Ok(())
 }
 
-
-// Database functions
-async fn get_players() -> Vec<String> { // Will change to Player
-	let ret = vec![];
-
-	ret
-}
-
-async fn get_player(discord_id: u64) -> String { // Will change to Player
-	let ret = String::from("");
-
-	ret
-}
-
-async fn add_player(discord_id: u64) -> String { // Will change to Player
-	let ret = String::from("");
-
-	ret
-}
-
 async fn get_store() -> String { // Will be Store
 	let ret = String::from("");
 
