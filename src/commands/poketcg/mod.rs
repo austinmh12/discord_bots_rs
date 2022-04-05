@@ -27,6 +27,7 @@ async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Va
 pub mod card;
 pub mod sets;
 pub mod packs;
+pub mod player;
 
 // use std::{
 // 	time::Duration,
