@@ -45,6 +45,7 @@ lazy_static! {
 	};
 }
 
+#[derive(Debug)]
 pub struct Pack {
 	pub set: Set,
 	pub cards: Vec<Card>

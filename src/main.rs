@@ -10,6 +10,8 @@ use std::{
 		Arc,
 	},
 	time::Duration,
+	env,
+	error::Error
 };
 
 use dotenv;

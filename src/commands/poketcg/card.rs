@@ -1,9 +1,7 @@
-use serde_json::json;
-
 use super::*;
 use crate::sets::Set;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Card {
 	pub id: String,
 	pub name: String,
