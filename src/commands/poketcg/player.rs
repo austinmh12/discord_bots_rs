@@ -22,28 +22,28 @@ use crate::{
 pub struct Player {
 	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
 	id: Option<ObjectId>,
-	pub discord_id: u64,
-	pub cash: u64,
+	pub discord_id: i64,
+	pub cash: i64,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub daily_reset: DateTime<Utc>, // Need to learn to work with datetimes
 	pub packs: Vec<(String, u32)>,
-	pub packs_opened: u64,
-	pub packs_bought: u64,
-	pub total_cash: u64,
-	pub total_cards: u64,
-	pub cards_sold: u64,
+	pub packs_opened: i64,
+	pub packs_bought: i64,
+	pub total_cash: i64,
+	pub total_cards: i64,
+	pub cards_sold: i64,
 	pub daily_packs: u16,
 	pub quiz_questions: u16,
 	pub current_multiplier: u16,
-	pub quiz_correct: u64,
+	pub quiz_correct: i64,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub quiz_reset: DateTime<Utc>, // Need to learn to work with datetimes
 	pub savelist: Vec<String>,
-	pub perm_multiplier: u64
+	pub perm_multiplier: i64
 }
 
 impl Player {
-	fn new_from_discord_id(discord_id: u64) -> Self {
+	fn new_from_discord_id(discord_id: i64) -> Self {
 		Self {
 			id: None,
 			discord_id,
@@ -74,7 +74,7 @@ async fn get_player_collection() -> Collection<Player> {
 }
 
 // Database functions
-async fn get_players() -> Vec<Player> { // Will change to Player
+pub async fn get_players() -> Vec<Player> { // Will change to Player
 	let player_collection = get_player_collection().await;
 	let players = player_collection
 		.find(None, None)
@@ -87,20 +87,26 @@ async fn get_players() -> Vec<Player> { // Will change to Player
 	players
 }
 
-async fn get_player(discord_id: u64) -> Player { // Will change to Player
+pub async fn get_player(discord_id: u64) -> Player { // Will change to Player
+	let discord_id = discord_id as i64;
 	let player_collection = get_player_collection().await;
 	let player = player_collection
-		.find_one(doc! { "discord_id": discord_id as i64 }, None)
+		.find_one(doc! { "discord_id": discord_id }, None)
 		.await
 		.unwrap();
 	match player {
 		Some(x) => return x,
-		None => return add_player(discord_id)
+		None => return add_player(discord_id).await
 	}
 }
 
-fn add_player(discord_id: u64) -> Player {
+async fn add_player(discord_id: i64) -> Player {
 	let ret = Player::new_from_discord_id(discord_id);
+	let player_collection = get_player_collection().await;
+	player_collection
+		.insert_one(&ret, None)
+		.await
+		.unwrap();
 	
 	ret
 }
