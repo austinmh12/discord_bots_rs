@@ -1,4 +1,9 @@
 use super::*;
+use chrono::{
+	NaiveDate,
+	DateTime,
+	Utc, Datelike,
+};
 
 #[derive(Clone, Debug)]
 pub struct Set {
@@ -9,7 +14,7 @@ pub struct Set {
 	pub total: i32,
 	pub logo: String,
 	pub symbol: String,
-	pub release_date: String // Will be a datetime eventually?
+	pub release_date: DateTime<Utc>
 }
 
 impl Set {
@@ -22,8 +27,20 @@ impl Set {
 			total: obj["total"].as_i64().unwrap() as i32,
 			logo: String::from(obj["images"]["logo"].as_str().unwrap()),
 			symbol: String::from(obj["images"]["symbol"].as_str().unwrap()),
-			release_date: String::from(obj["releaseDate"].as_str().unwrap())
+			release_date: DateTime::<Utc>::from_utc(
+				NaiveDate::parse_from_str(obj["releaseDate"].as_str().unwrap(), "%Y/%m/%d")
+					.unwrap()
+					.and_hms(0, 0, 0),
+				Utc
+			)
 		}
+	}
+	
+	pub fn pack_price(&self) -> f64 {
+		let now = Utc::now();
+		let date_power = now.year() - &self.release_date.year();
+
+		((3.75 * 1.1_f64.powi(date_power)) * 100.0).round() / 100.0
 	}
 }
 
@@ -32,7 +49,7 @@ impl PaginateEmbed for Set {
 		let mut ret = CreateEmbed::default();
 		ret
 			.title(&self.name)
-			.description(format!("**Series:** {}\n**Total cards:** ${}\n**Pack price:** 0.01\n**ID:** {}", &self.series, &self.printed, &self.id))
+			.description(format!("**Series:** {}\n**Total cards:** ${}\n**Pack price:** ${:.2}\n**ID:** {}", &self.series, &self.printed, &self.pack_price(), &self.id))
 			.colour(Colour::from_rgb(255, 50, 20))
 			.image(&self.logo)
 			.thumbnail(&self.symbol);
