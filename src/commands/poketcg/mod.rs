@@ -33,6 +33,7 @@ pub mod card;
 pub mod sets;
 pub mod packs;
 pub mod player;
+pub mod store;
 
 // use std::{
 // 	time::Duration,
