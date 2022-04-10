@@ -310,8 +310,26 @@ async fn open_pack_command(ctx: &Context, msg: &Message, args: Args) -> CommandR
 }
 
 #[command("store")]
-async fn store_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Store this in the database? Might be easier
+#[sub_commands(store_buy)]
+async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let store_ = store::get_store().await;
+	let player_ = player::get_player(msg.author.id.0).await;
+	let embed = store_.embed_with_player(player_).await;
+	let _ = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.set_embed(embed);
+
+			m
+		})
+		.await;
+
+	Ok(())
+}
+
+#[command("buy")]
+async fn store_buy(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+
 
 	Ok(())
 }

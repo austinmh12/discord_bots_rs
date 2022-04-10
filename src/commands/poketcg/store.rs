@@ -12,7 +12,8 @@ use chrono::{
 	DateTime, 
 	Utc,
 	Datelike,
-	Duration
+	Duration,
+	format as cformat
 };
 use rand::{
 	seq::{
@@ -100,7 +101,7 @@ impl Store {
 		}
 	}
 
-	async fn embed_with_player(&self, player: Player) -> CreateEmbed {
+	pub async fn embed_with_player(&self, player: Player) -> CreateEmbed {
 		let mut ret = CreateEmbed::default();
 		let mut desc = String::from("Welcome to the Card Store! Here you can spend cash for Packs of cards\n");
 		desc.push_str(&format!("You have **${:.2}**\n", player.cash));
@@ -117,13 +118,16 @@ impl Store {
 			} else {
 				("Booster Box", 30.0)
 			};
-			desc.push_str(&format!("**{}:** {} {} (_{}_) - ${}", num, set.name, pack_type, set.id, set.pack_price() * &price_mult));
+			desc.push_str(&format!("**{}:** {} {} (_{}_) - ${:.2}\n", num, set.name, pack_type, set.id, set.pack_price() * &price_mult));
 		}
 		ret
-			.title(&format!("Store {}", Utc::now().date().to_string()))
+			.title("Card Store")
 			.description(&desc)
-			.colour(Colour::from_rgb(255, 50, 20));
-	
+			.colour(Colour::from_rgb(255, 50, 20))
+			.footer(|f| f
+				.text(&format!("Resets at {}", &self.reset.format("%h %d")))
+			);
+
 		ret
 	}
 }
@@ -144,11 +148,36 @@ pub async fn get_store() -> Store {
 		.unwrap();
 	let store = match store {
 		Some(x) => x,
-		None => Store::new().await
+		None => add_store().await
 	};
 	if store.reset < Utc::now() {
-		return store.update_sets().await;
+		let store = store.update_sets().await;
+		update_store(&store).await;
+		return store;
 	}
+	
 
 	store
+}
+
+async fn add_store() -> Store {
+	let ret = Store::new().await;
+	let store_collection = get_store_collection().await;
+	store_collection
+		.insert_one(&ret, None)
+		.await
+		.unwrap();
+	
+	ret
+}
+
+async fn update_store(store: &Store) {
+	let store_collection = get_store_collection().await;
+	store_collection
+		.update_one(
+			doc! {"_id": &store.id.unwrap() }, 
+			doc! {"$set": {"sets": &store.sets, "reset": &store.reset}}, 
+			None)
+		.await
+		.unwrap();
 }
