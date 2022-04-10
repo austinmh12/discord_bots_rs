@@ -1,3 +1,4 @@
+use bson::Document;
 use dotenv;
 use mongodb::{
 	bson::{
@@ -58,12 +59,14 @@ use serenity::model::{
 use serenity::utils::Colour;
 use serenity::prelude::*;
 use serenity::collector::EventCollectorBuilder;
-use std::time::Duration;
+use std::{time::Duration, collections::HashMap};
 
 //use serenity::collector::MessageCollectorBuilder;
 use serde_json;
 use rand::seq::SliceRandom;
 use crate::OWNER_CHECK;
+
+use self::sets::get_set;
 
 pub trait PaginateEmbed {
 	fn embed(&self) -> CreateEmbed;
@@ -328,8 +331,57 @@ async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("buy")]
-async fn store_buy(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-
+async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let selection = match args.single::<i32>() {
+		Ok(x) => x,
+		Err(_) => 0
+	};
+	if !(1..=10).contains(&selection) {
+		msg.channel_id.send_message(&ctx.http, |m| m.content("A selection was not made.")).await?;
+		return Ok(());
+	}
+	let amount = match args.single::<i32>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let store_ = store::get_store().await;
+	let set = get_set(store_.sets.get((selection - 1) as usize).unwrap()).await.unwrap();
+	let mut player = player::get_player(msg.author.id.0).await;
+	let (price_mult, pack_count) = if selection <= 4 {
+		(1.0, 1)
+	} else if 5 <= selection && selection <= 7 {
+		(2.5, 4)
+	} else if 8 <= selection && selection <= 9 {
+		(10.0, 12)
+	} else {
+		(30.0, 36)
+	};
+	if player.cash < set.pack_price() * price_mult {
+		msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You don't have enough... You need **${:.2}** more", set.pack_price() * price_mult - player.cash))).await?;
+		return Ok(());
+	}
+	let mut bought = 0;
+	while player.cash >= set.pack_price() * price_mult && bought < amount {
+		player.cash -= set.pack_price() * price_mult;
+		bought += 1;
+	}
+	*player.packs.entry(set.id).or_insert(0) += (bought * pack_count) as i64;
+	player.packs_bought += (bought * pack_count) as i64;
+	msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You bought {} **{}** packs!", bought * pack_count, set.name))).await?;
+	let mut player_packs = Document::new();
+	for (set_id, amt) in player.packs.iter() {
+		player_packs.insert(set_id, amt.clone());
+	}
+	player::update_player(
+		&player,
+		doc! {
+			"$set": {
+				"cash": &player.cash,
+				"packs_bought": &player.packs_bought,
+				"packs": player_packs
+			}
+		} 
+	).await;
 
 	Ok(())
 }
@@ -434,11 +486,11 @@ async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[checks(Owner)]
 async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let mut player_ = player::get_player(msg.author.id.0).await;
-	let amount = args.find::<i64>().expect("No amount to add");
+	let amount = args.find::<f64>().expect("No amount to add");
 	let og_cash = player_.cash;
 	player_.cash += amount;
 	player_.total_cash += amount;
-	msg.reply(&ctx.http, format!("{} had **${}**, now they have **${}**", &player_.discord_id, og_cash, &player_.cash))
+	msg.reply(&ctx.http, format!("{} had **${:.2}**, now they have **${:.2}**", &player_.discord_id, og_cash, &player_.cash))
 		.await?;
 	player::update_player(
 		&player_,

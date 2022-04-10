@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Serialize, Deserialize};
 use mongodb::{
 	bson::{
@@ -23,18 +25,18 @@ pub struct Player {
 	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
 	id: Option<ObjectId>,
 	pub discord_id: i64,
-	pub cash: i64,
+	pub cash: f64,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub daily_reset: DateTime<Utc>, // Need to learn to work with datetimes
-	pub packs: Vec<(String, u32)>,
+	pub packs: HashMap<String, i64>,
 	pub packs_opened: i64,
 	pub packs_bought: i64,
-	pub total_cash: i64,
+	pub total_cash: f64,
 	pub total_cards: i64,
 	pub cards_sold: i64,
-	pub daily_packs: u16,
-	pub quiz_questions: u16,
-	pub current_multiplier: u16,
+	pub daily_packs: i16,
+	pub quiz_questions: i16,
+	pub current_multiplier: i16,
 	pub quiz_correct: i64,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub quiz_reset: DateTime<Utc>, // Need to learn to work with datetimes
@@ -47,12 +49,12 @@ impl Player {
 		Self {
 			id: None,
 			discord_id,
-			cash: 25,
+			cash: 25.0,
 			daily_reset: Utc::now(),
-			packs: vec![],
+			packs: HashMap::new(),
 			packs_opened: 0,
 			packs_bought: 0,
-			total_cash: 25,
+			total_cash: 25.0,
 			total_cards: 0,
 			cards_sold: 0,
 			daily_packs: 50,
