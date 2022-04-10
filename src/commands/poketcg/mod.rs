@@ -1,4 +1,9 @@
 use dotenv;
+use mongodb::{
+	bson::{
+		doc
+	},
+};
 
 async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
@@ -161,8 +166,8 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 #[command("my")]
 #[sub_commands(my_cards, my_packs, my_stats)]
 async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
-	msg.reply(&ctx.http, format!("Hello {}, you have **${}**", player.discord_id, player.cash))
+	let player_ = player::get_player(msg.author.id.0).await;
+	msg.reply(&ctx.http, format!("Hello {}, you have **${}**", player_.discord_id, player_.cash))
 		.await?;
 
 	Ok(())
@@ -385,7 +390,7 @@ async fn trade_pack(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command("admin")]
-#[sub_commands(admin_show_pack)]
+#[sub_commands(admin_show_pack, admin_add_cash)]
 #[checks(Owner)]
 // TODO: Add the owner or admin check
 async fn admin_main() -> CommandResult {
@@ -402,6 +407,30 @@ async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	};
 	let pack = packs::Pack::from_set_id(set_id.as_str(), amount).await.unwrap();
 	paginated_embeds(ctx, msg, pack.cards).await.unwrap();
+
+	Ok(())
+}
+
+#[command("cash")]
+#[checks(Owner)]
+async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let mut player_ = player::get_player(msg.author.id.0).await;
+	let amount = args.find::<i64>().expect("No amount to add");
+	let og_cash = player_.cash;
+	player_.cash += amount;
+	player_.total_cash += amount;
+	msg.reply(&ctx.http, format!("{} had **${}**, now they have **${}**", &player_.discord_id, og_cash, &player_.cash))
+		.await?;
+	player::update_player(
+		&player_,
+		doc! {
+			"$set": { 
+				"cash": &player_.cash,
+				"total_cash": &player_.total_cash
+			}
+		}
+	)
+		.await;
 
 	Ok(())
 }

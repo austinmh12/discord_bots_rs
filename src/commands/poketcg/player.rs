@@ -111,6 +111,17 @@ async fn add_player(discord_id: i64) -> Player {
 	ret
 }
 
+pub async fn update_player(player: &Player, update: Document) {
+	let player_collection = get_player_collection().await;
+	player_collection
+		.update_one(
+			doc! {"_id": &player.id.unwrap() }, 
+			update, 
+			None)
+		.await
+		.unwrap();
+}
+
 // pub async fn add_player(discord_id: u64) -> Player { // Will change to Player
 // 	let ret = Player::new_from_discord_id(discord_id);
 // 	let database = get_database_connection().await;
