@@ -161,7 +161,9 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 #[command("my")]
 #[sub_commands(my_cards, my_packs, my_stats)]
 async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
-	// TODO: Set up database
+	let player = player::get_player(msg.author.id.0).await;
+	msg.reply(&ctx.http, format!("Hello {}, you have **${}**", player.discord_id, player.cash))
+		.await?;
 
 	Ok(())
 }
