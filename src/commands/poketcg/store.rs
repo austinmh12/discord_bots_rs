@@ -20,11 +20,15 @@ use rand::{
 	},
 	prelude::*
 };
+use serenity::{builder::CreateEmbed, utils::Colour};
 
 use crate::{sets::{
 	Set,
-	get_sets
+	get_sets,
+	get_set
 }, commands::get_client};
+
+use super::{PaginateEmbed, player::Player};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Store {
@@ -95,7 +99,35 @@ impl Store {
 			reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0)
 		}
 	}
+
+	async fn embed_with_player(&self, player: Player) -> CreateEmbed {
+		let mut ret = CreateEmbed::default();
+		let mut desc = String::from("Welcome to the Card Store! Here you can spend cash for Packs of cards\n");
+		desc.push_str(&format!("You have **${:.2}**\n", player.cash));
+		desc.push_str("Here are the packs available today. To purchase one, use **.store <slot no.> (amount)**\n\n");
+		for (i, set_id) in self.sets.iter().enumerate() {
+			let num = i + 1;
+			let set = get_set(set_id).await.unwrap();
+			let (pack_type, price_mult) = if num <= 4 {
+				("Pack", 1.0)
+			} else if 5 <= num && num <= 7 {
+				("Collection", 2.5)
+			} else if 8 <= num && num <= 9 {
+				("Trainer Box", 10.0)
+			} else {
+				("Booster Box", 30.0)
+			};
+			desc.push_str(&format!("**{}:** {} {} (_{}_) - ${}", num, set.name, pack_type, set.id, set.pack_price() * &price_mult));
+		}
+		ret
+			.title(&format!("Store {}", Utc::now().date().to_string()))
+			.description(&desc)
+			.colour(Colour::from_rgb(255, 50, 20));
+	
+		ret
+	}
 }
+
 
 async fn get_store_collection() -> Collection<Store> {
 	let client = get_client().await.unwrap();

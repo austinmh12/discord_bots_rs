@@ -1,4 +1,4 @@
-use super::*;
+use super::{*, player::Player};
 use crate::sets::Set;
 
 #[derive(Clone, Debug)]

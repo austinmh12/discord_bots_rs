@@ -436,18 +436,6 @@ async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> Command
 	Ok(())
 }
 
-async fn get_store() -> String { // Will be Store
-	let ret = String::from("");
-
-	ret
-}
-
-async fn add_store() -> String { // Will be Store
-	let ret = String::from("");
-
-	ret
-}
-
 /* Tasks
  * Refresh daily packs
  * Cache store packs
