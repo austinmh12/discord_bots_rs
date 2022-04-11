@@ -84,7 +84,9 @@ pub async fn get_cards() -> Vec<Card> {
 pub async fn get_multiple_cards_by_id(card_ids: Vec<String>) -> Vec<Card> {
 	todo!();
 	// For chunks of 250, join " OR " with "id:{}", card_id
-	// return vec of cards
+		// let chunk_cards = get_cards_with_query("({})", query)
+		// ret.extend(chunk_cards);
+	// return ret
 }
 
 pub async fn get_card(id: &str) -> Card {
