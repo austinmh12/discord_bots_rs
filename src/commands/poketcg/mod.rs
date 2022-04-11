@@ -366,11 +366,13 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 		let amount = *amounts.iter().min().unwrap();
 		let pack = packs::Pack::from_set_id(&set_id, amount as usize).await?;
 		let mut update = Document::new();
-		player.total_cards += amount * 10;
+		player.total_cards += pack.cards.len() as i64;
 		player.packs_opened += amount;
+		player.daily_packs -= amount;
 		*player.packs.entry(set_id).or_insert(0) -= amount;
 		update.insert("total_cards", player.total_cards);
 		update.insert("packs_opened", player.packs_opened);
+		update.insert("daily_packs", player.daily_packs);
 		let mut player_packs = Document::new();
 		for (set, amt) in player.packs.iter() {
 			player_packs.insert(set, amt);
