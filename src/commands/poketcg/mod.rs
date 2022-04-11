@@ -16,6 +16,11 @@ use sets::get_set;
 pub mod packs;
 pub mod player;
 pub mod store;
+pub mod player_card;
+use player_card::{
+	player_card,
+	PlayerCard
+};
 
 use serenity::{
 	framework::{
@@ -182,13 +187,25 @@ async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("cards")]
+#[aliases("c")]
 async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
-	// TODO: Set up database
+	let player = player::get_player(msg.author.id.0).await;
+	let mut cards = vec![];
+	for (card, amount) in player.cards.iter() {
+		let card = player_card(card, *amount).await;
+		cards.push(card);
+	}
+	if cards.len() == 0 {
+		msg.reply(&ctx.http, "You have no cards!").await?;
+	} else {
+		paginated_embeds(ctx, msg, cards).await?;
+	}
 
 	Ok(())
 }
 
 #[command("packs")]
+#[aliases("p")]
 async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	let mut desc = format!("You have **{}** packs left to open today\n", player.daily_packs);

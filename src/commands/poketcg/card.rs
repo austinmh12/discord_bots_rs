@@ -81,6 +81,10 @@ pub async fn get_cards() -> Vec<Card> {
 	ret
 }
 
+pub async fn get_card(id: &str) -> Card {
+	todo!();
+}
+
 pub async fn get_cards_with_query(query: &str) -> Vec<Card> {
 	let mut ret = <Vec<Card>>::new();
 	let data = api_call("cards", Some(query)).await.unwrap();
