@@ -12,7 +12,7 @@ use mongodb::{
 use chrono::{
 	TimeZone,
 	DateTime, 
-	Utc,
+	Utc, Local,
 };
 use futures::stream::{TryStreamExt};
 use serenity::{builder::CreateEmbed, utils::Colour};
@@ -75,14 +75,16 @@ impl Player {
 
 impl PaginateEmbed for Player {
 	fn embed(&self) -> CreateEmbed {
+		let quiz_reset_local: DateTime<Local> = DateTime::from(self.quiz_reset);
+		let daily_reset_local: DateTime<Local> = DateTime::from(self.daily_reset);
 		let mut desc = format!("**Wallet:** ${:.2} | **Total Earned:** ${:.2}\n\n", &self.cash, &self.total_cash);
 		desc.push_str(&format!("**Current Packs:** {}\n", self.packs.values().map(|v| v.clone() as i32).sum::<i32>()));
 		desc.push_str(&format!("**Opened Packs:** {} | **Bought Packs:** {}\n\n", &self.packs_opened, &self.packs_bought));
 		desc.push_str(&format!("**Total Cards:** {} | **Cards Sold:** {}\n\n", &self.total_cards, &self.cards_sold));
 		desc.push_str(&format!("**Quiz Questions Remaining:** {}\n", &self.quiz_questions));
 		desc.push_str(&format!("**Quiz Questions Answered:** {}\n\n", &self.quiz_correct));
-		desc.push_str(&format!("Quiz resets at **{}**\n", &self.quiz_reset.format("%m/%d %H:%M")));
-		desc.push_str(&format!("Daily reset at **{}**", &self.daily_reset.format("%m/%d %H:%M")));
+		desc.push_str(&format!("Quiz resets at **{}**\n", quiz_reset_local.format("%m/%d %H:%M")));
+		desc.push_str(&format!("Daily reset at **{}**", daily_reset_local.format("%m/%d %H:%M")));
 		let mut ret = CreateEmbed::default();
 		ret
 			.description(desc)

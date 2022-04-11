@@ -253,7 +253,16 @@ async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("sell")]
 #[sub_commands(sell_card, sell_under, sell_dups, sell_all, sell_packs)]
 async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
-	// TODO: Set up database
+	let content = "Here are the available selling commands:
+	**.sell card <card id> [amount - Default: _1_]** to sell a specific card.
+	**.sell under [value - Default: _1.00_] [rares - Default: _false_]** to sell all cards worth less than the value entered.
+	**.sell dups [rares - Default: _false_]** to sell all duplicate cards until 1 remains. Doesn\'t sell rares by default.
+	**.sell all [rares - Default: _false_]** to sell all cards. Doesn\'t sell rares by default.
+	**.sell packs <set id> [amount - Default: 1]** to sell a pack.";
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| m.content(content))
+		.await?;
 
 	Ok(())
 }
