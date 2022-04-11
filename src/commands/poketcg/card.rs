@@ -82,7 +82,13 @@ pub async fn get_cards() -> Vec<Card> {
 }
 
 pub async fn get_card(id: &str) -> Card {
-	todo!();
+	let data = api_call(&format!("cards/{}", id), None)
+		.await
+		.unwrap();
+	let card_data = &data["data"];
+	let card = Card::from_json(&card_data);
+
+	card
 }
 
 pub async fn get_cards_with_query(query: &str) -> Vec<Card> {

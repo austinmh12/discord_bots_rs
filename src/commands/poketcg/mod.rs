@@ -343,8 +343,52 @@ async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 
 #[command("openpack")]
 #[aliases("op")]
-async fn open_pack_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.daily_packs <= 0 {
+		msg.reply(&ctx.http, "You're out of packs for today!").await?;
+		return Ok(());
+	}
+	let set_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if set_id == "" {
+		msg.reply(&ctx.http, "No pack provided.").await?;
+		return Ok(());
+	}
+	let amount = match args.find::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	if player.packs.contains_key(&set_id) {
+		let amounts = vec![player.daily_packs, amount, *player.packs.get(&set_id).unwrap()]; 
+		let amount = *amounts.iter().min().unwrap();
+		let pack = packs::Pack::from_set_id(&set_id, amount as usize).await?;
+		let mut update = Document::new();
+		player.total_cards += amount * 10;
+		player.packs_opened += amount;
+		*player.packs.entry(set_id).or_insert(0) -= amount;
+		update.insert("total_cards", player.total_cards);
+		update.insert("packs_opened", player.packs_opened);
+		let mut player_packs = Document::new();
+		for (set, amt) in player.packs.iter() {
+			player_packs.insert(set, amt);
+		}
+		update.insert("packs", player_packs);
+		let mut player_cards = Document::new();
+		for card in &pack.cards {
+			*player.cards.entry(card.id.clone()).or_insert(0) += 1;
+		}
+		for (card_id, amt) in player.cards.iter() {
+			player_cards.insert(card_id, amt);
+		}
+		update.insert("cards", player_cards);
+		player::update_player(&player, doc! { "$set": update }).await;
+		paginated_embeds(ctx, msg, pack.cards).await?;
+	} else {
+		msg.reply(&ctx.http, "You don't have that pack").await?;
+	}
 
 	Ok(())
 }
