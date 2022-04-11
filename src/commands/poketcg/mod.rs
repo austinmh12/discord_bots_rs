@@ -230,7 +230,22 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("stats")]
 async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
-	// TODO: Set up database
+	let player = player::get_player(msg.author.id.0).await;
+	let nickname = msg.author_nick(ctx).await.unwrap();
+	let avatar_url = msg.author.avatar_url().unwrap();
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			let mut e = player.embed();
+			
+			e
+				.title(nickname)
+				.thumbnail(avatar_url);
+			m.set_embed(e);
+
+			m
+		})
+			.await?;
 
 	Ok(())
 }
