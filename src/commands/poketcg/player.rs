@@ -15,10 +15,13 @@ use chrono::{
 	Utc,
 };
 use futures::stream::{TryStreamExt};
+use serenity::{builder::CreateEmbed, utils::Colour};
 
 use crate::{
 	commands::get_client
 };
+
+use super::PaginateEmbed;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Player {
@@ -67,6 +70,25 @@ impl Player {
 			savelist: vec![],
 			perm_multiplier: 0
 		}
+	}
+}
+
+impl PaginateEmbed for Player {
+	fn embed(&self) -> CreateEmbed {
+		let mut desc = format!("**Wallet:** ${:.2} | **Total Earned:** ${:.2}\n\n", &self.cash, &self.total_cash);
+		desc.push_str(&format!("**Current Packs:** {}\n", self.packs.values().map(|v| v.clone() as i32).sum::<i32>()));
+		desc.push_str(&format!("**Opened Packs:** {} | **Bought Packs:** {}\n\n", &self.packs_opened, &self.packs_bought));
+		desc.push_str(&format!("**Total Cards:** {} | **Cards Sold:** {}\n\n", &self.total_cards, &self.cards_sold));
+		desc.push_str(&format!("**Quiz Questions Remaining:** {}\n", &self.quiz_questions));
+		desc.push_str(&format!("**Quiz Questions Answered:** {}\n\n", &self.quiz_correct));
+		desc.push_str(&format!("Quiz resets at **{}**\n", &self.quiz_reset.format("%m/%d %H:%M")));
+		desc.push_str(&format!("Daily reset at **{}**", &self.daily_reset.format("%m/%d %H:%M")));
+		let mut ret = CreateEmbed::default();
+		ret
+			.description(desc)
+			.colour(Colour::from_rgb(255, 50, 20));
+
+		ret
 	}
 }
 
