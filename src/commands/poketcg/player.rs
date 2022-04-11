@@ -34,9 +34,9 @@ pub struct Player {
 	pub total_cash: f64,
 	pub total_cards: i64,
 	pub cards_sold: i64,
-	pub daily_packs: i16,
-	pub quiz_questions: i16,
-	pub current_multiplier: i16,
+	pub daily_packs: i64,
+	pub quiz_questions: i64,
+	pub current_multiplier: i64,
 	pub quiz_correct: i64,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub quiz_reset: DateTime<Utc>, // Need to learn to work with datetimes

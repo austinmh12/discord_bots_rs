@@ -1,10 +1,15 @@
-use bson::Document;
+use chrono::{
+	Utc,
+	Duration
+};
 use dotenv;
 use mongodb::{
 	bson::{
-		doc
+		doc,
+		Document
 	},
 };
+use std::time::Duration as StdDuration;
 
 async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
@@ -32,17 +37,10 @@ async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Va
 
 pub mod card;
 pub mod sets;
+use sets::get_set;
 pub mod packs;
 pub mod player;
 pub mod store;
-
-// use std::{
-// 	time::Duration,
-// 	sync::{
-// 		Arc,
-// 	},
-// 	collections::HashMap,
-// };
 
 use serenity::{framework::standard::{
 	macros::{
@@ -53,20 +51,17 @@ use serenity::{framework::standard::{
 }, builder::CreateEmbed};
 use serenity::model::{
 	channel::{Message, ReactionType},
-	//id::{ChannelId}
-	//prelude::*,
 };
 use serenity::utils::Colour;
 use serenity::prelude::*;
-use serenity::collector::EventCollectorBuilder;
-use std::{time::Duration, collections::HashMap};
 
-//use serenity::collector::MessageCollectorBuilder;
 use serde_json;
-use rand::seq::SliceRandom;
+use rand::{
+	Rng
+};
 use crate::OWNER_CHECK;
 
-use self::sets::get_set;
+
 
 pub trait PaginateEmbed {
 	fn embed(&self) -> CreateEmbed;
@@ -100,7 +95,7 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 		}
 		if let Some(reaction) = &message
 			.await_reaction(&ctx)
-			.timeout(Duration::from_secs(30))
+			.timeout(StdDuration::from_secs(30))
 			.author_id(msg.author.id)
 			.removed(true)
 			.await
@@ -380,7 +375,7 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 				"packs_bought": &player.packs_bought,
 				"packs": player_packs
 			}
-		} 
+		}
 	).await;
 
 	Ok(())
@@ -388,8 +383,39 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 
 #[command("daily")]
 #[aliases("d")]
-async fn daily_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	let now = Utc::now();
+	if player.daily_reset >= now {
+		msg
+			.channel_id
+			.send_message(
+				&ctx.http, |m| m
+					.content(
+						format!("Your daily resets at {}", player.daily_reset.format("%Y/%m/%d %H:%M:%S"))
+				)
+			)
+			.await
+			.unwrap();
+		return Ok(());
+	}
+	let mut update = Document::new();
+	let r: i64 = rand::thread_rng().gen_range(0..100);
+	if r <= 1 {
+		player.daily_packs = 50;
+		update.insert("daily_packs", player.daily_packs);
+		msg.reply(&ctx.http, "***WOAH!*** Your daily packs were reset!").await?;
+	} else {
+		let cash: i64 = rand::thread_rng().gen_range(5..=20);
+		player.cash += cash as f64;
+		player.total_cash += cash as f64;
+		update.insert("cash", player.cash);
+		update.insert("total_cash", player.total_cash);
+		msg.reply(&ctx.http, format!("You got **${:.2}**", cash as f64)).await?;
+	}
+	player.daily_reset = Utc::now() + Duration::days(1);
+	update.insert("daily_reset", player.daily_reset);
+	player::update_player(&player, doc!{ "$set": update }).await;
 
 	Ok(())
 }

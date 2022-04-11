@@ -125,7 +125,7 @@ impl Store {
 			.description(&desc)
 			.colour(Colour::from_rgb(255, 50, 20))
 			.footer(|f| f
-				.text(&format!("Resets at {}", &self.reset.format("%h %d")))
+				.text(&format!("Resets {}", &self.reset.format("%h %d")))
 			);
 
 		ret
