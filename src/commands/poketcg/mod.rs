@@ -10,6 +10,43 @@ use mongodb::{
 	},
 };
 use std::time::Duration as StdDuration;
+pub mod card;
+pub mod sets;
+use sets::get_set;
+pub mod packs;
+pub mod player;
+pub mod store;
+
+use serenity::{
+	framework::{
+		standard::{
+			macros::{
+				command
+			},
+			Args,
+			CommandResult
+		},
+	},
+	builder::{
+		CreateEmbed
+	},
+	model::{
+		channel::{
+			Message,
+			ReactionType
+		},
+	},
+	utils::{
+		Colour
+	},
+	prelude::*
+};
+
+use serde_json;
+use rand::{
+	Rng
+};
+use crate::OWNER_CHECK;
 
 async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
@@ -34,34 +71,6 @@ async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Va
 		Some(data)
 	}
 }
-
-pub mod card;
-pub mod sets;
-use sets::get_set;
-pub mod packs;
-pub mod player;
-pub mod store;
-
-use serenity::{framework::standard::{
-	macros::{
-		command,
-	},
-	Args,
-	CommandResult
-}, builder::CreateEmbed};
-use serenity::model::{
-	channel::{Message, ReactionType},
-};
-use serenity::utils::Colour;
-use serenity::prelude::*;
-
-use serde_json;
-use rand::{
-	Rng
-};
-use crate::OWNER_CHECK;
-
-
 
 pub trait PaginateEmbed {
 	fn embed(&self) -> CreateEmbed;
