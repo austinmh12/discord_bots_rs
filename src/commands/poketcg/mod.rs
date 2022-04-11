@@ -190,7 +190,23 @@ async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("packs")]
 async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
-	// TODO: Set up database
+	let player = player::get_player(msg.author.id.0).await;
+	let mut desc = format!("You have **{}** packs left to open today\n", player.daily_packs);
+	desc.push_str("Use **.openpacks <set_id> (amount)** to open packs\n");
+	for (set_id, amount) in player.packs.iter() {
+		desc.push_str(&format!("**{}** - {}\n", set_id, amount));
+	}
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e
+					.title("Your packs")
+					.description(&desc)
+					.colour(Colour::from_rgb(255, 50, 20))
+			})
+		})
+		.await?;
 
 	Ok(())
 }
