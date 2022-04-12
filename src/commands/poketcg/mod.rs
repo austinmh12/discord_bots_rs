@@ -286,7 +286,10 @@ async fn sell_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		let amount = *amounts.iter().min().unwrap();
 		let card = card::get_card(&card_id).await;
 		let mut update = Document::new();
-		*player.cards.entry(card_id).or_insert(0) -= amount;
+		*player.cards.entry(card_id.clone()).or_insert(0) -= amount;
+		if *player.cards.entry(card_id.clone()).or_insert(0) == 0 {
+			player.cards.remove(&card_id);
+		}
 		player.cards_sold += amount;
 		player.cash += card.price * amount as f64;
 		player.total_cash += card.price * amount as f64;
@@ -426,7 +429,10 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 		player.total_cards += pack.cards.len() as i64;
 		player.packs_opened += amount;
 		player.daily_packs -= amount;
-		*player.packs.entry(set_id).or_insert(0) -= amount;
+		*player.packs.entry(set_id.clone()).or_insert(0) -= amount;
+		if *player.packs.entry(set_id.clone()).or_insert(0) == 0 {
+			player.packs.remove(&set_id);
+		}
 		update.insert("total_cards", player.total_cards);
 		update.insert("packs_opened", player.packs_opened);
 		update.insert("daily_packs", player.daily_packs);
