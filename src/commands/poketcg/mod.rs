@@ -180,9 +180,12 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 #[command("my")]
 #[sub_commands(my_cards, my_packs, my_stats)]
 async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let content = "Here are the available my commands:
+	**.my cards [sort_by - Default: name]** to view your cards.
+	**.my packs** to view your packs.
+	**.my stats** to view your stats";
 	let player_ = player::get_player(msg.author.id.0).await;
-	msg.reply(&ctx.http, format!("Hello {}, you have **${}**", player_.discord_id, player_.cash))
-		.await?;
+	msg.reply(&ctx.http, content).await?;
 
 	Ok(())
 }
