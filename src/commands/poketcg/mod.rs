@@ -19,7 +19,8 @@ pub mod store;
 pub mod player_card;
 use player_card::{
 	player_card,
-	PlayerCard
+	PlayerCard,
+	player_cards
 };
 
 use serenity::{
@@ -190,14 +191,11 @@ async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[aliases("c")]
 async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
-	let mut cards = vec![];
-	for (card, amount) in player.cards.iter() {
-		let card = player_card(card, *amount).await;
-		cards.push(card);
-	}
+	let mut cards = player_cards(player.cards).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
+		cards.sort_by(|c1, c2| c1.card.name.cmp(&c2.card.name));
 		paginated_embeds(ctx, msg, cards).await?;
 	}
 

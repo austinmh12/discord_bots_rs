@@ -1,8 +1,10 @@
 use serenity::builder::CreateEmbed;
+use std::collections::HashMap;
 
 use crate::commands::poketcg::card::{
 	Card,
-	get_card
+	get_card,
+	get_multiple_cards_by_id
 };
 
 use super::PaginateEmbed;
@@ -26,4 +28,17 @@ pub async fn player_card(card_id: &str, amount: i64) -> PlayerCard {
 	let card = get_card(card_id).await;
 
 	PlayerCard{card, amount}
+}
+
+pub async fn player_cards(cards_hash: HashMap<String, i64>) -> Vec<PlayerCard> {
+	let mut ret = vec![];
+	let card_hash_clone = cards_hash.clone();
+	let card_ids: Vec<String> = card_hash_clone.into_keys().collect();
+	let cards = get_multiple_cards_by_id(card_ids.clone()).await;
+	for card in cards {
+		let amount = cards_hash.get(&card.id).unwrap().to_owned();
+		ret.push(PlayerCard {card, amount: amount.clone()});
+	}
+
+	ret
 }

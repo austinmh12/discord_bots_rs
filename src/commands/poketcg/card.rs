@@ -82,11 +82,19 @@ pub async fn get_cards() -> Vec<Card> {
 }
 
 pub async fn get_multiple_cards_by_id(card_ids: Vec<String>) -> Vec<Card> {
-	todo!();
-	// For chunks of 250, join " OR " with "id:{}", card_id
-		// let chunk_cards = get_cards_with_query("({})", query)
-		// ret.extend(chunk_cards);
-	// return ret
+	let mut ret = vec![];
+	let card_id_chunks: Vec<Vec<String>> = card_ids.chunks(250).map(|x| x.to_vec()).collect();
+	for card_id_chunk in card_id_chunks {
+		let inner_query = card_id_chunk
+			.iter()
+			.map(|c| format!("id:{}", c))
+			.collect::<Vec<String>>()
+			.join(" OR ");
+		let chunk_cards = get_cards_with_query(&format!("({})", inner_query)).await;
+		ret.extend(chunk_cards);
+	}
+
+	ret
 }
 
 pub async fn get_card(id: &str) -> Card {
