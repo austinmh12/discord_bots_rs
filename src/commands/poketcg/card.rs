@@ -7,7 +7,7 @@ pub struct Card {
 	pub name: String,
 	pub set: Set, // This will eventually be a Set object
 	pub number: String,
-	pub price: f32,
+	pub price: f64,
 	pub image: String,
 	pub rarity: String
 }
@@ -49,7 +49,7 @@ impl Card {
 			name: String::from(obj["name"].as_str().unwrap()),
 			set: Set::from_json(obj.get("set").unwrap()),
 			number: String::from(obj["number"].as_str().unwrap()),
-			price: price as f32,
+			price: price,
 			image: String::from(obj["images"]["large"].as_str().unwrap()),
 			rarity
 		}

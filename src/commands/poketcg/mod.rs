@@ -268,8 +268,43 @@ async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("card")]
-async fn sell_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn sell_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let card_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if card_id == "" {
+		msg.reply(&ctx.http, "No card provided").await?;
+		return Ok(());
+	}
+	let amount = match args.find::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.cards.contains_key(&card_id) {
+		let amounts = vec![amount, *player.cards.get(&card_id).unwrap()];
+		let amount = *amounts.iter().min().unwrap();
+		let card = card::get_card(&card_id).await;
+		let mut update = Document::new();
+		*player.cards.entry(card_id).or_insert(0) -= amount;
+		player.cards_sold += amount;
+		player.cash += card.price * amount as f64;
+		player.total_cash += card.price * amount as f64;
+		update.insert("cards_sold", player.cards_sold);
+		update.insert("cash", player.cash);
+		update.insert("total_cash", player.total_cash);
+		let mut player_cards = Document::new();
+		for (crd, amt) in player.cards.iter() {
+			player_cards.insert(crd, amt);
+		}
+		update.insert("cards", player_cards);
+		player::update_player(&player, doc! { "$set": update }).await;
+		msg.reply(&ctx.http, format!("You sold {} **{}** for ${:.2}", amount, card.name, card.price * amount as f64)).await?;
+	} else {
+		msg.reply(&ctx.http, "You don't have that card").await?;
+	}
 
 	Ok(())
 }
