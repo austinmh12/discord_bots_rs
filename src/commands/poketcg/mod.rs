@@ -311,8 +311,50 @@ async fn sell_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 }
 
 #[command("under")]
-async fn sell_under(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let value = match args.find::<f64>() {
+		Ok(x) => x,
+		Err(_) => 1.00
+	};
+	let rares = match args.find::<bool>() {
+		Ok(x) => x,
+		Err(_) => false
+	};
+	let mut player = player::get_player(msg.author.id.0).await;
+	let mut cards_to_sell = vec![];
+	for player_card in player_cards(player.cards.clone()).await {
+		if player_card.card.price <= value {
+			if !rares && vec!["Common", "Uncommon"].contains(&player_card.card.rarity.as_str()) {
+				cards_to_sell.push(player_card);
+			} else if rares && !vec!["Common", "Uncommon"].contains(&player_card.card.rarity.as_str()) {
+				cards_to_sell.push(player_card);
+			} else {
+				continue;
+			}
+		}
+	}
+	let mut total_sold = 0;
+	let mut total_cash = 0.00;
+	for card_to_sell in cards_to_sell {
+		*player.cards.entry(card_to_sell.card.id.clone()).or_insert(0) -= card_to_sell.amount;
+		total_sold += card_to_sell.amount;
+		total_cash += card_to_sell.amount as f64 * card_to_sell.card.price;
+	}
+	player.cards.retain(|_, v| *v != 0);
+	let mut update = Document::new();
+	player.cards_sold += total_sold;
+	player.cash += total_cash;
+	player.total_cash += total_cash;
+	update.insert("cards_sold", player.cards_sold);
+	update.insert("cash", player.cash);
+	update.insert("total_cash", player.total_cash);
+	let mut player_cards = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_cards.insert(crd, amt);
+	}
+	update.insert("cards", player_cards);
+	player::update_player(&player, doc! { "$set": update }).await;
+	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
 	Ok(())
 }
