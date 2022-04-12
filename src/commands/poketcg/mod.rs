@@ -184,7 +184,7 @@ async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
 	**.my cards [sort_by - Default: name]** to view your cards.
 	**.my packs** to view your packs.
 	**.my stats** to view your stats";
-	let player_ = player::get_player(msg.author.id.0).await;
+	let _ = player::get_player(msg.author.id.0).await;
 	msg.reply(&ctx.http, content).await?;
 
 	Ok(())
