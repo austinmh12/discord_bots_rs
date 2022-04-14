@@ -145,6 +145,7 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 }
 
 async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &Message, cards: Vec<T>, mut player: player::Player) -> Result<(), String> {
+	// TODO: Find a way to tell if something is in your savelist
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let save_icon = ReactionType::try_from("💾").expect("No floppy disk");
@@ -784,7 +785,7 @@ async fn quiz_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult
 
 #[command("savelist")]
 #[aliases("sl")]
-#[sub_commands(savelist_add, savelist_list, savelist_clear, savelist_remove)]
+#[sub_commands(savelist_add, savelist_clear, savelist_remove)]
 async fn savelist_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	let mut cards = card::get_multiple_cards_by_id(player.savelist.clone()).await;
@@ -798,16 +799,25 @@ async fn savelist_main(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-#[command("list")]
-async fn savelist_list(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
-
-	Ok(())
-}
-
 #[command("add")]
-async fn savelist_add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn savelist_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let card_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if card_id == "" {
+		msg.reply(&ctx.http, "No card provided").await?;
+		return Ok(());
+	}
+	let mut player = player::get_player(msg.author.id.0).await;
+	let card = card::get_card(&card_id).await;
+	if player.savelist.contains(&card_id) {
+		msg.reply(&ctx.http, format!("**{}** is already in your savelist", card.name)).await?;
+		return Ok(());
+	}
+	msg.reply(&ctx.http, format!("**{}** added to your savelist", card.name)).await?;
+	player.savelist.push(card_id);
+	player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
 
 	Ok(())
 }
