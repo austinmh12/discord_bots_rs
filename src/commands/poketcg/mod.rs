@@ -847,8 +847,11 @@ async fn savelist_remove(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 }
 
 #[command("clear")]
-async fn savelist_clear(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn savelist_clear(ctx: &Context, msg: &Message) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	player.savelist = vec![];
+	player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
+	msg.reply(&ctx.http, "Your savelist has been cleared").await?;
 
 	Ok(())
 }
