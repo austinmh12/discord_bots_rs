@@ -823,8 +823,25 @@ async fn savelist_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 }
 
 #[command("remove")]
-async fn savelist_remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn savelist_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let card_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if card_id == "" {
+		msg.reply(&ctx.http, "No card provided").await?;
+		return Ok(());
+	}
+	let mut player = player::get_player(msg.author.id.0).await;
+	let card = card::get_card(&card_id).await;
+	if !player.savelist.contains(&card_id) {
+		msg.reply(&ctx.http, format!("**{}** is not in your savelist", card.name)).await?;
+		return Ok(());
+	}
+	msg.reply(&ctx.http, format!("**{}** removed from your savelist", card.name)).await?;
+	let index = player.savelist.clone().iter().position(|c| c == &card_id).unwrap();
+	player.savelist.remove(index);
+	player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
 
 	Ok(())
 }
