@@ -69,6 +69,16 @@ impl PaginateEmbed for Card {
 	}
 }
 
+impl CardInfo for Card {
+	fn card_id(&self) -> String {
+		self.id.clone()
+	}
+
+	fn card_name(&self) -> String {
+		self.name.clone()
+	}
+}
+
 pub async fn get_cards() -> Vec<Card> {
 	let mut ret = <Vec<Card>>::new();
 	let data = api_call("cards", None).await.unwrap();

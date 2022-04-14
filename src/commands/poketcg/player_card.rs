@@ -7,7 +7,7 @@ use crate::commands::poketcg::card::{
 	get_multiple_cards_by_id
 };
 
-use super::PaginateEmbed;
+use super::{PaginateEmbed, CardInfo};
 
 pub struct PlayerCard {
 	pub card: Card,
@@ -21,6 +21,16 @@ impl PaginateEmbed for PlayerCard {
 			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n**Amount:** {}\n", &self.card.id, &self.card.rarity, &self.card.price, &self.amount));
 
 		e
+	}
+}
+
+impl CardInfo for PlayerCard {
+	fn card_id(&self) -> String {
+		self.card.id.clone()
+	}
+
+	fn card_name(&self) -> String {
+		self.card.name.clone()
 	}
 }
 

@@ -75,13 +75,17 @@ impl Pack {
 			.map(|c| c.to_owned())
 			.collect::<Vec<Card>>();
 		let mut cards = vec![];
-		for _ in 0..6*amount {
-			let c = commons.choose(&mut thread_rng()).unwrap().clone();
-			cards.push(c);
+		if commons.len() > 0 {
+			for _ in 0..6*amount {
+				let c = commons.choose(&mut thread_rng()).unwrap().clone();
+				cards.push(c);
+			}
 		}
-		for _ in 0..3*amount {
-			let c = uncommons.choose(&mut thread_rng()).unwrap().clone();
-			cards.push(c);
+		if uncommons.len() > 0 {
+			for _ in 0..3*amount {
+				let c = uncommons.choose(&mut thread_rng()).unwrap().clone();
+				cards.push(c);
+			}
 		}
 		let mut rares_with_weights = vec![];
 		for rare in rares {

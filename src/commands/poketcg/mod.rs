@@ -82,6 +82,11 @@ pub trait PaginateEmbed {
 	fn embed(&self) -> CreateEmbed;
 }
 
+pub trait CardInfo {
+	fn card_id(&self) -> String;
+	fn card_name(&self) -> String;
+}
+
 // paginated embeds to search through cards
 async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds: Vec<T>) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
@@ -139,43 +144,80 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 	Ok(())
 }
 
-// #[command("card")]
-// #[sub_commands(card_search, card_random)]
-// async fn card_main(ctx: &Context, msg: &Message) -> CommandResult {
-// 	let card_help_str = "Here are the available **card** commands:
-// 	**.card search**: Searches for a card with a matching name
-// 	**.card random**: Shows a random card";
-// 	msg.reply(&ctx.http, card_help_str).await?;
+async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &Message, cards: Vec<T>, mut player: player::Player) -> Result<(), String> {
+	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
+	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
+	let save_icon = ReactionType::try_from("💾").expect("No floppy disk");
+	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
+	let mut idx: i16 = 0;
+	let mut content = String::from("");
+	let mut message = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			let mut cur_embed = embeds[idx as usize].clone();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			m.set_embed(cur_embed);
 
-// 	Ok(())
-// }
+			if embeds.len() > 1 {
+				m.reactions([left_arrow.clone(), right_arrow.clone(), save_icon.clone()]);
+			} else {
+				m.reactions([save_icon.clone()]);
+			}
 
-// #[command("search")]
-// async fn card_search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-// 	println!("Calling search");
-// 	let search_str = args.rest();
-// 	let cards = card::get_cards_with_query(format!("name:{}", search_str).as_str()).await;
-// 	let mut card_embeds = vec![];
-// 	for card in cards {
-// 		card_embeds.push(card.embed());
-// 	}
-// 	paginated_embeds(ctx, msg, card_embeds).await?;
+			m			
+		}).await.unwrap();
+	
+	loop {
+		if embeds.len() <= 1 {
+			break; // Exit before anything. Probably a way to do this before entering.
+		}
+		if let Some(reaction) = &message
+			.await_reaction(&ctx)
+			.timeout(StdDuration::from_secs(30))
+			.author_id(msg.author.id)
+			.removed(true)
+			.await
+		{
+			let emoji = &reaction.as_inner_ref().emoji;
+			match emoji.as_data().as_str() {
+				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
+				"➡️" => idx = (idx + 1) % embeds.len() as i16,
+				"💾" => {
+					let card_id = &cards[idx as usize].card_id();
+					if player.savelist.clone().contains(&card_id) {
+						let index = player.savelist.clone().iter().position(|c| c == card_id).unwrap();
+						player.savelist.remove(index);
+						content = format!("**{}** removed from your savelist!", &cards[idx as usize].card_name());
+					} else {
+						player.savelist.push(card_id.clone());
+						content = format!("**{}** added to your savelist!", &cards[idx as usize].card_name());
+					}
+					player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
+				}
+				_ => continue
+			};
+		} else {
+			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+			break;
+		}
+		message.edit(&ctx, |m| {
+			let mut cur_embed = embeds[idx as usize].clone();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			m.set_embed(cur_embed);
+			m.content(content);
 
-// 	Ok(())
-// }
+			m
+		}).await.unwrap();
 
-// #[command("set")]
-// #[sub_commands(search_set)]
-// async fn set_main(ctx: &Context, msg: &Message) -> CommandResult {
-// 	let sets = sets::get_sets().await;
-// 	let mut set_embeds = vec![];
-// 	for set in sets {
-// 		set_embeds.push(set.embed());
-// 	}
-// 	paginated_embeds(ctx, msg, set_embeds).await?;
+		content = String::from("");
+	}
 
-// 	Ok(())
-// }
+	Ok(())
+}
 
 #[command("my")]
 #[sub_commands(my_cards, my_packs, my_stats)]
@@ -194,12 +236,12 @@ async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[aliases("c")]
 async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
-	let mut cards = player_cards(player.cards).await;
+	let mut cards = player_cards(player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
 		cards.sort_by(|c1, c2| c1.card.name.cmp(&c2.card.name));
-		paginated_embeds(ctx, msg, cards).await?;
+		card_paginated_embeds(ctx, msg, cards, player).await?;
 	}
 
 	Ok(())
@@ -503,13 +545,14 @@ async fn search_main(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("card")]
 async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
 	let search_str = args.rest();
 	let cards = card::get_cards_with_query(&format!("name:{}", search_str))
 		.await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "No cards found with that name.").await?;
 	} else {
-		paginated_embeds(ctx, msg, cards).await?;
+		card_paginated_embeds(ctx, msg, cards, player).await?;
 	}
 
 	Ok(())
@@ -602,7 +645,7 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 		}
 		update.insert("cards", player_cards);
 		player::update_player(&player, doc! { "$set": update }).await;
-		paginated_embeds(ctx, msg, pack.cards).await?;
+		card_paginated_embeds(ctx, msg, pack.cards, player).await?;
 	} else {
 		msg.reply(&ctx.http, "You don't have that pack").await?;
 	}
@@ -742,8 +785,15 @@ async fn quiz_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult
 #[command("savelist")]
 #[aliases("sl")]
 #[sub_commands(savelist_add, savelist_list, savelist_clear, savelist_remove)]
-async fn savelist_main(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn savelist_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	let mut cards = card::get_multiple_cards_by_id(player.savelist.clone()).await;
+	if cards.len() == 0 {
+		msg.reply(&ctx.http, "You have no cards in your savelist! Use **.savelist add <card id>** to add a card\nOr use the :floppy_disk: emoji when scrolling through cards!").await?;
+	} else {
+		cards.sort_by(|c1, c2| c1.name.cmp(&c2.name));
+		card_paginated_embeds(ctx, msg, cards, player).await?;
+	}
 
 	Ok(())
 }
