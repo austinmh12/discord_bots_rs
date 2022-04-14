@@ -631,8 +631,6 @@ async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("buy")]
 async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	// TODO: If the selection is 0 then check if it's a string and look to see if store.sets.contains(selection)
-	// TODO: Revamp buying from a while loop to a calculation.
-		// vec![total_cost // pack_price(), player.cash // pack_price()].iter().min()
 	let selection = match args.single::<i32>() {
 		Ok(x) => x,
 		Err(_) => 0
@@ -667,11 +665,6 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		.into_iter()
 		.reduce(f64::min)
 		.unwrap() as i32; // Either the most they can afford or the amount they wanted.
-	// let mut bought = 0;
-	// while player.cash >= set.pack_price() * price_mult && bought < amount {
-	// 	player.cash -= set.pack_price() * price_mult;
-	// 	bought += 1;
-	// }
 	player.cash -= set.pack_price() * amount as f64;
 	*player.packs.entry(set.id).or_insert(0) += (amount * pack_count) as i64;
 	player.packs_bought += (amount * pack_count) as i64;
