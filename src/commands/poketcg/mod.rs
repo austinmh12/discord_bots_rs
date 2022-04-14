@@ -452,8 +452,40 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 }
 
 #[command("packs")]
-async fn sell_packs(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database57
+async fn sell_packs(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let pack_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if pack_id == "" {
+		msg.reply(&ctx.http, "No pack provided").await?;
+		return Ok(());
+	}
+	let amount = match args.find::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.packs.contains_key(&pack_id) {
+		let amounts = vec![amount, *player.packs.get(&pack_id).unwrap()];
+		let amount = *amounts.iter().min().unwrap();
+		let set = sets::get_set(&pack_id).await.unwrap();
+		let mut update = Document::new();
+		*player.packs.entry(pack_id.clone()).or_insert(0) -= amount;
+		player.packs.retain(|_, v| *v > 0);
+		player.cash += set.pack_price() * amount as f64;
+		update.insert("cash", player.cash);
+		let mut player_packs = Document::new();
+		for (pck, amt) in player.packs.iter() {
+			player_packs.insert(pck, amt);
+		}
+		update.insert("packs", player_packs);
+		player::update_player(&player, doc! { "$set": update }).await;
+		msg.reply(&ctx.http, format!("You sold {} **{}** packs for ${:.2}", amount, set.name, set.pack_price() * amount as f64)).await?;
+	} else {
+		msg.reply(&ctx.http, "You don't have that card").await?;
+	}
 
 	Ok(())
 }
