@@ -630,11 +630,18 @@ async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("buy")]
 async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	// TODO: If the selection is 0 then check if it's a string and look to see if store.sets.contains(selection)
-	let selection = match args.single::<i32>() {
+	let mut selection = match args.single::<i32>() {
 		Ok(x) => x,
 		Err(_) => 0
 	};
+	let selection_str = match args.single::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	let store_ = store::get_store().await;
+	if selection_str != "" && selection == 0 {
+		selection = (store_.sets.iter().position(|r| r == &selection_str).unwrap_or(10) + 1) as i32;
+	}
 	if !(1..=10).contains(&selection) {
 		msg.channel_id.send_message(&ctx.http, |m| m.content("A selection was not made.")).await?;
 		return Ok(());
@@ -643,7 +650,6 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		Ok(x) => x,
 		Err(_) => 1
 	};
-	let store_ = store::get_store().await;
 	let set = get_set(store_.sets.get((selection - 1) as usize).unwrap()).await.unwrap();
 	let mut player = player::get_player(msg.author.id.0).await;
 	let (price_mult, pack_count) = if selection <= 4 {
