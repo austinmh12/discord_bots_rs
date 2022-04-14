@@ -54,7 +54,8 @@ struct YouTube;
 	daily_command,
 	open_pack_command,
 	sell_main,
-	savelist_main
+	savelist_main,
+	trade_main,
 )]
 struct PokeTCG;
 

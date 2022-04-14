@@ -858,8 +858,22 @@ async fn savelist_clear(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("trade")]
 #[sub_commands(trade_card, trade_pack)]
-async fn trade_main(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn trade_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let content = "Here are the available trading commands:
+		**.trade card <@player> <trade offer>** to trade for cards
+		**.trade pack <@player> <trade offer>** to trade for packs
+
+		The **trade offer** is written as **cardID:amount/cardID:amount**
+		E.g. to trade a **Jigglypuff** for a **Magikarp** player 1 would use:
+		**.trade @player2 bwp-bw65**, player 2 would reply **xyp-xy143**
+		Trading multiple would make the trade offer: **bwp-bw65/dp2-108:2**
+		Which would offer a Jigglypuff and two Zubats.
+
+		For trading packs, replace the **card ID** with the **set ID**";
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| m.content(content))
+		.await?;
 
 	Ok(())
 }
