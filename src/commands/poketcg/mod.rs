@@ -630,6 +630,9 @@ async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("buy")]
 async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	// TODO: If the selection is 0 then check if it's a string and look to see if store.sets.contains(selection)
+	// TODO: Revamp buying from a while loop to a calculation.
+		// vec![total_cost // pack_price(), player.cash // pack_price()].iter().min()
 	let selection = match args.single::<i32>() {
 		Ok(x) => x,
 		Err(_) => 0
@@ -654,18 +657,25 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	} else {
 		(30.0, 36)
 	};
-	if player.cash < set.pack_price() * price_mult {
-		msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You don't have enough... You need **${:.2}** more", set.pack_price() * price_mult - player.cash))).await?;
+	let base_cost = set.pack_price() * price_mult;
+	if player.cash < base_cost {
+		msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You don't have enough... You need **${:.2}** more", base_cost - player.cash))).await?;
 		return Ok(());
 	}
-	let mut bought = 0;
-	while player.cash >= set.pack_price() * price_mult && bought < amount {
-		player.cash -= set.pack_price() * price_mult;
-		bought += 1;
-	}
-	*player.packs.entry(set.id).or_insert(0) += (bought * pack_count) as i64;
-	player.packs_bought += (bought * pack_count) as i64;
-	msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You bought {} **{}** packs!", bought * pack_count, set.name))).await?;
+	let total_cost = base_cost * amount as f64;
+	let amount = vec![(total_cost / set.pack_price()).floor(), (player.cash / set.pack_price()).floor()]
+		.into_iter()
+		.reduce(f64::min)
+		.unwrap() as i32; // Either the most they can afford or the amount they wanted.
+	// let mut bought = 0;
+	// while player.cash >= set.pack_price() * price_mult && bought < amount {
+	// 	player.cash -= set.pack_price() * price_mult;
+	// 	bought += 1;
+	// }
+	player.cash -= set.pack_price() * amount as f64;
+	*player.packs.entry(set.id).or_insert(0) += (amount * pack_count) as i64;
+	player.packs_bought += (amount * pack_count) as i64;
+	msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You bought {} **{}** packs!", amount * pack_count, set.name))).await?;
 	let mut player_packs = Document::new();
 	for (set_id, amt) in player.packs.iter() {
 		player_packs.insert(set_id, amt.clone());
