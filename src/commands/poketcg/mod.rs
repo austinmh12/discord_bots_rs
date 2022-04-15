@@ -41,6 +41,9 @@ use serenity::{
 			Message,
 			ReactionType
 		},
+		misc::{
+			Mention
+		}
 	},
 	utils::{
 		Colour
@@ -275,7 +278,10 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("stats")]
 async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
-	let nickname = msg.author_nick(ctx).await.unwrap();
+	let nickname = match msg.author_nick(ctx).await {
+		Some(x) => x,
+		None => msg.author.name.clone()
+	};
 	let avatar_url = msg.author.avatar_url().unwrap();
 	msg
 		.channel_id
@@ -879,8 +885,17 @@ async fn trade_main(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("card")]
-async fn trade_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	// TODO: Set up database
+async fn trade_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	let tradee_mention = msg.mentions.iter().nth(0);
+	match tradee_mention {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You didn't choose to trade with anyone").await?;
+			return Ok(());
+		}
+	}
+	let mut tradee = player::get_player(tradee_mention.unwrap().id.0).await;
 
 	Ok(())
 }
