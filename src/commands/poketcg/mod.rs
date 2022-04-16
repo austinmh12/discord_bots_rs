@@ -981,6 +981,7 @@ pub async fn refresh_daily_packs(_ctx: Arc<Context>) {
 */
 
 /*
- * Fix .store buy bug where not having an amount and a set id buys max
- * Add .buy command as a shortcut to .store buy
+ * TODOS:
+ * 	Add different sorting methods to .my cards
+ * 	Add .buy command as a shortcut to .store buy
 */
