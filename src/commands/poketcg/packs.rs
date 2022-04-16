@@ -2,10 +2,6 @@ use std::{
 	collections::HashMap,
 };
 use rand::{
-	seq::{
-		// SliceRandom,
-		IteratorRandom
-	},
 	prelude::*
 };
 

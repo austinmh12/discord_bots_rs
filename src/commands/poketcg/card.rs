@@ -1,4 +1,6 @@
-use super::{*, player::Player};
+use super::{
+	*,
+};
 use crate::sets::Set;
 
 #[derive(Clone, Debug)]
@@ -79,17 +81,17 @@ impl CardInfo for Card {
 	}
 }
 
-pub async fn get_cards() -> Vec<Card> {
-	let mut ret = <Vec<Card>>::new();
-	let data = api_call("cards", None).await.unwrap();
-	let card_data = data["data"].as_array().unwrap();
-	for cd in card_data {
-		let card = Card::from_json(cd);
-		ret.push(card);
-	}
+// pub async fn get_cards() -> Vec<Card> {
+// 	let mut ret = <Vec<Card>>::new();
+// 	let data = api_call("cards", None).await.unwrap();
+// 	let card_data = data["data"].as_array().unwrap();
+// 	for cd in card_data {
+// 		let card = Card::from_json(cd);
+// 		ret.push(card);
+// 	}
 
-	ret
-}
+// 	ret
+// }
 
 pub async fn get_multiple_cards_by_id(card_ids: Vec<String>) -> Vec<Card> {
 	let mut ret = vec![];

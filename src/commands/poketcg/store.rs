@@ -2,7 +2,6 @@ use serde::{Serialize, Deserialize};
 use mongodb::{
 	bson::{
 		doc,
-		Document,
 		oid::ObjectId,
 	}, 
 	Collection
@@ -13,7 +12,6 @@ use chrono::{
 	Utc,
 	Datelike,
 	Duration,
-	format as cformat
 };
 use rand::{
 	seq::{
@@ -29,7 +27,11 @@ use crate::{sets::{
 	get_set
 }, commands::get_client};
 
-use super::{PaginateEmbed, player::Player};
+use super::{
+	player::{
+		Player
+	}
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Store {

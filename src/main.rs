@@ -10,8 +10,6 @@ use std::{
 		Arc,
 	},
 	time::Duration,
-	env,
-	error::Error
 };
 
 use dotenv;
@@ -55,7 +53,6 @@ struct YouTube;
 	open_pack_command,
 	sell_main,
 	savelist_main,
-	trade_main,
 )]
 struct PokeTCG;
 

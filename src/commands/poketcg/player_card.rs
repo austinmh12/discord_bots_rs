@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 use crate::commands::poketcg::card::{
 	Card,
-	get_card,
 	get_multiple_cards_by_id
 };
 
@@ -32,12 +31,6 @@ impl CardInfo for PlayerCard {
 	fn card_name(&self) -> String {
 		self.card.name.clone()
 	}
-}
-
-pub async fn player_card(card_id: &str, amount: i64) -> PlayerCard {
-	let card = get_card(card_id).await;
-
-	PlayerCard{card, amount}
 }
 
 pub async fn player_cards(cards_hash: HashMap<String, i64>) -> Vec<PlayerCard> {

@@ -10,11 +10,9 @@ use mongodb::{
 	Collection
 };
 use chrono::{
-	TimeZone,
 	DateTime, 
 	Utc, Local,
 };
-use futures::stream::{TryStreamExt};
 use serenity::{builder::CreateEmbed, utils::Colour};
 
 use crate::{
@@ -102,18 +100,18 @@ async fn get_player_collection() -> Collection<Player> {
 }
 
 // Database functions
-pub async fn get_players() -> Vec<Player> { // Will change to Player
-	let player_collection = get_player_collection().await;
-	let players = player_collection
-		.find(None, None)
-		.await
-		.unwrap()
-		.try_collect::<Vec<Player>>()
-		.await
-		.unwrap();
+// pub async fn get_players() -> Vec<Player> { // Will change to Player
+// 	let player_collection = get_player_collection().await;
+// 	let players = player_collection
+// 		.find(None, None)
+// 		.await
+// 		.unwrap()
+// 		.try_collect::<Vec<Player>>()
+// 		.await
+// 		.unwrap();
 
-	players
-}
+// 	players
+// }
 
 pub async fn get_player(discord_id: u64) -> Player { // Will change to Player
 	let discord_id = discord_id as i64;
@@ -149,37 +147,3 @@ pub async fn update_player(player: &Player, update: Document) {
 		.await
 		.unwrap();
 }
-
-// pub async fn add_player(discord_id: u64) -> Player { // Will change to Player
-// 	let ret = Player::new_from_discord_id(discord_id);
-// 	let database = get_database_connection().await;
-// 	sqlx::query!(
-// 		"insert into players values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-// 		ret.discord_id,
-// 		ret.cash,
-// 		ret.daily_reset,
-// 		ret.packs
-// 			.iter()
-// 			.map(|p| p.set.id)
-// 			.collect::<Vec<String>>()
-// 			.join(","),
-// 		ret.packs_opened,
-// 		ret.packs_bought,
-// 		ret.total_cash,
-// 		ret.total_cards,
-// 		ret.cards_sold,
-// 		ret.daily_packs,
-// 		ret.quiz_questions,
-// 		ret.current_multiplier,
-// 		ret.quiz_correct,
-// 		ret.quiz_reset,
-// 		ret.savelist
-// 			.join(","),
-// 		ret.perm_multiplier
-// 	)
-// 		.execute(&database)
-// 		.await
-// 		.unwrap();
-
-// 	ret
-// }
