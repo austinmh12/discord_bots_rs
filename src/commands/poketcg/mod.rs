@@ -984,4 +984,7 @@ pub async fn refresh_daily_packs(_ctx: Arc<Context>) {
  * TODOS:
  * 	Add different sorting methods to .my cards
  * 	Add .buy command as a shortcut to .store buy
+ * 	Prevent all .sell subcommands from selling cards in a players savelist
+ * 	Learn image manipulation to make the .quiz commands
+ * 	Implement the trade commands.
 */
