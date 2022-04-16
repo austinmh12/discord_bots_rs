@@ -18,8 +18,6 @@ pub mod player;
 pub mod store;
 pub mod player_card;
 use player_card::{
-	player_card,
-	PlayerCard,
 	player_cards
 };
 
@@ -41,9 +39,6 @@ use serenity::{
 			Message,
 			ReactionType
 		},
-		misc::{
-			Mention
-		}
 	},
 	utils::{
 		Colour
@@ -782,12 +777,12 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-#[command("quiz")]
-async fn quiz_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+// #[command("quiz")]
+// async fn quiz_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	
 
-	Ok(())
-}
+// 	Ok(())
+// }
 
 #[command("savelist")]
 #[aliases("sl")]
@@ -862,50 +857,50 @@ async fn savelist_clear(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-#[command("trade")]
-#[sub_commands(trade_card, trade_pack)]
-async fn trade_main(ctx: &Context, msg: &Message) -> CommandResult {
-	let content = "Here are the available trading commands:
-		**.trade card <@player> <trade offer>** to trade for cards
-		**.trade pack <@player> <trade offer>** to trade for packs
+// #[command("trade")]
+// #[sub_commands(trade_card, trade_pack)]
+// async fn trade_main(ctx: &Context, msg: &Message) -> CommandResult {
+// 	let content = "Here are the available trading commands:
+// 		**.trade card <@player> <trade offer>** to trade for cards
+// 		**.trade pack <@player> <trade offer>** to trade for packs
 
-		The **trade offer** is written as **cardID:amount/cardID:amount**
-		E.g. to trade a **Jigglypuff** for a **Magikarp** player 1 would use:
-		**.trade @player2 bwp-bw65**, player 2 would reply **xyp-xy143**
-		Trading multiple would make the trade offer: **bwp-bw65/dp2-108:2**
-		Which would offer a Jigglypuff and two Zubats.
+// 		The **trade offer** is written as **cardID:amount/cardID:amount**
+// 		E.g. to trade a **Jigglypuff** for a **Magikarp** player 1 would use:
+// 		**.trade @player2 bwp-bw65**, player 2 would reply **xyp-xy143**
+// 		Trading multiple would make the trade offer: **bwp-bw65/dp2-108:2**
+// 		Which would offer a Jigglypuff and two Zubats.
 
-		For trading packs, replace the **card ID** with the **set ID**";
-	msg
-		.channel_id
-		.send_message(&ctx.http, |m| m.content(content))
-		.await?;
+// 		For trading packs, replace the **card ID** with the **set ID**";
+// 	msg
+// 		.channel_id
+// 		.send_message(&ctx.http, |m| m.content(content))
+// 		.await?;
 
-	Ok(())
-}
+// 	Ok(())
+// }
 
-#[command("card")]
-async fn trade_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let mut player = player::get_player(msg.author.id.0).await;
-	let tradee_mention = msg.mentions.iter().nth(0);
-	match tradee_mention {
-		Some(_) => (),
-		None => {
-			msg.reply(&ctx.http, "You didn't choose to trade with anyone").await?;
-			return Ok(());
-		}
-	}
-	let mut tradee = player::get_player(tradee_mention.unwrap().id.0).await;
+// #[command("card")]
+// async fn trade_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+// 	let mut player = player::get_player(msg.author.id.0).await;
+// 	let tradee_mention = msg.mentions.iter().nth(0);
+// 	match tradee_mention {
+// 		Some(_) => (),
+// 		None => {
+// 			msg.reply(&ctx.http, "You didn't choose to trade with anyone").await?;
+// 			return Ok(());
+// 		}
+// 	}
+// 	let mut tradee = player::get_player(tradee_mention.unwrap().id.0).await;
 
-	Ok(())
-}
+// 	Ok(())
+// }
 
-#[command("pack")]
-async fn trade_pack(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+// #[command("pack")]
+// async fn trade_pack(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	
 
-	Ok(())
-}
+// 	Ok(())
+// }
 
 #[command("admin")]
 #[sub_commands(admin_show_pack, admin_add_cash)]
