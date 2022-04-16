@@ -715,7 +715,7 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		return Ok(());
 	}
 	let total_cost = base_cost * amount as f64;
-	let amount = vec![(total_cost / set.pack_price()).floor(), (player.cash / set.pack_price()).floor()]
+	let amount = vec![(total_cost / set.pack_price()).floor(), (player.cash / (set.pack_price() * amount as f64)).floor()]
 		.into_iter()
 		.reduce(f64::min)
 		.unwrap() as i32; // Either the most they can afford or the amount they wanted.
@@ -978,4 +978,9 @@ pub async fn refresh_daily_packs(_ctx: Arc<Context>) {
 
 /* Other things
  * Need to find a way to implement the cache
+*/
+
+/*
+ * Fix .store buy bug where not having an amount and a set id buys max
+ * Add .buy command as a shortcut to .store buy
 */
