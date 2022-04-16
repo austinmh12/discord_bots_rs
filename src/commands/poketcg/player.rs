@@ -13,6 +13,7 @@ use chrono::{
 	DateTime, 
 	Utc, Local,
 };
+use futures::stream::{TryStreamExt};
 use serenity::{builder::CreateEmbed, utils::Colour};
 
 use crate::{
@@ -100,18 +101,18 @@ async fn get_player_collection() -> Collection<Player> {
 }
 
 // Database functions
-// pub async fn get_players() -> Vec<Player> { // Will change to Player
-// 	let player_collection = get_player_collection().await;
-// 	let players = player_collection
-// 		.find(None, None)
-// 		.await
-// 		.unwrap()
-// 		.try_collect::<Vec<Player>>()
-// 		.await
-// 		.unwrap();
+pub async fn get_players() -> Vec<Player> { // Will change to Player
+	let player_collection = get_player_collection().await;
+	let players = player_collection
+		.find(None, None)
+		.await
+		.unwrap()
+		.try_collect::<Vec<Player>>()
+		.await
+		.unwrap();
 
-// 	players
-// }
+	players
+}
 
 pub async fn get_player(discord_id: u64) -> Player { // Will change to Player
 	let discord_id = discord_id as i64;

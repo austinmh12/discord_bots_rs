@@ -9,7 +9,7 @@ use mongodb::{
 		Document
 	},
 };
-use std::time::Duration as StdDuration;
+use std::{time::Duration as StdDuration, sync::Arc};
 pub mod card;
 pub mod sets;
 use sets::get_set;
@@ -17,6 +17,7 @@ pub mod packs;
 pub mod player;
 pub mod store;
 pub mod player_card;
+pub mod timers;
 use player_card::{
 	player_cards
 };
@@ -51,6 +52,8 @@ use rand::{
 	Rng
 };
 use crate::OWNER_CHECK;
+
+use super::get_client;
 
 async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
@@ -905,7 +908,6 @@ async fn savelist_clear(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("admin")]
 #[sub_commands(admin_show_pack, admin_add_cash)]
 #[checks(Owner)]
-// TODO: Add the owner or admin check
 async fn admin_main() -> CommandResult {
 	Ok(())
 }
@@ -948,6 +950,20 @@ async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> Command
 	Ok(())
 }
 
+// TASKS
+pub async fn refresh_daily_packs(_ctx: Arc<Context>) {
+	let timer = timers::get_timer().await;
+	if Utc::now() >= timer.pack_reset {
+		println!("Reseting daily packs");
+		let players = player::get_players().await;
+		for mut player in players {
+			player.daily_packs = 50;
+			player::update_player(&player, doc!{"$set": {"daily_packs": player.daily_packs}}).await;
+		}
+		timers::update_timer(&timer).await;
+	}
+}
+
 /* Tasks
  * Refresh daily packs
  * Cache store packs
@@ -956,15 +972,10 @@ async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> Command
 
 /* Admin commands
  * cache
- * addcash
  * resetpacks
  * resetquiz
 */
 
 /* Other things
- * Need to find a way to replicate the paginated embeds
- * 		I should look into how to work with generics so I can make a function like
- * 		async fn paginated_embeds(pages: Vec<T>)
- * Need to find a way to implement the store
  * Need to find a way to implement the cache
 */

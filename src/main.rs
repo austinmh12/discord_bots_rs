@@ -83,8 +83,9 @@ impl EventHandler for Handler {
 			let ctx1 = Arc::new(ctx);
 			tokio::spawn(async move {
 				loop {
-					commands::youtube::check_for_new_videos(Arc::clone(&ctx1)).await;
-					tokio::time::sleep(Duration::from_secs(3600)).await;
+					// commands::youtube::check_for_new_videos(Arc::clone(&ctx1)).await;
+					commands::poketcg::refresh_daily_packs(Arc::clone(&ctx1)).await;
+					tokio::time::sleep(Duration::from_secs(60)).await;
 				}
 			});
 		}
