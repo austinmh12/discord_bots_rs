@@ -20,7 +20,7 @@ lazy_static! {
 		m.insert("Rare", 75);
 		m.insert("Rare ACE", 10);
 		m.insert("Rare BREAK", 10);
-		m.insert("Rare Holo", 25);
+		m.insert("Rare Holo", 40);
 		m.insert("Rare Holo EX", 12);
 		m.insert("Rare Holo GX", 12);
 		m.insert("Rare Holo LV.X", 12);
@@ -34,7 +34,7 @@ lazy_static! {
 		m.insert("Rare Shining", 20);
 		m.insert("Rare Shiny", 5);
 		m.insert("Rare Shiny GX", 2);
-		m.insert("Rare Ultra", 35);
+		m.insert("Rare Ultra", 5);
 		m.insert("Amazing Rare", 15);
 		m.insert("LEGEND", 3);
 		
