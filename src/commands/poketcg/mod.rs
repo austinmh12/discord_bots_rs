@@ -371,6 +371,9 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
 	for player_card in player_cards(player.cards.clone()).await {
+		if player.savelist.contains(&player_card.card.id) {
+			continue;
+		}
 		if player_card.card.price <= value {
 			if rares {
 				cards_to_sell.push(player_card)
@@ -416,6 +419,9 @@ async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
 	for player_card in player_cards(player.cards.clone()).await {
+		if player.savelist.contains(&player_card.card.id) {
+			continue;
+		}
 		if player_card.amount > 1 {
 			if rares {
 				cards_to_sell.push(player_card)
@@ -462,6 +468,9 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
 	for player_card in player_cards(player.cards.clone()).await {
+		if player.savelist.contains(&player_card.card.id) {
+			continue;
+		}
 		if rares {
 			cards_to_sell.push(player_card)
 		} else if vec!["Common", "Uncommon"].contains(&player_card.card.rarity.as_str()) {
