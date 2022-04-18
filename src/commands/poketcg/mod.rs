@@ -53,8 +53,6 @@ use rand::{
 };
 use crate::OWNER_CHECK;
 
-use super::get_client;
-
 async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
 	let poketcg_key = dotenv::var("POKETCGAPIKEY").unwrap();
@@ -715,7 +713,7 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		return Ok(());
 	}
 	let total_cost = base_cost * amount as f64;
-	let amount = vec![(total_cost / set.pack_price()).floor(), (player.cash / (set.pack_price() * amount as f64)).floor()]
+	let amount = vec![(total_cost / base_cost).floor(), (player.cash / base_cost).floor()]
 		.into_iter()
 		.reduce(f64::min)
 		.unwrap() as i32; // Either the most they can afford or the amount they wanted.
