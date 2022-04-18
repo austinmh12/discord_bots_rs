@@ -314,6 +314,7 @@ async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("card")]
+#[aliases("c")]
 async fn sell_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let card_id = match args.find::<String>() {
 		Ok(x) => x,
@@ -359,6 +360,7 @@ async fn sell_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 }
 
 #[command("under")]
+#[aliases("u")]
 async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let value = match args.find::<f64>() {
 		Ok(x) => x,
@@ -411,6 +413,7 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 }
 
 #[command("dups")]
+#[aliases("dup", "d")]
 async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let rares = match args.find::<bool>() {
 		Ok(x) => x,
@@ -460,6 +463,7 @@ async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 }
 
 #[command("all")]
+#[aliases("a")]
 async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let rares = match args.find::<bool>() {
 		Ok(x) => x,
@@ -506,6 +510,7 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 }
 
 #[command("packs")]
+#[aliases("pack", "p")]
 async fn sell_packs(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let pack_id = match args.find::<String>() {
 		Ok(x) => x,
@@ -666,6 +671,7 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 }
 
 #[command("store")]
+#[aliases("st")]
 #[sub_commands(store_buy)]
 async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let store_ = store::get_store().await;
@@ -684,6 +690,7 @@ async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("buy")]
+#[aliases("b")]
 async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let mut selection = match args.single::<i32>() {
 		Ok(x) => x,
@@ -811,6 +818,7 @@ async fn savelist_main(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("add")]
+#[aliases("a", "+")]
 async fn savelist_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let card_id = match args.find::<String>() {
 		Ok(x) => x,
@@ -834,6 +842,7 @@ async fn savelist_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 }
 
 #[command("remove")]
+#[aliases("r", "-")]
 async fn savelist_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let card_id = match args.find::<String>() {
 		Ok(x) => x,
