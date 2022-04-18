@@ -802,7 +802,7 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 // }
 
 #[command("savelist")]
-#[aliases("sl")]
+#[aliases("sl", "favourite", "favorite", "fv")]
 #[sub_commands(savelist_add, savelist_clear, savelist_remove)]
 async fn savelist_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
