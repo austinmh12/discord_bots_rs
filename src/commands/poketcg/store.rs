@@ -107,7 +107,7 @@ impl Store {
 		let mut ret = CreateEmbed::default();
 		let mut desc = String::from("Welcome to the Card Store! Here you can spend cash for Packs of cards\n");
 		desc.push_str(&format!("You have **${:.2}**\n", player.cash));
-		desc.push_str("Here are the packs available today. To purchase one, use **.store <slot no. | slot id.> (amount)**\n\n");
+		desc.push_str("Here are the packs available today. To purchase packs, use **.store buy <slot no. | slot id.> (amount)**\n\n");
 		for (i, set_id) in self.sets.iter().enumerate() {
 			let num = i + 1;
 			let set = get_set(set_id).await.unwrap();
