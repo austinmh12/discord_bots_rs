@@ -255,7 +255,7 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	let timer = timers::get_timer().await;
 	let mut desc = format!("You have **{}** packs left to open today\n", player.daily_packs);
-	desc.push_str("Use **.openpacks <set_id> (amount)** to open packs\n");
+	desc.push_str("Use **.(op)enpack <set_id> [amount]** to open packs\n");
 	for (set_id, amount) in player.packs.iter() {
 		desc.push_str(&format!("**{}** - {}\n", set_id, amount));
 	}
