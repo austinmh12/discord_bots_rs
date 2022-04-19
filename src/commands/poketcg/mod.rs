@@ -562,7 +562,11 @@ async fn sell_packs(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 async fn search_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let search_help_str = "Here are the available **search** commands:
 	**.search card:** Searches for a card with a matching name
-	**.search set:** Searches for a set with a matching name";
+	**.search set:** Searches for a set with a matching name
+
+	**Basic searching:** https://pokemontcg.guru/
+	**Advanced searching:** https://pokemontcg.guru/advanced
+	**Searching syntax:** http://www.lucenetutorial.com/lucene-query-syntax.html";
 	msg.reply(&ctx.http, search_help_str).await?;
 
 	Ok(())
