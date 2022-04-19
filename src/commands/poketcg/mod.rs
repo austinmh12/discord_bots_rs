@@ -264,6 +264,9 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 					.title("Your packs")
 					.description(&desc)
 					.colour(Colour::from_rgb(255, 50, 20))
+					.footer(|f| f
+						.text(&format!("Resets at {}", player.daily_reset.format("%h %d %H:%m")))
+					)
 			})
 		})
 		.await?;
