@@ -50,7 +50,7 @@ impl PaginateEmbed for Set {
 		let mut ret = CreateEmbed::default();
 		ret
 			.title(&self.name)
-			.description(format!("**Series:** {}\n**Total cards:** ${}\n**Pack price:** ${:.2}\n**ID:** {}", &self.series, &self.printed, &self.pack_price(), &self.id))
+			.description(format!("**Series:** {}\n**Total cards:** {}\n**Pack price:** ${:.2}\n**ID:** {}", &self.series, &self.printed, &self.pack_price(), &self.id))
 			.colour(Colour::from_rgb(255, 50, 20))
 			.image(&self.logo)
 			.thumbnail(&self.symbol);
