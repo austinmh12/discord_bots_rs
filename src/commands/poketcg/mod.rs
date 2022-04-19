@@ -1,6 +1,8 @@
 use chrono::{
 	Utc,
-	Duration
+	Duration,
+	DateTime,
+	Local,
 };
 use dotenv;
 use mongodb::{
@@ -251,6 +253,7 @@ async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
 #[aliases("p")]
 async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
+	let timer = timers::get_timer().await;
 	let mut desc = format!("You have **{}** packs left to open today\n", player.daily_packs);
 	desc.push_str("Use **.openpacks <set_id> (amount)** to open packs\n");
 	for (set_id, amount) in player.packs.iter() {
@@ -264,9 +267,11 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 					.title("Your packs")
 					.description(&desc)
 					.colour(Colour::from_rgb(255, 50, 20))
-					.footer(|f| f
-						.text(&format!("Resets at {}", player.daily_reset.format("%h %d %H:%m")))
-					)
+					.footer(|f| {
+						let local_timer: DateTime<Local> = DateTime::from(timer.pack_reset);
+
+						f.text(&format!("Resets at {}", local_timer.format("%h %d %H:%m")))
+					})
 			})
 		})
 		.await?;
