@@ -572,10 +572,10 @@ async fn search_main(ctx: &Context, msg: &Message) -> CommandResult {
 async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	let search_str = args.rest();
-	let cards = card::get_cards_with_query(&format!("name:{}", search_str))
+	let cards = card::get_cards_with_query(&format!("{}", search_str))
 		.await;
 	if cards.len() == 0 {
-		msg.reply(&ctx.http, "No cards found with that name.").await?;
+		msg.reply(&ctx.http, "No cards found.").await?;
 	} else {
 		card_paginated_embeds(ctx, msg, cards, player).await?;
 	}
@@ -588,10 +588,10 @@ async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 #[command("set")]
 async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	let search_str = args.rest();
-	let sets = sets::get_sets_with_query(&format!("name:{}", search_str))
+	let sets = sets::get_sets_with_query(&format!("{}", search_str))
 		.await;
 	if sets.len() == 0 {
-		msg.reply(&ctx.http, "No sets found with that name.").await?;
+		msg.reply(&ctx.http, "No sets found.").await?;
 	} else {
 		paginated_embeds(ctx, msg, sets).await?;
 	}
