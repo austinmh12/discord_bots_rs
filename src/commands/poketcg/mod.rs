@@ -42,6 +42,9 @@ use serenity::{
 			Message,
 			ReactionType
 		},
+		id::{
+			EmojiId,
+		}
 	},
 	utils::{
 		Colour
@@ -216,6 +219,74 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &
 		}).await.unwrap();
 
 		content = String::from("");
+	}
+
+	Ok(())
+}
+
+async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Set>) -> Result<(), String> {
+	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
+	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
+	let pokemon_card = ReactionType::try_from("<:poketcg:965802882433703936>").expect("No TCG Back");
+	let player = player::get_player(msg.author.id.0).await;
+	let sets = &embeds.clone();
+	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
+	let mut idx: i16 = 0;
+	let mut message = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			let mut cur_embed = embeds[idx as usize].clone();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			m.set_embed(cur_embed);
+
+			if embeds.len() > 1 {
+				m.reactions([left_arrow.clone(), right_arrow.clone(), pokemon_card.clone()]);
+			} else {
+				m.reactions([pokemon_card.clone()]);
+			}
+
+			m			
+		}).await.unwrap();
+	
+	loop {
+		// if embeds.len() <= 1 {
+		// 	break; // Exit before anything. Probably a way to do this before entering.
+		// }
+		if let Some(reaction) = &message
+			.await_reaction(&ctx)
+			.timeout(StdDuration::from_secs(30))
+			.author_id(msg.author.id)
+			.removed(true)
+			.await
+		{
+			let emoji = &reaction.as_inner_ref().emoji;
+			match emoji.as_data().as_str() {
+				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
+				"➡️" => idx = (idx + 1) % embeds.len() as i16,
+				"poketcg:965802882433703936" => {
+					let set = sets.into_iter().nth(idx as usize).unwrap();
+					let cards = card::get_cards_with_query(&format!("set.id:{}", set.id)).await;
+					message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+					
+					card_paginated_embeds(ctx, msg, cards, player.clone()).await?
+				},
+				_ => continue
+			};
+		} else {
+			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+			break;
+		}
+		message.edit(&ctx, |m| {
+			let mut cur_embed = embeds[idx as usize].clone();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			m.set_embed(cur_embed);
+
+			m
+		}).await.unwrap();
 	}
 
 	Ok(())
@@ -606,7 +677,7 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command("sets")]
 async fn sets_command(ctx: &Context, msg: &Message) -> CommandResult {
 	let sets = sets::get_sets().await;
-	paginated_embeds(ctx, msg, sets).await?;
+	set_paginated_embeds(ctx, msg, sets).await?;
 
 	Ok(())
 }
@@ -616,7 +687,7 @@ async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	let set_id = args.rest();
 	let set = sets::get_set(set_id).await;
 	match set {
-		Some(x) => paginated_embeds(ctx, msg, vec![x]).await?,
+		Some(x) => set_paginated_embeds(ctx, msg, vec![x]).await?,
 		None => {
 			msg.reply(&ctx.http, "No set found with that id.").await?;
 		}

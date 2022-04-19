@@ -95,7 +95,14 @@ impl EventHandler for Handler {
 		if reaction.emoji.unicode_eq("✅") {
 			let _ = reaction.message(&ctx).await.unwrap()
 				.react(&ctx, ReactionType::try_from("<:backchk:799333634263613440>").unwrap()).await;
-		}
+		} 
+		// else {
+		// 	match reaction.emoji {
+		// 		ReactionType::Custom {animated: _, id: y, name: Some(_)} => println!("{}", y.0),
+		// 		ReactionType::Unicode(s) => println!("{}", s),
+		// 		_ => ()
+		// 	}
+		// }
 	}
 }
 
