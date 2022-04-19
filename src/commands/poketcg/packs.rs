@@ -55,6 +55,14 @@ impl Pack {
 			.unwrap();
 		let all_cards = get_cards_with_query(&format!("set.id:{}", set.id))
 			.await;
+		// let mut all_cards_rarities = vec![];
+		// for card in &all_cards {
+		// 	if all_cards_rarities.contains(&card.rarity.as_str()) {
+		// 		continue;
+		// 	}
+		// 	all_cards_rarities.push(card.rarity.as_str());
+		// }
+		// println!("{:?}", all_cards_rarities);
 		let rares = all_cards
 			.iter()
 			.filter(|c| c.rarity != "Common" || c.rarity != "Uncommon" || c.rarity != "Promo")
@@ -72,7 +80,7 @@ impl Pack {
 			.collect::<Vec<Card>>();
 		let promos = all_cards
 			.iter()
-			.filter(|c| c.rarity == "Promo")
+			.filter(|c| c.rarity == "Promo" || c.rarity == "Classic Collection" || c.rarity == "Unknown")
 			.map(|c| c.to_owned())
 			.collect::<Vec<Card>>();
 		let mut cards = vec![];
