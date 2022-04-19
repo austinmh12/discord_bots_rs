@@ -42,9 +42,6 @@ use serenity::{
 			Message,
 			ReactionType
 		},
-		id::{
-			EmojiId,
-		}
 	},
 	utils::{
 		Colour
@@ -251,9 +248,6 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 		}).await.unwrap();
 	
 	loop {
-		// if embeds.len() <= 1 {
-		// 	break; // Exit before anything. Probably a way to do this before entering.
-		// }
 		if let Some(reaction) = &message
 			.await_reaction(&ctx)
 			.timeout(StdDuration::from_secs(30))
@@ -668,7 +662,7 @@ async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	if sets.len() == 0 {
 		msg.reply(&ctx.http, "No sets found.").await?;
 	} else {
-		paginated_embeds(ctx, msg, sets).await?;
+		set_paginated_embeds(ctx, msg, sets).await?;
 	}
 
 	Ok(())
