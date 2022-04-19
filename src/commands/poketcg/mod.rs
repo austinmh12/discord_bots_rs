@@ -733,7 +733,7 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		.into_iter()
 		.reduce(f64::min)
 		.unwrap() as i32; // Either the most they can afford or the amount they wanted.
-	player.cash -= set.pack_price() * amount as f64;
+	player.cash -= base_cost * amount as f64;
 	*player.packs.entry(set.id).or_insert(0) += (amount * pack_count) as i64;
 	player.packs_bought += (amount * pack_count) as i64;
 	msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You bought {} **{}** packs!", amount * pack_count, set.name))).await?;
