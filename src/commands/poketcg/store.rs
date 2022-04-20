@@ -12,6 +12,7 @@ use chrono::{
 	Utc,
 	Datelike,
 	Duration,
+	Local,
 };
 use rand::{
 	seq::{
@@ -126,9 +127,11 @@ impl Store {
 			.title("Card Store")
 			.description(&desc)
 			.colour(Colour::from_rgb(255, 50, 20))
-			.footer(|f| f
-				.text(&format!("Resets {}", &self.reset.format("%h %d")))
-			);
+			.footer(|f| {
+				let local_timer: DateTime<Local> = DateTime::from(self.reset);
+
+				f.text(&format!("Resets at {}", local_timer.format("%h %d %H:%m")))
+			});
 
 		ret
 	}
