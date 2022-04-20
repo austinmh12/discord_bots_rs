@@ -773,7 +773,7 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		Ok(x) => x,
 		Err(_) => 0
 	};
-	let selection_str = match args.single::<String>() {
+	let selection_str = match args.find::<String>() {
 		Ok(x) => x,
 		Err(_) => String::from("")
 	};
@@ -785,7 +785,7 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		msg.channel_id.send_message(&ctx.http, |m| m.content("A selection was not made.")).await?;
 		return Ok(());
 	}
-	let amount = match args.single::<i32>() {
+	let amount = match args.find::<i32>() {
 		Ok(x) => x,
 		Err(_) => 1
 	};
