@@ -1050,8 +1050,10 @@ pub async fn refresh_daily_packs(_ctx: Arc<Context>) {
 		println!("Reseting daily packs");
 		let players = player::get_players().await;
 		for mut player in players {
-			player.daily_packs = 50;
-			player::update_player(&player, doc!{"$set": {"daily_packs": player.daily_packs}}).await;
+			if player.daily_packs < 50 {
+				player.daily_packs = 50;
+				player::update_player(&player, doc!{"$set": {"daily_packs": player.daily_packs}}).await;
+			}
 		}
 		timers::update_timer(&timer).await;
 	}
