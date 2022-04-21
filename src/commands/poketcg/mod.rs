@@ -852,8 +852,8 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 	}
 	let mut update = Document::new();
 	let r: i64 = rand::thread_rng().gen_range(0..100);
-	if r <= 1 {
-		player.daily_packs = 50;
+	if r <= 2 {
+		player.daily_packs += 50;
 		update.insert("daily_packs", player.daily_packs);
 		msg.reply(&ctx.http, "***WOAH!*** Your daily packs were reset!").await?;
 	} else {
