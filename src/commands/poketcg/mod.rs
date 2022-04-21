@@ -335,7 +335,7 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 					.footer(|f| {
 						let local_timer: DateTime<Local> = DateTime::from(timer.pack_reset);
 
-						f.text(&format!("Resets at {}", local_timer.format("%h %d %H:%m")))
+						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
 					})
 			})
 		})
