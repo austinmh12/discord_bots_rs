@@ -11,7 +11,7 @@ use mongodb::{
 		Document
 	},
 };
-use std::{time::Duration as StdDuration, sync::Arc};
+use std::{time::Duration as StdDuration, sync::Arc, cmp::Ordering};
 pub mod card;
 pub mod sets;
 use sets::get_set;
@@ -78,6 +78,33 @@ async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Va
 		Some(data)
 	}
 }
+
+const RARITY_ORDER: &'static [&str] = &[
+	"Rare Secret",
+	"Rare Shiny GX",
+	"LEGEND",
+	"Rare Rainbow",
+	"Rare Shiny",
+	"Rare Ultra",
+	"Rare Holo Star",
+	"Rare ACE",
+	"Rare BREAK",
+	"Rare Holo VMAX",
+	"Rare Prime",
+	"Rare Prism Star",
+	"Rare Holo EX",
+	"Rare Holo GX",
+	"Rare Holo LV.X",
+	"Rare Holo V",
+	"Amazing Rare",
+	"Rare Shining",
+	"Rare Holo",
+	"Rare",
+	"Promo",
+	"Uncommon",
+	"Common",
+	"Unknown",
+];
 
 pub trait PaginateEmbed {
 	fn embed(&self) -> CreateEmbed;
@@ -301,13 +328,40 @@ async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("cards")]
 #[aliases("c")]
-async fn my_cards(ctx: &Context, msg: &Message) -> CommandResult {
+async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let sorting = match args.find::<String>() {
+		Ok(x) => x.to_lowercase(),
+		Err(_) => String::from("name")
+	};
 	let player = player::get_player(msg.author.id.0).await;
 	let mut cards = player_cards(player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
-		cards.sort_by(|c1, c2| c1.card.name.cmp(&c2.card.name));
+		match sorting.replace("-", "").as_str() {
+			"id" => cards.sort_by(|c1, c2| c1.card.id.cmp(&c2.card.id)),
+			"amount" => cards.sort_by(|c1, c2| c1.amount.cmp(&c2.amount)),
+			"price" => cards.sort_by(|c1, c2| {
+				if c1.card.price < c2.card.price {
+					Ordering::Less
+				} else if c1.card.price == c2.card.price {
+					Ordering::Equal
+				} else {
+					Ordering::Greater
+				}
+			}),
+			"rare" => cards.sort_by(|c1, c2| {
+				let c1_rare_pos = RARITY_ORDER.iter().position(|r| &c1.card.rarity == r).unwrap_or(999);
+				let c2_rare_pos = RARITY_ORDER.iter().position(|r| &c2.card.rarity == r).unwrap_or(999);
+				println!("{} {}", &c1_rare_pos, &c2_rare_pos);
+
+				c1_rare_pos.cmp(&c2_rare_pos)
+			}),
+			_ => cards.sort_by(|c1, c2| c1.card.name.cmp(&c2.card.name)),
+		}
+		if sorting.contains("-") {
+			cards.reverse();
+		}
 		card_paginated_embeds(ctx, msg, cards, player).await?;
 	}
 
