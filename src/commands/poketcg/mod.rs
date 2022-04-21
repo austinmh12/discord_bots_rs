@@ -340,20 +340,19 @@ async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 	} else {
 		match sorting.replace("-", "").as_str() {
 			"id" => cards.sort_by(|c1, c2| c1.card.id.cmp(&c2.card.id)),
-			"amount" => cards.sort_by(|c1, c2| c1.amount.cmp(&c2.amount)),
+			"amount" => cards.sort_by(|c1, c2| c2.amount.cmp(&c1.amount)),
 			"price" => cards.sort_by(|c1, c2| {
 				if c1.card.price < c2.card.price {
-					Ordering::Less
+					Ordering::Greater
 				} else if c1.card.price == c2.card.price {
 					Ordering::Equal
 				} else {
-					Ordering::Greater
+					Ordering::Less
 				}
 			}),
 			"rare" => cards.sort_by(|c1, c2| {
 				let c1_rare_pos = RARITY_ORDER.iter().position(|r| &c1.card.rarity == r).unwrap_or(999);
 				let c2_rare_pos = RARITY_ORDER.iter().position(|r| &c2.card.rarity == r).unwrap_or(999);
-				println!("{} {}", &c1_rare_pos, &c2_rare_pos);
 
 				c1_rare_pos.cmp(&c2_rare_pos)
 			}),
