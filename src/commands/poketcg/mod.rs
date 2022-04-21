@@ -841,11 +841,11 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 		msg
 			.channel_id
 			.send_message(
-				&ctx.http, |m| m
-					.content(
-						format!("Your daily resets at {}", player.daily_reset.format("%Y/%m/%d %H:%M:%S"))
-				)
-			)
+				&ctx.http, |m| {
+					let local_timer: DateTime<Local> = DateTime::from(player.daily_reset);
+				
+					m.content(format!("Your daily resets **{}**", local_timer.format("%h %d %H:%m")))
+				})
 			.await
 			.unwrap();
 		return Ok(());
