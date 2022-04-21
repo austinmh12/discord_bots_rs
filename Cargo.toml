@@ -9,7 +9,6 @@ edition = "2021"
 serenity = { default-features = false, features = ["client", "gateway", "rustls_backend", "model", "framework", "standard_framework", "collector"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 dotenv = "0.15.0"
-sqlx = { version = "0.5.7", features = ["runtime-tokio-rustls", "sqlite", "offline"] }
 reqwest = { version = "0.11", features = ["json"] }
 serde = "1.0"
 serde_urlencoded = "0.7"

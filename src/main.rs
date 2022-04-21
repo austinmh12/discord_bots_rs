@@ -31,15 +31,19 @@ use serenity::framework::standard::{
 
 mod commands;
 
-use commands::{meme::*, youtube::*, poketcg::*};
+use commands::{
+	meme::*,
+	// youtube::*,
+	poketcg::*,
+};
 
 #[group]
 #[commands(sheesh, amogus, blue)]
 struct Meme;
 
-#[group]
-#[commands(subscribe, unsubscribe, subscriptions, latest_video)]
-struct YouTube;
+// #[group]
+// #[commands(subscribe, unsubscribe, subscriptions, latest_video)]
+// struct YouTube;
 
 #[group]
 #[commands(
@@ -120,18 +124,18 @@ async fn main() {
 	let token = dotenv::var("BOTTOKEN").expect("Expected a token in the environment");
 
 	// Initiate database connection, creating the file if needed
-	let database = sqlx::sqlite::SqlitePoolOptions::new()
-		.max_connections(5)
-		.connect_with(
-			sqlx::sqlite::SqliteConnectOptions::new()
-				.filename("bot.db")
-				.create_if_missing(true),
-		)
-		.await
-		.expect("Couldn't connect to database");
+	// let database = sqlx::sqlite::SqlitePoolOptions::new()
+	// 	.max_connections(5)
+	// 	.connect_with(
+	// 		sqlx::sqlite::SqliteConnectOptions::new()
+	// 			.filename("bot.db")
+	// 			.create_if_missing(true),
+	// 	)
+	// 	.await
+	// 	.expect("Couldn't connect to database");
 	
-	// Run the migrations to update the schema to the latest version
-	sqlx::migrate!("./migrations").run(&database).await.expect("Couldn't run database migrations");
+	// // Run the migrations to update the schema to the latest version
+	// sqlx::migrate!("./migrations").run(&database).await.expect("Couldn't run database migrations");
 
 	let handler = Handler {
 		is_loop_running: AtomicBool::new(false),
