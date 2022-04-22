@@ -1,4 +1,3 @@
-pub mod meme;
 pub mod poketcg;
 
 use mongodb::{

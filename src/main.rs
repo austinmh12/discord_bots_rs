@@ -17,7 +17,6 @@ use dotenv;
 use serenity::{async_trait, model::channel::Message, framework::standard::{CommandOptions, Reason}};
 use serenity::client::{Client, Context, EventHandler, bridge::gateway::GatewayIntents};
 use serenity::model::{
-	channel::{Reaction, ReactionType},
 	gateway::Ready,
 };
 use serenity::framework::standard::{
@@ -32,13 +31,8 @@ use serenity::framework::standard::{
 mod commands;
 
 use commands::{
-	meme::*,
 	poketcg::*,
 };
-
-#[group]
-#[commands(sheesh, amogus, blue)]
-struct Meme;
 
 #[group]
 #[commands(
@@ -89,29 +83,13 @@ impl EventHandler for Handler {
 			});
 		}
 	}
-
-	async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-		if reaction.emoji.unicode_eq("✅") {
-			let _ = reaction.message(&ctx).await.unwrap()
-				.react(&ctx, ReactionType::try_from("<:backchk:799333634263613440>").unwrap()).await;
-		} 
-		// else {
-		// 	match reaction.emoji {
-		// 		ReactionType::Custom {animated: _, id: y, name: Some(_)} => println!("{}", y.0),
-		// 		ReactionType::Unicode(s) => println!("{}", s),
-		// 		_ => ()
-		// 	}
-		// }
-	}
 }
 
 #[tokio::main]
 async fn main() {
 	let framework = StandardFramework::new()
 		.configure(|c| c.prefix("."))
-		.group(&MEME_GROUP)
-		.group(&POKETCG_GROUP)
-		;
+		.group(&POKETCG_GROUP);
 
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token. Make sure one is commented out.
