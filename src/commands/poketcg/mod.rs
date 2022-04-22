@@ -1039,7 +1039,12 @@ async fn trade_with(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	let mut player = player::get_player(msg.author.id.0).await;
 	let tradee_mention = msg.mentions.iter().nth(0);
 	match tradee_mention {
-		Some(_) => (),
+		Some(x) => {
+			if x.id == msg.author.id {
+				msg.reply(&ctx.http, "You can't trade with yourself...").await?;
+				return Ok(());
+			}
+		},
 		None => {
 			msg.reply(&ctx.http, "You didn't choose to trade with anyone").await?;
 			return Ok(());
