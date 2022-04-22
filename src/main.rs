@@ -33,17 +33,12 @@ mod commands;
 
 use commands::{
 	meme::*,
-	// youtube::*,
 	poketcg::*,
 };
 
 #[group]
 #[commands(sheesh, amogus, blue)]
 struct Meme;
-
-// #[group]
-// #[commands(subscribe, unsubscribe, subscriptions, latest_video)]
-// struct YouTube;
 
 #[group]
 #[commands(
@@ -88,7 +83,6 @@ impl EventHandler for Handler {
 			let ctx1 = Arc::new(ctx);
 			tokio::spawn(async move {
 				loop {
-					// commands::youtube::check_for_new_videos(Arc::clone(&ctx1)).await;
 					commands::poketcg::refresh_daily_packs(Arc::clone(&ctx1)).await;
 					tokio::time::sleep(Duration::from_secs(60)).await;
 				}
@@ -116,27 +110,12 @@ async fn main() {
 	let framework = StandardFramework::new()
 		.configure(|c| c.prefix("."))
 		.group(&MEME_GROUP)
-		// .group(&YOUTUBE_GROUP)
 		.group(&POKETCG_GROUP)
 		;
 
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token. Make sure one is commented out.
 	let token = dotenv::var("BOTTOKEN").expect("Expected a token in the environment");
-
-	// Initiate database connection, creating the file if needed
-	// let database = sqlx::sqlite::SqlitePoolOptions::new()
-	// 	.max_connections(5)
-	// 	.connect_with(
-	// 		sqlx::sqlite::SqliteConnectOptions::new()
-	// 			.filename("bot.db")
-	// 			.create_if_missing(true),
-	// 	)
-	// 	.await
-	// 	.expect("Couldn't connect to database");
-	
-	// // Run the migrations to update the schema to the latest version
-	// sqlx::migrate!("./migrations").run(&database).await.expect("Couldn't run database migrations");
 
 	let handler = Handler {
 		is_loop_running: AtomicBool::new(false),
