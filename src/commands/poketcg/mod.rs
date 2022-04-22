@@ -144,7 +144,7 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 		}
 		if let Some(reaction) = &message
 			.await_reaction(&ctx)
-			.timeout(StdDuration::from_secs(30))
+			.timeout(StdDuration::from_secs(90))
 			.author_id(msg.author.id)
 			.removed(true)
 			.await
@@ -205,7 +205,7 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &
 		}
 		if let Some(reaction) = &message
 			.await_reaction(&ctx)
-			.timeout(StdDuration::from_secs(30))
+			.timeout(StdDuration::from_secs(90))
 			.author_id(msg.author.id)
 			.removed(true)
 			.await
@@ -278,7 +278,7 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 	loop {
 		if let Some(reaction) = &message
 			.await_reaction(&ctx)
-			.timeout(StdDuration::from_secs(30))
+			.timeout(StdDuration::from_secs(90))
 			.author_id(msg.author.id)
 			.removed(true)
 			.await
