@@ -1523,9 +1523,10 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 }
 
 /* Tasks
- * Refresh daily packs
- * Cache store packs
- * Cache player cards
+ * Caching
+ * 	Use the database? create a cachedcards, cachedsets, and cachedtimers collection
+ * 	Refresh them daily for price updates
+ * 		Learn to do a second loop on a different timer (hourly with the cachedtimer.reset)
 */
 
 /* Admin commands
@@ -1534,15 +1535,8 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
  * resetquiz
 */
 
-/* Other things
- * Need to find a way to implement the cache
-*/
-
 /*
  * TODOS:
- * 	Add different sorting methods to .my cards
  * 	Add .buy command as a shortcut to .store buy
- * 	Prevent all .sell subcommands from selling cards in a players savelist
  * 	Learn image manipulation to make the .quiz commands
- * 	Implement the trade commands.
 */
