@@ -1245,7 +1245,46 @@ async fn game_corner_payouts(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("slots")]
 #[aliases("s")]
 async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.daily_slots <= 0 {
+		msg.reply(&ctx.http, "You're out of slot rolls for today!").await?;
+		return Ok(());
+	}
+	let amount = match args.find::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let amount = if amount < 1 {
+		1i64
+	} else {
+		amount
+	};
+	let amounts = vec![player.daily_slots, amount]; 
+	let amount = *amounts.iter().min().unwrap();
+	let slots = slot::Slot::new(amount);
+	let mut roll_displays = vec![];
+	for roll in slots.rolls {
+		let reward = roll.reward();
+		player.tokens += reward;
+		player.total_tokens += reward;
+		player.slots_rolled += 1;
+		player.daily_slots -= 1;
+		match (roll.slot1.as_str(), roll.slot2.as_str(), roll.slot3.as_str()) {
+			("7", "7", "7") => player.jackpots += 1,
+			("7", "7", "R") => player.boofs += 1,
+			_ => ()
+		}
+		roll_displays.push(roll.reward_display());
+	}
+	msg.reply(&ctx.http, roll_displays.join("\n")).await?;
+	let mut player_update = Document::new();
+	player_update.insert("tokens", player.tokens);
+	player_update.insert("total_tokens", player.total_tokens);
+	player_update.insert("slots_rolled", player.slots_rolled);
+	player_update.insert("daily_slots", player.daily_slots);
+	player_update.insert("jackpots", player.jackpots);
+	player_update.insert("boofs", player.boofs);
+	player::update_player(&player, doc! { "$set": player_update }).await;
 
 	Ok(())
 }
@@ -1326,6 +1365,10 @@ async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> Command
 #[checks(BotTest)]
 async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let mut player = player::get_player(msg.author.id.0).await;
+	if player.daily_slots <= 0 {
+		msg.reply(&ctx.http, "You're out of slot rolls for today!").await?;
+		return Ok(());
+	}
 	let amount = match args.find::<i64>() {
 		Ok(x) => x,
 		Err(_) => 1

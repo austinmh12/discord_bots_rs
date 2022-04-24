@@ -22,6 +22,14 @@ use crate::{
 
 use super::PaginateEmbed;
 
+fn def_10() -> i64 {
+	10
+}
+
+fn def_0() -> i64 {
+	0
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Player {
 	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -45,11 +53,17 @@ pub struct Player {
 	pub quiz_reset: DateTime<Utc>, // Need to learn to work with datetimes
 	pub savelist: Vec<String>,
 	pub perm_multiplier: i64,
+	#[serde(default = "def_10")]
 	pub daily_slots: i64,
+	#[serde(default = "def_0")]
 	pub slots_rolled: i64,
+	#[serde(default = "def_0")]
 	pub jackpots: i64,
+	#[serde(default = "def_0")]
 	pub boofs: i64,
+	#[serde(default = "def_0")]
 	pub tokens: i64,
+	#[serde(default = "def_0")]
 	pub total_tokens: i64
 }
 
