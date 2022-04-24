@@ -1293,7 +1293,17 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[aliases("ts", "tokens")]
 #[sub_commands(game_corner_tokens_buy, game_corner_tokens_convert)]
 async fn game_corner_tokens_main(ctx: &Context, msg: &Message) -> CommandResult {
-	
+	let token_shop = slot::get_token_shop().await;
+	let player = player::get_player(msg.author.id.0).await;
+	let embed = token_shop.embed_with_player(player).await;
+	let _ = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.set_embed(embed);
+
+			m
+		})
+		.await;
 
 	Ok(())
 }
@@ -1301,7 +1311,70 @@ async fn game_corner_tokens_main(ctx: &Context, msg: &Message) -> CommandResult 
 #[command("buy")]
 #[aliases("b")]
 async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let selection = match args.single::<i32>() {
+		Ok(x) => x,
+		Err(_) => 0
+	};
+	let token_shop = slot::get_token_shop().await;
+	if !(1..=5).contains(&selection) {
+		msg.channel_id.send_message(&ctx.http, |m| m.content("A selection was not made.")).await?;
+		return Ok(());
+	}
+	let amount = match args.single::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let mut update = Document::new();
+	let mut player = player::get_player(msg.author.id.0).await;
+	if selection <= 3 {
+		let set = get_set(token_shop.sets.get((selection - 1) as usize).unwrap()).await.unwrap();
+		let base_cost = slot::to_tokens(set.pack_price());
+		if player.tokens < base_cost {
+			msg.reply(&ctx.http, &format!("You don't have enough... You need **{}** more tokens", base_cost - player.tokens)).await?;
+			return Ok(());
+		}
+		let total_cost = base_cost * amount;
+		let amount = vec![total_cost / base_cost, player.tokens / base_cost]
+			.into_iter()
+			.min()
+			.unwrap(); // Either the most they can afford or the amount they wanted.
+		player.tokens -= base_cost * amount;
+		*player.packs.entry(set.id).or_insert(0) += amount;
+		player.packs_bought += amount;
+		msg.reply(&ctx.http, format!("You bought {} **{}** packs!", amount, set.name)).await?;
+		update.insert("tokens", player.tokens);
+		update.insert("packs_bought", player.packs_bought);
+		let mut player_packs = Document::new();
+		for (set_id, amt) in player.packs.iter() {
+			player_packs.insert(set_id, amt.clone());
+		}
+		update.insert("packs", player_packs);
+	} else {
+		let card = match selection {
+			4 => card::get_card(&token_shop.rare_card).await,
+			_ => card::get_card(&token_shop.rainbow_card).await
+		};
+		let base_cost = slot::to_tokens(card.price) * 10;
+		if player.tokens < base_cost {
+			msg.reply(&ctx.http, &format!("You don't have enough... You need **{}** more tokens", base_cost - player.tokens)).await?;
+			return Ok(());
+		}
+		let total_cost = base_cost * amount;
+		let amount = vec![total_cost / base_cost, player.tokens / base_cost]
+			.into_iter()
+			.min()
+			.unwrap(); // Either the most they can afford or the amount they wanted.
+		player.tokens -= base_cost * amount;
+		*player.cards.entry(card.id).or_insert(0) += amount;
+		msg.reply(&ctx.http, format!("You bought {} **{}**!", amount, card.name)).await?;
+		update.insert("tokens", player.tokens);
+		let mut player_cards = Document::new();
+		for (set_id, amt) in player.cards.iter() {
+			player_cards.insert(set_id, amt.clone());
+		}
+		update.insert("cards", player_cards);
+	}
+	player::update_player(&player, doc! { "$set": update }).await;
 
 	Ok(())
 }
@@ -1317,7 +1390,7 @@ async fn game_corner_tokens_convert(ctx: &Context, msg: &Message, mut args: Args
 
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
-#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot)]
+#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens)]
 #[checks(BotTest)]
 async fn admin_main() -> CommandResult {
 	Ok(())
@@ -1353,6 +1426,27 @@ async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> Command
 			"$set": { 
 				"cash": &player_.cash,
 				"total_cash": &player_.total_cash
+			}
+		}
+	)
+		.await;
+
+	Ok(())
+}
+
+#[command("tokens")]
+#[checks(BotTest)]
+async fn admin_add_tokens(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	let amount = args.find::<i64>().expect("No amount to add");
+	player.tokens += amount;
+	player.total_tokens += amount;
+	player::update_player(
+		&player,
+		doc! {
+			"$set": { 
+				"tokens": &player.tokens,
+				"total_tokens": &player.total_tokens
 			}
 		}
 	)
