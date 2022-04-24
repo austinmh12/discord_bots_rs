@@ -1202,7 +1202,7 @@ async fn game_corner_main(ctx: &Context, msg: &Message) -> CommandResult {
 						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
 					})
 					.author(|a| a
-						.icon_url("https://bulbapedia.bulbagarden.net/wiki/File:Bag_Coin_Case_Sprite.png")
+						.icon_url("https://archives.bulbagarden.net/media/upload/9/92/Bag_Coin_Case_Sprite.png")
 						.name("Game Corner")
 					)
 			})
@@ -1215,7 +1215,29 @@ async fn game_corner_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("payouts")]
 #[aliases("p")]
 async fn game_corner_payouts(ctx: &Context, msg: &Message) -> CommandResult {
-	
+	let mut desc = String::from("Here are the token payouts for the slot machines\n");
+	desc.push_str("<:GameCorner:967522912242384906><:GameCorner:967522912242384906><:GameCorner:967522912242384906> **500**\n");
+	desc.push_str("<:GameCorner:967522912166903858><:GameCorner:967522912166903858><:GameCorner:967522912166903858> **200**\n");
+	desc.push_str("<:GameCorner:967522912196239510><:GameCorner:967522912196239510><:GameCorner:967522912196239510> **120**\n");
+	desc.push_str("<:GameCorner:967522912275922995><:GameCorner:967522912275922995><:GameCorner:967522912275922995> **80**\n");
+	desc.push_str("<:GameCorner:967522912154296410><:GameCorner:967522912154296410><:GameCorner:967522912154296410> **50**\n");
+	desc.push_str("<:GameCorner:967522912229793882><:GameCorner:967522912229793882><:GameCorner:967522912229793882> **30**\n");
+	desc.push_str("<:GameCorner:967522912166871080><:GameCorner:967522912166871080><:GameCorner:967522912166871080> **15**\n");
+	desc.push_str("<:GameCorner:967522912166871080><:GameCorner:967522912166871080><:GameCorner:967591653135228988> **5**");
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e
+					.description(&desc)
+					.colour(Colour::from_rgb(255, 50, 20))
+					.author(|a| a
+						.icon_url("https://archives.bulbagarden.net/media/upload/9/92/Bag_Coin_Case_Sprite.png")
+						.name("Game Corner")
+					)
+			})
+		})
+		.await?;
 
 	Ok(())
 }
