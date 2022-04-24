@@ -44,7 +44,13 @@ pub struct Player {
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub quiz_reset: DateTime<Utc>, // Need to learn to work with datetimes
 	pub savelist: Vec<String>,
-	pub perm_multiplier: i64
+	pub perm_multiplier: i64,
+	pub daily_slots: i64,
+	pub slots_rolled: i64,
+	pub jackpots: i64,
+	pub boofs: i64,
+	pub tokens: i64,
+	pub total_tokens: i64
 }
 
 impl Player {
@@ -67,7 +73,13 @@ impl Player {
 			quiz_correct: 0,
 			quiz_reset: Utc::now(),
 			savelist: vec![],
-			perm_multiplier: 0
+			perm_multiplier: 0,
+			daily_slots: 10,
+			slots_rolled: 0,
+			jackpots: 0,
+			boofs: 0,
+			tokens: 0,
+			total_tokens: 0
 		}
 	}
 }
@@ -80,6 +92,9 @@ impl PaginateEmbed for Player {
 		desc.push_str(&format!("**Current Packs:** {}\n", self.packs.values().map(|v| v.clone() as i32).sum::<i32>()));
 		desc.push_str(&format!("**Opened Packs:** {} | **Bought Packs:** {}\n\n", &self.packs_opened, &self.packs_bought));
 		desc.push_str(&format!("**Total Cards:** {} | **Cards Sold:** {}\n\n", &self.total_cards, &self.cards_sold));
+		desc.push_str(&format!("**Slots Rolled:** {}\n", &self.slots_rolled));
+		desc.push_str(&format!("**Tokens:** {} | **Total Tokens:** {}\n", &self.tokens, &self.total_tokens));
+		desc.push_str(&format!("**Jackpots:** {} | **Boofs:** {}\n\n", &self.jackpots, &self.boofs));
 		desc.push_str(&format!("**Quiz Questions Remaining:** {}\n", &self.quiz_questions));
 		desc.push_str(&format!("**Quiz Questions Answered:** {}\n\n", &self.quiz_correct));
 		desc.push_str(&format!("Quiz resets at **{}**\n", quiz_reset_local.format("%m/%d %H:%M")));

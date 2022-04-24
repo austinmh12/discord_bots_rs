@@ -21,6 +21,7 @@ pub mod store;
 pub mod player_card;
 pub mod timers;
 pub mod trade;
+pub mod slot;
 use player_card::{
 	player_cards
 };
@@ -54,7 +55,7 @@ use serde_json;
 use rand::{
 	Rng
 };
-use crate::OWNER_CHECK;
+use crate::BOTTEST_CHECK;
 
 async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
@@ -1172,15 +1173,97 @@ async fn trade_with(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	Ok(())
 }
 
+#[command("gamecorner")]
+#[aliases("gc", "game", "corner", "gamec")]
+#[sub_commands(game_corner_payouts, game_corner_slots, game_corner_tokens_main)]
+async fn game_corner_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	let timer = timers::get_timer().await;
+	let mut desc = String::from("Welcome to the **Game Corner**!\n");
+	desc.push_str("Here you can play the slot machines to earn tokens that you\n");
+	desc.push_str("can convert to cash or spend at the token shop\n\n");
+	desc.push_str("Here are the available commands for the Game Corner:\n");
+	desc.push_str("**.gamecorner payouts:** Shows the payout information for the slot machines\n");
+	desc.push_str("**.gamecorner slots:** Rolls the slot machine\n");
+	desc.push_str("**.gamecorner tokenshop:** View the rewards available for purchase\n");
+	desc.push_str("**.gamecorner tokenshop buy:** Buys an item from the token shop\n");
+	desc.push_str("**.gamecorner tokenshop convert:** Converts your tokens to cash\n\n");
+	desc.push_str(&format!("You have **{}** slot rolls remaining", player.daily_slots));
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e
+					.description(&desc)
+					.colour(Colour::from_rgb(255, 50, 20))
+					.footer(|f| {
+						let local_timer: DateTime<Local> = DateTime::from(timer.slot_reset);
+
+						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
+					})
+					.author(|a| a
+						.icon_url("https://bulbapedia.bulbagarden.net/wiki/File:Bag_Coin_Case_Sprite.png")
+						.name("Game Corner")
+					)
+			})
+		})
+		.await?;
+
+	Ok(())
+}
+
+#[command("payouts")]
+#[aliases("p")]
+async fn game_corner_payouts(ctx: &Context, msg: &Message) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("slots")]
+#[aliases("s")]
+async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("tokenshop")]
+#[aliases("ts", "tokens")]
+#[sub_commands(game_corner_tokens_buy, game_corner_tokens_convert)]
+async fn game_corner_tokens_main(ctx: &Context, msg: &Message) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("buy")]
+#[aliases("b")]
+async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("convert")]
+#[aliases("c")]
+async fn game_corner_tokens_convert(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+
+// ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
-#[sub_commands(admin_show_pack, admin_add_cash)]
-#[checks(Owner)]
+#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot)]
+#[checks(BotTest)]
 async fn admin_main() -> CommandResult {
 	Ok(())
 }
 
 #[command("pack")]
-#[checks(Owner)]
+#[checks(BotTest)]
 async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let set_id = args.find::<String>().unwrap();
 	let amount = match args.find::<i32>() {
@@ -1194,7 +1277,7 @@ async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 }
 
 #[command("cash")]
-#[checks(Owner)]
+#[checks(BotTest)]
 async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let mut player_ = player::get_player(msg.author.id.0).await;
 	let amount = args.find::<f64>().expect("No amount to add");
@@ -1213,6 +1296,36 @@ async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> Command
 		}
 	)
 		.await;
+
+	Ok(())
+}
+
+#[command("slots")]
+#[checks(BotTest)]
+async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	let amount = match args.find::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let slots = slot::Slot::new(amount);
+	let mut roll_displays = vec![];
+	for roll in slots.rolls {
+		roll_displays.push(roll.reward_display());
+	}
+	let content = roll_displays.join("\n");
+
+	msg.reply(&ctx.http, content).await?;
+	// player::update_player(
+	// 	&player_,
+	// 	doc! {
+	// 		"$set": { 
+	// 			"cash": &player_.cash,
+	// 			"total_cash": &player_.total_cash
+	// 		}
+	// 	}
+	// )
+	// 	.await;
 
 	Ok(())
 }

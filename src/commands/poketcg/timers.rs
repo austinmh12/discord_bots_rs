@@ -21,7 +21,9 @@ pub struct Timer {
 	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
 	id: Option<ObjectId>,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
-	pub pack_reset: DateTime<Utc>
+	pub pack_reset: DateTime<Utc>,
+	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+	pub slot_reset: DateTime<Utc>
 }
 
 impl Timer {
@@ -30,7 +32,8 @@ impl Timer {
 
 		Self {
 			id: None,
-			pack_reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0)
+			pack_reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0),
+			slot_reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0)
 		}
 	}
 
@@ -39,7 +42,8 @@ impl Timer {
 
 		Self {
 			id: self.id,
-			pack_reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0)
+			pack_reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0),
+			slot_reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0)
 		}
 	}
 }
@@ -82,7 +86,7 @@ pub async fn update_timer(timer: &Timer) {
 	timer_collection
 		.update_one(
 			doc! { "_id": &timer.id.unwrap() }, 
-			doc! {"$set": {"pack_reset": &timer.pack_reset}}, 
+			doc! {"$set": {"pack_reset": &timer.pack_reset, "slot_reset": &timer.slot_reset}}, 
 			None)
 		.await
 		.unwrap();

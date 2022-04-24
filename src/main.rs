@@ -14,7 +14,7 @@ use std::{
 
 use dotenv;
 
-use serenity::{async_trait, model::channel::Message, framework::standard::{CommandOptions, Reason}};
+use serenity::{async_trait, model::channel::{Message, Reaction, ReactionType}, framework::standard::{CommandOptions, Reason}};
 use serenity::client::{Client, Context, EventHandler, bridge::gateway::GatewayIntents};
 use serenity::model::{
 	gateway::Ready,
@@ -47,14 +47,15 @@ use commands::{
 	sell_main,
 	savelist_main,
 	trade_main,
+	game_corner_main,
 )]
 struct PokeTCG;
 
 #[check]
-#[name="Owner"]
+#[name="BotTest"]
 async fn owner_check(_: &Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> Result<(), Reason> {
-	if msg.author.id != 223616191246106624 {
-		return Err(Reason::User("Not the owner.".to_string()));
+	if msg.guild_id.unwrap() != 655509540543922217 {
+		return Err(Reason::User("Not the bot testing server.".to_string()));
 	}
 
 	Ok(())
@@ -83,6 +84,15 @@ impl EventHandler for Handler {
 			});
 		}
 	}
+
+	// Here for getting custom emoji IDs
+	// async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+	// 	match reaction.emoji {
+	// 		ReactionType::Custom {animated: _, id: y, name: Some(_)} => println!("{}", y.0),
+	// 		ReactionType::Unicode(s) => println!("{}", s),
+	// 		_ => ()
+	// 	}
+	// }
 }
 
 #[tokio::main]
