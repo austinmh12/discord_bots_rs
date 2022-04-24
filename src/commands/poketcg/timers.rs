@@ -16,13 +16,19 @@ use mongodb::{
 
 use crate::commands::get_client;
 
+fn utc_now() -> DateTime<Utc> {
+	let now = Utc::now() + Duration::days(1);
+
+	Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0)
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Timer {
 	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
 	id: Option<ObjectId>,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub pack_reset: DateTime<Utc>,
-	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime", default = "utc_now")]
 	pub slot_reset: DateTime<Utc>
 }
 
