@@ -1503,16 +1503,20 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 }
 
 // TASKS
-pub async fn refresh_daily_packs(_ctx: Arc<Context>) {
+pub async fn refresh_dailys(_ctx: Arc<Context>) {
 	let timer = timers::get_timer().await;
 	if Utc::now() >= timer.pack_reset {
 		println!("Reseting daily packs");
 		let players = player::get_players().await;
 		for mut player in players {
+			let mut update = Document::new();
 			if player.daily_packs < 50 {
 				player.daily_packs = 50;
-				player::update_player(&player, doc!{"$set": {"daily_packs": player.daily_packs}}).await;
+				update.insert("daily_packs", player.daily_packs);
 			}
+			player.daily_slots = 10;
+			update.insert("daily_slots", player.daily_slots);
+			player::update_player(&player, doc!{"$set": update }).await;
 		}
 		timers::update_timer(&timer).await;
 	}
