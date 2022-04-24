@@ -1506,7 +1506,7 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 pub async fn refresh_dailys(_ctx: Arc<Context>) {
 	let timer = timers::get_timer().await;
 	if Utc::now() >= timer.pack_reset {
-		println!("Reseting daily packs");
+		println!("Reseting dailys");
 		let players = player::get_players().await;
 		for mut player in players {
 			let mut update = Document::new();
