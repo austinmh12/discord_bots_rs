@@ -14,7 +14,7 @@ use std::{
 
 use dotenv;
 
-use serenity::{async_trait, model::channel::{Message, Reaction, ReactionType}, framework::standard::{CommandOptions, Reason}};
+use serenity::{async_trait, model::channel::{Message}, framework::standard::{CommandOptions, Reason}};
 use serenity::client::{Client, Context, EventHandler, bridge::gateway::GatewayIntents};
 use serenity::model::{
 	gateway::Ready,
@@ -86,10 +86,10 @@ impl EventHandler for Handler {
 	}
 
 	// Here for getting custom emoji IDs
-	// async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+	// async fn reaction_add(&self, _ctx: Context, reaction: serenity::model::channel::Reaction) {
 	// 	match reaction.emoji {
-	// 		ReactionType::Custom {animated: _, id: y, name: Some(_)} => println!("{}", y.0),
-	// 		ReactionType::Unicode(s) => println!("{}", s),
+	// 		serenity::model::channel::ReactionType::Custom {animated: _, id: y, name: Some(_)} => println!("{}", y.0),
+	// 		serenity::model::channel::ReactionType::Unicode(s) => println!("{}", s),
 	// 		_ => ()
 	// 	}
 	// }
