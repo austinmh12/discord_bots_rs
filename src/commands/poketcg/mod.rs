@@ -1382,7 +1382,30 @@ async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) ->
 #[command("convert")]
 #[aliases("c")]
 async fn game_corner_tokens_convert(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let amount = match args.single::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.tokens <= 0 {
+		msg.reply(&ctx.http, "You don't have any tokens").await?;
+		return Ok(());
+	}
+	let mut update = Document::new();
+	let amounts = vec![player.tokens, amount];
+	let amount = amounts
+		.iter()
+		.min()
+		.unwrap();
+	player.tokens -= amount;
+	let cash = *amount as f64 * 0.10;
+	player.cash += cash;
+	player.total_cash += cash;
+	msg.reply(&ctx.http, format!("You converted **{}** tokens into **${:.2}**", amount, cash)).await?;
+	update.insert("tokens", player.tokens);
+	update.insert("cash", player.cash);
+	update.insert("total_cash", player.total_cash);
+	player::update_player(&player, doc!{ "$set": update}).await;
 
 	Ok(())
 }
@@ -1436,7 +1459,7 @@ async fn admin_add_cash(ctx: &Context, msg: &Message, mut args: Args) -> Command
 
 #[command("tokens")]
 #[checks(BotTest)]
-async fn admin_add_tokens(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn admin_add_tokens(_ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let mut player = player::get_player(msg.author.id.0).await;
 	let amount = args.find::<i64>().expect("No amount to add");
 	player.tokens += amount;
@@ -1458,7 +1481,7 @@ async fn admin_add_tokens(ctx: &Context, msg: &Message, mut args: Args) -> Comma
 #[command("slots")]
 #[checks(BotTest)]
 async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let mut player = player::get_player(msg.author.id.0).await;
+	let player = player::get_player(msg.author.id.0).await;
 	if player.daily_slots <= 0 {
 		msg.reply(&ctx.http, "You're out of slot rolls for today!").await?;
 		return Ok(());
@@ -1475,16 +1498,6 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	let content = roll_displays.join("\n");
 
 	msg.reply(&ctx.http, content).await?;
-	// player::update_player(
-	// 	&player_,
-	// 	doc! {
-	// 		"$set": { 
-	// 			"cash": &player_.cash,
-	// 			"total_cash": &player_.total_cash
-	// 		}
-	// 	}
-	// )
-	// 	.await;
 
 	Ok(())
 }
