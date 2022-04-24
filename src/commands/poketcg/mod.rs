@@ -1523,10 +1523,18 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 }
 
 /* Tasks
- * Caching
- * 	Use the database? create a cachedcards, cachedsets, and cachedtimers collection
- * 	Refresh them daily for price updates
- * 		Learn to do a second loop on a different timer (hourly with the cachedtimer.reset)
+ * v1.3.0
+ * 	Add a changelog command that DMs the user the patch note they want
+ * 	Add the current version to the activity
+ * 	Caching
+ * 		Use the database? create a cachedcards, cachedsets, and cachedtimers collection
+ * 		Refresh them daily for price updates
+ * 			Learn to do a second loop on a different timer (hourly with the cachedtimer.reset)
+ * v1.4.0
+ * 	Add a help command
+ * 	Add usage macro to all the commands and sub commands
+ * 	Add quiz
+ * 		Make it so that quiz only awards money for 5 every 2 hours but people can keep playing
 */
 
 /* Admin commands
