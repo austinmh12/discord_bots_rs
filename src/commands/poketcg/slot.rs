@@ -185,7 +185,9 @@ impl TokenShop {
 			.iter()
 			.map(|s| s.id())
 			.collect();
-		let rare_cards_no_rainbow = get_cards_with_query("-rarity:Common AND -rarity:Uncommon AND -rarity:*Rainbow")
+		let letters = "abcdefghijklmnopqrstuvwxyz";
+		let rand_letter_start = letters.chars().choose(&mut thread_rng()).unwrap();
+		let rare_cards_no_rainbow = get_cards_with_query(&format!("name:{}* AND -rarity:Common AND -rarity:Uncommon AND -rarity:*Rainbow", rand_letter_start))
 			.await;
 		let rainbows = get_cards_with_query("rarity:*Rainbow")
 			.await;
@@ -213,49 +215,14 @@ impl TokenShop {
 	}
 
 	async fn update_shop(&self) -> Self {
-		let sets = get_sets().await;
-		let mut weighted_sets = vec![];
-		for set in sets {
-			let weight = set.release_date.year() - 1998;
-			weighted_sets.push((set, weight));
-		}
-		let store_sets = weighted_sets
-			.choose_multiple_weighted(
-				&mut thread_rng(),
-				3,
-				|ws| ws.1
-			)
-			.unwrap()
-			.collect::<Vec<_>>()
-			.iter()
-			.map(|ws| ws.0.clone())
-			.collect::<Vec<Set>>()
-			.iter()
-			.map(|s| s.id())
-			.collect();
-		let rare_cards_no_rainbow = get_cards_with_query("-rarity:Common AND -rarity:Uncommon AND -rarity:*Rainbow")
-			.await;
-		let rainbows = get_cards_with_query("rarity:*Rainbow")
-			.await;
-		let rare_card = rare_cards_no_rainbow
-			.iter()
-			.choose(&mut thread_rng())
-			.unwrap()
-			.clone()
-			.id();
-		let rainbow_card = rainbows
-			.iter()
-			.choose(&mut thread_rng())
-			.unwrap()
-			.clone()
-			.id();
+		let tmp_tokenshop = TokenShop::new().await;
 		let now = Utc::now() + Duration::days(1);
 
 		Self {
 			id: self.id,
-			sets: store_sets,
-			rare_card,
-			rainbow_card,
+			sets: tmp_tokenshop.sets,
+			rare_card: tmp_tokenshop.rare_card,
+			rainbow_card: tmp_tokenshop.rainbow_card,
 			reset: Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0)
 		}
 	}
