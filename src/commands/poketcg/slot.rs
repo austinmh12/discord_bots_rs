@@ -124,25 +124,26 @@ impl SlotRoll {
 		}
 	}
 
-	pub fn reward(&self) -> i64 {
+	pub fn reward(&self, upgrade_level: i64) -> i64 {
+		let reward_mult = 1.0 + upgrade_level as f64 * 0.1;
 		match (self.slot1.as_str(), self.slot2.as_str(), self.slot3.as_str()) {
-			("7", "7", "7") => 500,
-			("R", "R", "R") => 200,
-			("Pikachu", "Pikachu", "Pikachu") => 120,
-			("Slowpoke", "Slowpoke", "Slowpoke") => 80,
-			("Magnemite", "Magnemite", "Magnemite") => 50,
-			("Shellder", "Shellder", "Shellder") => 30,
-			("Cherry", "Cherry", "Cherry") => 15,
-			("Cherry", "Cherry", _) | ("Cherry", _, "Cherry") | (_, "Cherry", "Cherry") => 5,
+			("7", "7", "7") => (500.0 * reward_mult) as i64,
+			("R", "R", "R") => (200.0 * reward_mult) as i64,
+			("Pikachu", "Pikachu", "Pikachu") => (120.0 * reward_mult) as i64,
+			("Slowpoke", "Slowpoke", "Slowpoke") => (80.0 * reward_mult) as i64,
+			("Magnemite", "Magnemite", "Magnemite") => (50.0 * reward_mult) as i64,
+			("Shellder", "Shellder", "Shellder") => (30.0 * reward_mult) as i64,
+			("Cherry", "Cherry", "Cherry") => (15.0 * reward_mult) as i64,
+			("Cherry", "Cherry", _) | ("Cherry", _, "Cherry") | (_, "Cherry", "Cherry") => (5.0 * reward_mult) as i64,
 			_ => 0
 		}
 	}
 
-	pub fn reward_display(&self) -> String {
+	pub fn reward_display(&self, upgrade_level: i64) -> String {
 		let slot1_id = SLOT_OPTION_IDS.get(self.slot1.as_str()).unwrap();
 		let slot2_id = SLOT_OPTION_IDS.get(self.slot2.as_str()).unwrap();
 		let slot3_id = SLOT_OPTION_IDS.get(self.slot3.as_str()).unwrap();
-		let reward = self.reward();
+		let reward = self.reward(upgrade_level);
 
 		match reward {
 			0 => format!("<:GameCorner{}:{}> <:GameCorner{}:{}> <:GameCorner{}:{}> Better luck next time!", self.slot1, slot1_id, self.slot2, slot2_id, self.slot3, slot3_id),

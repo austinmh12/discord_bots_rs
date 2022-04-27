@@ -1222,7 +1222,7 @@ async fn game_corner_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[aliases("p")]
 async fn game_corner_payouts(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
-	let player_slot_mult = player.upgrades.slot_reward_mult as f64 * 0.1;
+	let player_slot_mult = 1.0 + player.upgrades.slot_reward_mult as f64 * 0.1;
 	let mut desc = String::from("Here are the token payouts for the slot machines\n");
 	desc.push_str(&format!("<:GameCorner:967522912242384906><:GameCorner:967522912242384906><:GameCorner:967522912242384906> **{}**\n", (500.0 * player_slot_mult) as i64));
 	desc.push_str(&format!("<:GameCorner:967522912166903858><:GameCorner:967522912166903858><:GameCorner:967522912166903858> **{}**\n", (200.0 * player_slot_mult) as i64));
@@ -1272,7 +1272,7 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 	let slots = slot::Slot::new(amount);
 	let mut roll_displays = vec![];
 	for roll in slots.rolls {
-		let reward = roll.reward();
+		let reward = roll.reward(player.upgrades.slot_reward_mult);
 		player.tokens += reward;
 		player.total_tokens += reward;
 		player.slots_rolled += 1;
@@ -1282,7 +1282,7 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 			("7", "7", "R") => player.boofs += 1,
 			_ => ()
 		}
-		roll_displays.push(roll.reward_display());
+		roll_displays.push(roll.reward_display(player.upgrades.slot_reward_mult));
 	}
 	msg.reply(&ctx.http, roll_displays.join("\n")).await?;
 	let mut player_update = Document::new();
@@ -1587,7 +1587,7 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	let slots = slot::Slot::new(amount);
 	let mut roll_displays = vec![];
 	for roll in slots.rolls {
-		roll_displays.push(roll.reward_display());
+		roll_displays.push(roll.reward_display(player.upgrades.slot_reward_mult));
 	}
 	let content = roll_displays.join("\n");
 
