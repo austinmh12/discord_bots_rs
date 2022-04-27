@@ -175,12 +175,23 @@ pub async fn get_card(id: &str) -> Card {
 
 pub async fn get_cards_with_query(query: &str) -> Vec<Card> {
 	let mut ret = <Vec<Card>>::new();
-	let data = api_call("cards", Some(vec![("q", query)])).await.unwrap();
+	let mut data = api_call("cards", Some(vec![("q", query)])).await.unwrap();
 	let card_data = data["data"].as_array().unwrap();
 	for cd in card_data {
 		let card = Card::from_json(cd);
 		ret.push(card);
 	}
+	let mut page = 1;
+	while data["count"].as_i64().unwrap() > 0 {
+		page += 1;
+		data = api_call("cards", Some(vec![("q", query), ("page", page.to_string().as_str())])).await.unwrap();
+		let card_data = data["data"].as_array().unwrap();
+		for cd in card_data {
+			let card = Card::from_json(cd);
+			ret.push(card);
+		}
+	}
+	add_cards(&ret).await;
 
 	ret
 }
