@@ -1546,12 +1546,6 @@ pub async fn refresh_card_prices(_ctx: Arc<Context>) {
 }
 
 /* Tasks
- * v1.3.0
- * 	FIX: api_call needs to grab more than 250 items
- * 	Caching
- * 		Use the database? create a cachedcards, cachedsets, and cachedtimers collection
- * 		Refresh them daily for price updates
- * 			Learn to do a second loop on a different timer (hourly with the cachedtimer.reset)
  * v1.4.0
  * 	Add upgrades for
  * 		daily time reset
