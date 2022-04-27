@@ -75,11 +75,18 @@ impl EventHandler for Handler {
 		let ctx = Arc::new(_ctx);
 
 		if !self.is_loop_running.load(Ordering::Relaxed) {
-			let ctx1 = Arc::new(ctx);
+			let ctx1 = Arc::clone(&ctx);
 			tokio::spawn(async move {
 				loop {
 					commands::poketcg::refresh_dailys(Arc::clone(&ctx1)).await;
 					tokio::time::sleep(Duration::from_secs(60)).await;
+				}
+			});
+			let ctx2 = Arc::clone(&ctx);
+			tokio::spawn(async move {
+				loop {
+					commands::poketcg::refresh_card_prices(Arc::clone(&ctx2)).await;
+					tokio::time::sleep(Duration::from_secs(3600)).await;
 				}
 			});
 		}

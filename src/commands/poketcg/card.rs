@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{
 	*,
 };
@@ -152,6 +154,22 @@ pub async fn get_multiple_cards_by_id(card_ids: Vec<String>) -> Vec<Card> {
 	// If we've gotten here there are cards to cache
 	add_cards(&ret).await;
 	ret.extend(cached_cards);
+
+	ret
+}
+
+pub async fn get_multiple_cards_by_id_without_cache(card_ids: Vec<String>) -> HashMap<String, Card> {
+	let mut ret = HashMap::new();
+	let card_id_chunks: Vec<Vec<String>> = card_ids.chunks(250).map(|x| x.to_vec()).collect();
+	for card_id_chunk in card_id_chunks {
+		let inner_query = card_id_chunk
+			.iter()
+			.map(|c| format!("id:{}", c))
+			.collect::<Vec<String>>()
+			.join(" OR ");
+		let chunk_cards = get_cards_with_query(&format!("({})", inner_query)).await;
+		ret.extend(chunk_cards.iter().map(|c| (c.id(), c.clone())));
+	}
 
 	ret
 }
@@ -316,4 +334,34 @@ async fn get_cards_from_cache_by_set(set: &Set) -> Vec<Card> {
 		.unwrap();
 
 	cards
+}
+
+pub async fn get_outdated_cards() -> Vec<Card> {
+	let card_collection = get_card_collection().await;
+	let cards = card_collection
+		.find(doc!{"last_check": {"$lt": Utc::now()}}, None)
+		.await
+		.unwrap()
+		.try_collect::<Vec<Card>>()
+		.await
+		.unwrap();
+
+	cards
+}
+
+pub async fn update_cached_cards(cards: Vec<Card>) {
+	let card_collection = get_card_collection().await;
+	let mut threads = vec![];
+	for card in cards {
+		let card_col = card_collection.clone();
+		threads.push(task::spawn(async move {
+			card_col.update_one(
+				doc! {"_id": card.id},
+				doc! {"$set": { "price": card.price, "last_check": card.last_check }}, 
+				None
+			)
+				.await
+				.unwrap();
+		}))
+	}
 }

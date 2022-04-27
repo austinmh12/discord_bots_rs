@@ -1526,6 +1526,34 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 	}
 }
 
+pub async fn refresh_card_prices(_ctx: Arc<Context>) {
+	let cards = card::get_outdated_cards().await;
+	print!("Updating {} outdated cards... ", &cards.len());
+	let card_ids = cards
+		.iter()
+		.map(|c| c.id())
+		.collect::<Vec<String>>();
+	let refreshed_cards = card::get_multiple_cards_by_id_without_cache(card_ids).await;
+	let mut updated_cards = vec![];
+	for mut card in cards {
+		let refreshed_card = refreshed_cards.get(&card.id()).unwrap();
+		card.price = refreshed_card.price;
+		card.last_check = Utc::now() + Duration::days(1);
+		updated_cards.push(card);
+	}
+	// for refreshed_card in refreshed_cards {
+	// 	for mut card in cards.clone() {
+	// 		if card == refreshed_card {
+	// 			card.price = refreshed_card.price;
+	// 			card.last_check = Utc::now() + Duration::days(1);
+	// 			updated_cards.push(card);
+	// 		}
+	// 	}
+	// }
+	card::update_cached_cards(updated_cards).await;
+	println!("Updated cached cards!");
+}
+
 /* Tasks
  * v1.3.0
  * 	FIX: api_call needs to grab more than 250 items
