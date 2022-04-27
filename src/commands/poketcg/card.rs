@@ -25,7 +25,7 @@ pub struct Card {
 	id: Option<ObjectId>,
 	pub card_id: String,
 	pub name: String,
-	pub set: Set, // This will eventually be a Set object
+	pub set: Set,
 	pub number: String,
 	pub price: f64,
 	pub image: String,
