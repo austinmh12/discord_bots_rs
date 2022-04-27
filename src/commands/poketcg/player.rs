@@ -20,7 +20,7 @@ use crate::{
 	commands::get_client
 };
 
-use super::PaginateEmbed;
+use super::{PaginateEmbed, upgrade::Upgrade};
 
 fn def_10() -> i64 {
 	10
@@ -30,6 +30,10 @@ fn def_0() -> i64 {
 	0
 }
 
+fn def_upgrade() -> Upgrade {
+	Upgrade::new()
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Player {
 	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -37,7 +41,7 @@ pub struct Player {
 	pub discord_id: i64,
 	pub cash: f64,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
-	pub daily_reset: DateTime<Utc>, // Need to learn to work with datetimes
+	pub daily_reset: DateTime<Utc>,
 	pub packs: HashMap<String, i64>,
 	pub packs_opened: i64,
 	pub packs_bought: i64,
@@ -50,7 +54,7 @@ pub struct Player {
 	pub current_multiplier: i64,
 	pub quiz_correct: i64,
 	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
-	pub quiz_reset: DateTime<Utc>, // Need to learn to work with datetimes
+	pub quiz_reset: DateTime<Utc>,
 	pub savelist: Vec<String>,
 	pub perm_multiplier: i64,
 	#[serde(default = "def_10")]
@@ -64,7 +68,9 @@ pub struct Player {
 	#[serde(default = "def_0")]
 	pub tokens: i64,
 	#[serde(default = "def_0")]
-	pub total_tokens: i64
+	pub total_tokens: i64,
+	#[serde(default = "def_upgrade")]
+	pub upgrades: Upgrade
 }
 
 impl Player {
@@ -93,7 +99,8 @@ impl Player {
 			jackpots: 0,
 			boofs: 0,
 			tokens: 0,
-			total_tokens: 0
+			total_tokens: 0,
+			upgrades: Upgrade::new()
 		}
 	}
 }

@@ -22,6 +22,7 @@ pub mod player_card;
 pub mod timers;
 pub mod trade;
 pub mod slot;
+pub mod upgrade;
 use player_card::{
 	player_cards
 };
@@ -1414,6 +1415,31 @@ async fn game_corner_tokens_convert(ctx: &Context, msg: &Message, mut args: Args
 	Ok(())
 }
 
+#[command("upgrades")]
+#[aliases("up")]
+#[sub_commands(upgrades_buy)]
+async fn upgrades_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	let embed = player.upgrades.clone().embed_with_player(player).await;
+	let _ = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.set_embed(embed);
+
+			m
+		})
+		.await;
+
+	Ok(())
+}
+
+#[command("buy")]
+#[aliases("b")]
+async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+
+
+	Ok(())
+}
 
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]

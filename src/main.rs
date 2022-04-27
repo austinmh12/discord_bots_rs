@@ -48,6 +48,7 @@ use commands::{
 	savelist_main,
 	trade_main,
 	game_corner_main,
+	upgrades_main,
 )]
 struct PokeTCG;
 
