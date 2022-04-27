@@ -6,7 +6,7 @@ use crate::commands::poketcg::card::{
 	get_multiple_cards_by_id
 };
 
-use super::{PaginateEmbed, CardInfo};
+use super::{PaginateEmbed, CardInfo, Idable};
 
 pub struct PlayerCard {
 	pub card: Card,
@@ -17,7 +17,7 @@ impl PaginateEmbed for PlayerCard {
 	fn embed(&self) -> CreateEmbed {
 		let mut e = self.card.embed();
 		e
-			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n**Amount:** {}\n", &self.card.id, &self.card.rarity, &self.card.price, &self.amount));
+			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n**Amount:** {}\n", &self.card.id(), &self.card.rarity, &self.card.price, &self.amount));
 
 		e
 	}
@@ -25,11 +25,17 @@ impl PaginateEmbed for PlayerCard {
 
 impl CardInfo for PlayerCard {
 	fn card_id(&self) -> String {
-		self.card.id.clone()
+		self.card.card_id.clone()
 	}
 
 	fn card_name(&self) -> String {
 		self.card.name.clone()
+	}
+}
+
+impl Idable for PlayerCard {
+	fn id(&self) -> String {
+		self.card.card_id.clone()
 	}
 }
 
@@ -39,7 +45,7 @@ pub async fn player_cards(cards_hash: HashMap<String, i64>) -> Vec<PlayerCard> {
 	let card_ids: Vec<String> = card_hash_clone.into_keys().collect();
 	let cards = get_multiple_cards_by_id(card_ids.clone()).await;
 	for card in cards {
-		let amount = cards_hash.get(&card.id).unwrap().to_owned();
+		let amount = cards_hash.get(&card.id()).unwrap().to_owned();
 		ret.push(PlayerCard {card, amount: amount.clone()});
 	}
 

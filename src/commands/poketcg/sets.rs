@@ -1,3 +1,5 @@
+use crate::commands::get_client;
+
 use super::*;
 use chrono::{
 	NaiveDate,
@@ -5,6 +7,7 @@ use chrono::{
 	Utc, 
 	Datelike,
 };
+use futures::TryStreamExt;
 use mongodb::{
 	bson::{
 		doc,
@@ -81,7 +84,13 @@ impl Idable for Set {
 
 pub async fn get_sets() -> Vec<Set> {
 	let mut ret = vec![];
-	let data = api_call("sets", None)
+	let cached_sets = get_sets_from_cache().await;
+	let inner_query = cached_sets
+		.iter()
+		.map(|s| format!("-id:{}", s.id()))
+		.collect::<Vec<String>>()
+		.join(" AND ");
+	let data = api_call("sets", Some(&format!("({})", inner_query)))
 		.await
 		.unwrap();
 	let set_data = data["data"].as_array().unwrap();
@@ -89,21 +98,35 @@ pub async fn get_sets() -> Vec<Set> {
 		let set = Set::from_json(s);
 		ret.push(set);
 	}
+	// At this point, ret is only sets that haven't been cached, so add them
+	add_sets(&ret).await;
+	ret.extend(cached_sets);
 
 	ret
 }
 
 pub async fn get_set(id: &str) -> Option<Set> {
-	let data = api_call(&format!("sets/{}", id), None)
-		.await
-		.unwrap();
-	let set_data = data.get("data");
-	let set = match set_data {
-		Some(x) => Some(Set::from_json(x)),
-		None => None
-	};
-
-	set
+	let cached_set = get_set_from_cache(id).await;
+	match cached_set {
+		Some(s) => Some(s),
+		None => {
+			let data = api_call(&format!("sets/{}", id), None)
+				.await
+				.unwrap();
+			let set_data = data.get("data");
+			let set = match set_data {
+				Some(x) => {
+					let s = Set::from_json(x);
+					add_set(&s).await;
+					
+					Some(s)
+				},
+				None => None
+			};
+		
+			set
+		}
+	}
 }
 
 pub async fn get_sets_with_query(query: &str) -> Vec<Set> {
@@ -116,4 +139,53 @@ pub async fn get_sets_with_query(query: &str) -> Vec<Set> {
 	}
 
 	ret
+}
+
+async fn get_set_collection() -> Collection<Set> {
+	let client = get_client().await.unwrap();
+	let collection = client.database("poketcg").collection::<Set>("sets");
+
+	collection
+}
+
+async fn add_set(set: &Set) {
+	let set_collection = get_set_collection().await;
+	set_collection
+		.insert_one(set, None)
+		.await
+		.unwrap();
+}
+
+async fn add_sets(sets: &Vec<Set>) {
+	if sets.len() <= 0 {
+		return;
+	}
+	let set_collection = get_set_collection().await;
+	set_collection
+		.insert_many(sets, None)
+		.await
+		.unwrap();
+}
+
+async fn get_set_from_cache(id: &str) -> Option<Set> {
+	let set_collection = get_set_collection().await;
+	let set = set_collection
+		.find_one(doc! { "set_id": id }, None)
+		.await
+		.unwrap();
+
+	set
+}
+
+async fn get_sets_from_cache() -> Vec<Set> {
+	let set_collection = get_set_collection().await;
+	let sets = set_collection
+		.find(None, None)
+		.await
+		.unwrap()
+		.try_collect::<Vec<Set>>()
+		.await
+		.unwrap();
+
+	sets
 }
