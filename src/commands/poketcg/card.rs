@@ -1,17 +1,37 @@
 use super::{
 	*,
 };
+use mongodb::{
+	bson::{
+		doc,
+		oid::ObjectId,
+	}, 
+	Collection
+};
+use serde::{Serialize, Deserialize};
+use chrono::{
+	TimeZone,
+	DateTime, 
+	Utc,
+	Datelike,
+	Duration,
+	Local,
+};
 use crate::sets::Set;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Card {
-	pub id: String,
+	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+	id: Option<ObjectId>,
+	pub card_id: String,
 	pub name: String,
 	pub set: Set, // This will eventually be a Set object
 	pub number: String,
 	pub price: f64,
 	pub image: String,
-	pub rarity: String
+	pub rarity: String,
+	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+	pub last_check: DateTime<Utc>
 }
 
 impl Card {
@@ -47,13 +67,15 @@ impl Card {
 		};
 
 		Self {
-			id: String::from(obj["id"].as_str().unwrap()),
+			id: None,
+			card_id: String::from(obj["id"].as_str().unwrap()),
 			name: String::from(obj["name"].as_str().unwrap()),
 			set: Set::from_json(obj.get("set").unwrap()),
 			number: String::from(obj["number"].as_str().unwrap()),
 			price: price,
 			image: String::from(obj["images"]["large"].as_str().unwrap()),
-			rarity
+			rarity,
+			last_check: Utc::now()
 		}
 	}
 }
@@ -63,7 +85,7 @@ impl PaginateEmbed for Card {
 		let mut ret = CreateEmbed::default();
 		ret
 			.title(&self.name)
-			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n", &self.id, &self.rarity, &self.price))
+			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n", &self.card_id, &self.rarity, &self.price))
 			.colour(Colour::from_rgb(255, 50, 20))
 			.image(&self.image);
 
@@ -73,11 +95,17 @@ impl PaginateEmbed for Card {
 
 impl CardInfo for Card {
 	fn card_id(&self) -> String {
-		self.id.clone()
+		self.card_id.clone()
 	}
 
 	fn card_name(&self) -> String {
 		self.name.clone()
+	}
+}
+
+impl Idable for Card {
+	fn id(&self) -> String {
+		self.card_id.clone()
 	}
 }
 

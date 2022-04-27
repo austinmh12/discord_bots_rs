@@ -5,23 +5,36 @@ use chrono::{
 	Utc, 
 	Datelike,
 };
+use mongodb::{
+	bson::{
+		doc,
+		oid::ObjectId,
+	}, 
+	Collection
+};
+use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Set {
-	pub id: String,
+	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+	id: Option<ObjectId>,
+	pub set_id: String,
 	pub name: String,
 	pub series: String,
 	pub printed: i32,
 	pub total: i32,
 	pub logo: String,
 	pub symbol: String,
-	pub release_date: DateTime<Utc>
+	pub release_date: DateTime<Utc>,
+	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+	pub last_check: DateTime<Utc>
 }
 
 impl Set {
 	pub fn from_json(obj: &serde_json::Value) -> Self {
 		Self {
-			id: String::from(obj["id"].as_str().unwrap()),
+			id: None,
+			set_id: String::from(obj["id"].as_str().unwrap()),
 			name: String::from(obj["name"].as_str().unwrap()),
 			series: String::from(obj["series"].as_str().unwrap()),
 			printed: obj["printedTotal"].as_i64().unwrap() as i32,
@@ -33,7 +46,8 @@ impl Set {
 					.unwrap()
 					.and_hms(0, 0, 0),
 				Utc
-			)
+			),
+			last_check: Utc::now()
 		}
 	}
 	
@@ -50,12 +64,18 @@ impl PaginateEmbed for Set {
 		let mut ret = CreateEmbed::default();
 		ret
 			.title(&self.name)
-			.description(format!("**Series:** {}\n**Total cards:** {}\n**Pack price:** ${:.2}\n**ID:** {}", &self.series, &self.printed, &self.pack_price(), &self.id))
+			.description(format!("**Series:** {}\n**Total cards:** {}\n**Pack price:** ${:.2}\n**ID:** {}", &self.series, &self.printed, &self.pack_price(), &self.set_id))
 			.colour(Colour::from_rgb(255, 50, 20))
 			.image(&self.logo)
 			.thumbnail(&self.symbol);
 
 		ret
+	}
+}
+
+impl Idable for Set {
+	fn id(&self) -> String {
+		self.set_id.clone()
 	}
 }
 

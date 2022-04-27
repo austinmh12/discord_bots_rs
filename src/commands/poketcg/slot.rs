@@ -36,6 +36,8 @@ use crate::{
 	commands::get_client
 };
 
+use super::Idable;
+
 const SLOT_OPTIONS: &'static [&str] = &[
 	"7",
 	"R",
@@ -181,7 +183,7 @@ impl TokenShop {
 			.map(|ws| ws.0.clone())
 			.collect::<Vec<Set>>()
 			.iter()
-			.map(|s| s.id.clone())
+			.map(|s| s.id())
 			.collect();
 		let rare_cards_no_rainbow = get_cards_with_query("-rarity:Common AND -rarity:Uncommon AND -rarity:*Rainbow")
 			.await;
@@ -192,13 +194,13 @@ impl TokenShop {
 			.choose(&mut thread_rng())
 			.unwrap()
 			.clone()
-			.id;
+			.id();
 		let rainbow_card = rainbows
 			.iter()
 			.choose(&mut thread_rng())
 			.unwrap()
 			.clone()
-			.id;
+			.id();
 		let now = Utc::now() + Duration::days(1);
 
 		Self {
@@ -229,7 +231,7 @@ impl TokenShop {
 			.map(|ws| ws.0.clone())
 			.collect::<Vec<Set>>()
 			.iter()
-			.map(|s| s.id.clone())
+			.map(|s| s.id())
 			.collect();
 		let rare_cards_no_rainbow = get_cards_with_query("-rarity:Common AND -rarity:Uncommon AND -rarity:*Rainbow")
 			.await;
@@ -240,13 +242,13 @@ impl TokenShop {
 			.choose(&mut thread_rng())
 			.unwrap()
 			.clone()
-			.id;
+			.id();
 		let rainbow_card = rainbows
 			.iter()
 			.choose(&mut thread_rng())
 			.unwrap()
 			.clone()
-			.id;
+			.id();
 		let now = Utc::now() + Duration::days(1);
 
 		Self {
@@ -269,9 +271,9 @@ impl TokenShop {
 			desc.push_str(&format!("**{}:** {} - {} tokens\n", num, set.name, to_tokens(set.pack_price())));
 		}
 		let rare_card = get_card(&self.rare_card).await;
-		desc.push_str(&format!("**4:** {} (_{}_) - {} tokens\n", rare_card.name, rare_card.id, to_tokens(rare_card.price) * 10));
+		desc.push_str(&format!("**4:** {} (_{}_) - {} tokens\n", rare_card.name, rare_card.id(), to_tokens(rare_card.price) * 10));
 		let rainbow_card = get_card(&self.rainbow_card).await;
-		desc.push_str(&format!("**5:** {} (_{}_) - {} tokens", rainbow_card.name, rainbow_card.id, to_tokens(rainbow_card.price) * 10));
+		desc.push_str(&format!("**5:** {} (_{}_) - {} tokens", rainbow_card.name, rainbow_card.id(), to_tokens(rainbow_card.price) * 10));
 		ret
 			.description(&desc)
 			.colour(Colour::from_rgb(255, 50, 20))

@@ -14,6 +14,8 @@ use crate::card::{
 	get_cards_with_query
 };
 
+use super::Idable;
+
 lazy_static! {
 	static ref RARITY_MAPPING: HashMap<&'static str, i64> = {
 		let mut m = HashMap::new();
@@ -53,7 +55,7 @@ impl Pack {
 		let set = get_set(set_id)
 			.await
 			.unwrap();
-		let all_cards = get_cards_with_query(&format!("set.id:{}", set.id))
+		let all_cards = get_cards_with_query(&format!("set.id:{}", set.id()))
 			.await;
 		// let mut all_cards_rarities = vec![];
 		// for card in &all_cards {

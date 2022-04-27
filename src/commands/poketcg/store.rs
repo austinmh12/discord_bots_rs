@@ -31,7 +31,7 @@ use crate::{sets::{
 use super::{
 	player::{
 		Player
-	}
+	}, Idable
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,7 +63,7 @@ impl Store {
 			.map(|ws| ws.0.clone())
 			.collect::<Vec<Set>>()
 			.iter()
-			.map(|s| s.id.clone())
+			.map(|s| s.id())
 			.collect();
 		let now = Utc::now() + Duration::days(1);
 
@@ -93,7 +93,7 @@ impl Store {
 			.map(|ws| ws.0.clone())
 			.collect::<Vec<Set>>()
 			.iter()
-			.map(|s| s.id.clone())
+			.map(|s| s.id())
 			.collect();
 		let now = Utc::now() + Duration::days(1);
 
@@ -121,7 +121,7 @@ impl Store {
 			} else {
 				("Booster Box", 30.0)
 			};
-			desc.push_str(&format!("**{} (_{}_):** {} {} - ${:.2}\n", num, set.id, set.name, pack_type, set.pack_price() * &price_mult));
+			desc.push_str(&format!("**{} (_{}_):** {} {} - ${:.2}\n", num, set.id(), set.name, pack_type, set.pack_price() * &price_mult));
 		}
 		ret
 			.title("Card Store")

@@ -117,6 +117,10 @@ pub trait CardInfo {
 	fn card_name(&self) -> String;
 }
 
+pub trait Idable {
+	fn id(&self) -> String;
+}
+
 // paginated embeds to search through cards
 async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds: Vec<T>) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
@@ -290,7 +294,7 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 				"➡️" => idx = (idx + 1) % embeds.len() as i16,
 				"poketcg:965802882433703936" => {
 					let set = sets.into_iter().nth(idx as usize).unwrap();
-					let cards = card::get_cards_with_query(&format!("set.id:{}", set.id)).await;
+					let cards = card::get_cards_with_query(&format!("set.id:{}", set.id())).await;
 					message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 					
 					card_paginated_embeds(ctx, msg, cards, player.clone()).await?
@@ -341,7 +345,7 @@ async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
 		match sorting.replace("-", "").as_str() {
-			"id" => cards.sort_by(|c1, c2| c1.card.id.cmp(&c2.card.id)),
+			"id" => cards.sort_by(|c1, c2| c1.card.id().cmp(&c2.card.id())),
 			"amount" => cards.sort_by(|c1, c2| c2.amount.cmp(&c1.amount)),
 			"price" => cards.sort_by(|c1, c2| {
 				if c1.card.price < c2.card.price {
@@ -501,7 +505,7 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
 	for player_card in player_cards(player.cards.clone()).await {
-		if player.savelist.contains(&player_card.card.id) {
+		if player.savelist.contains(&player_card.card.id()) {
 			continue;
 		}
 		if player_card.card.price <= value {
@@ -517,7 +521,7 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	let mut total_sold = 0;
 	let mut total_cash = 0.00;
 	for card_to_sell in cards_to_sell {
-		*player.cards.entry(card_to_sell.card.id.clone()).or_insert(0) -= card_to_sell.amount;
+		*player.cards.entry(card_to_sell.card.id()).or_insert(0) -= card_to_sell.amount;
 		total_sold += card_to_sell.amount;
 		total_cash += card_to_sell.amount as f64 * card_to_sell.card.price;
 	}
@@ -550,7 +554,7 @@ async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
 	for player_card in player_cards(player.cards.clone()).await {
-		if player.savelist.contains(&player_card.card.id) {
+		if player.savelist.contains(&player_card.card.id()) {
 			continue;
 		}
 		if player_card.amount > 1 {
@@ -567,7 +571,7 @@ async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	let mut total_cash = 0.00;
 	for card_to_sell in cards_to_sell {
 		let amt = card_to_sell.amount - 1;
-		*player.cards.entry(card_to_sell.card.id.clone()).or_insert(0) -= amt;
+		*player.cards.entry(card_to_sell.card.id()).or_insert(0) -= amt;
 		total_sold += amt;
 		total_cash += amt as f64 * card_to_sell.card.price;
 	}
@@ -600,7 +604,7 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
 	for player_card in player_cards(player.cards.clone()).await {
-		if player.savelist.contains(&player_card.card.id) {
+		if player.savelist.contains(&player_card.card.id()) {
 			continue;
 		}
 		if rares {
@@ -614,7 +618,7 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 	let mut total_sold = 0;
 	let mut total_cash = 0.00;
 	for card_to_sell in cards_to_sell {
-		*player.cards.entry(card_to_sell.card.id.clone()).or_insert(0) -= card_to_sell.amount;
+		*player.cards.entry(card_to_sell.card.id()).or_insert(0) -= card_to_sell.amount;
 		total_sold += card_to_sell.amount;
 		total_cash += card_to_sell.amount as f64 * card_to_sell.card.price;
 	}
@@ -787,7 +791,7 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 		update.insert("packs", player_packs);
 		let mut player_cards = Document::new();
 		for card in &pack.cards {
-			*player.cards.entry(card.id.clone()).or_insert(0) += 1;
+			*player.cards.entry(card.id()).or_insert(0) += 1;
 		}
 		for (card_id, amt) in player.cards.iter() {
 			player_cards.insert(card_id, amt);
@@ -866,7 +870,7 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		.reduce(f64::min)
 		.unwrap() as i32; // Either the most they can afford or the amount they wanted.
 	player.cash -= base_cost * amount as f64;
-	*player.packs.entry(set.id).or_insert(0) += (amount * pack_count) as i64;
+	*player.packs.entry(set.id()).or_insert(0) += (amount * pack_count) as i64;
 	player.packs_bought += (amount * pack_count) as i64;
 	msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You bought {} **{}** packs!", amount * pack_count, set.name))).await?;
 	let mut player_packs = Document::new();
@@ -1339,7 +1343,7 @@ async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) ->
 			.min()
 			.unwrap(); // Either the most they can afford or the amount they wanted.
 		player.tokens -= base_cost * amount;
-		*player.packs.entry(set.id).or_insert(0) += amount;
+		*player.packs.entry(set.id()).or_insert(0) += amount;
 		player.packs_bought += amount;
 		msg.reply(&ctx.http, format!("You bought {} **{}** packs!", amount, set.name)).await?;
 		update.insert("tokens", player.tokens);
@@ -1365,7 +1369,7 @@ async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) ->
 			.min()
 			.unwrap(); // Either the most they can afford or the amount they wanted.
 		player.tokens -= base_cost * amount;
-		*player.cards.entry(card.id).or_insert(0) += amount;
+		*player.cards.entry(card.id()).or_insert(0) += amount;
 		msg.reply(&ctx.http, format!("You bought {} **{}**!", amount, card.name)).await?;
 		update.insert("tokens", player.tokens);
 		let mut player_cards = Document::new();
@@ -1524,17 +1528,33 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 
 /* Tasks
  * v1.3.0
- * 	Add a changelog command that DMs the user the patch note they want
- * 	Add the current version to the activity
+ * 	FIX: api_call needs to grab more than 250 items
  * 	Caching
  * 		Use the database? create a cachedcards, cachedsets, and cachedtimers collection
  * 		Refresh them daily for price updates
  * 			Learn to do a second loop on a different timer (hourly with the cachedtimer.reset)
  * v1.4.0
- * 	Add a help command
- * 	Add usage macro to all the commands and sub commands
+ * 	Add upgrades for
+ * 		daily time reset
+ * 		slot reward multiplier
+ * 		store doscount
+ * 		token shop discount
+ * 		daily pack amount
+ * 		daily reward multiplier
+ * 		quiz reward multiplier
+ * 	Add global cash sinks (buys for all players) (aka expensive)
+ * 		daily reset
+ * 		token shop refresh
+ * 		store refresh
+ * 		pack reset
+ * 		slot reset
  * 	Add quiz
  * 		Make it so that quiz only awards money for 5 every 2 hours but people can keep playing
+ * Misc
+ * 	Add a help command (Okay shits not working so I don't care right now.)
+ *	 	Add usage macro to all the commands and sub commands
+ * 	Add a changelog command that DMs the user the patch note they want
+ * 		Add the current version to the activity
 */
 
 /* Admin commands
