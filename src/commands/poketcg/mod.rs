@@ -924,7 +924,8 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 		update.insert("total_cash", player.total_cash);
 		msg.reply(&ctx.http, format!("You got **${:.2}**", cash as f64)).await?;
 	}
-	player.daily_reset = Utc::now() + Duration::days(1);
+	let hours_til_update = 24 - player.upgrades.daily_time_reset;
+	player.daily_reset = Utc::now() + Duration::hours(hours_til_update);
 	update.insert("daily_reset", player.daily_reset);
 	player::update_player(&player, doc!{ "$set": update }).await;
 
