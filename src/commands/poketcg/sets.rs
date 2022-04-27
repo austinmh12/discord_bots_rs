@@ -28,9 +28,7 @@ pub struct Set {
 	pub total: i32,
 	pub logo: String,
 	pub symbol: String,
-	pub release_date: DateTime<Utc>,
-	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
-	pub last_check: DateTime<Utc>
+	pub release_date: DateTime<Utc>
 }
 
 impl Set {
@@ -49,8 +47,7 @@ impl Set {
 					.unwrap()
 					.and_hms(0, 0, 0),
 				Utc
-			),
-			last_check: Utc::now()
+			)
 		}
 	}
 	
