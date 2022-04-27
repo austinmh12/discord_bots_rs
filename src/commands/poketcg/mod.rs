@@ -1221,15 +1221,17 @@ async fn game_corner_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("payouts")]
 #[aliases("p")]
 async fn game_corner_payouts(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	let player_slot_mult = player.upgrades.slot_reward_mult as f64 * 0.1;
 	let mut desc = String::from("Here are the token payouts for the slot machines\n");
-	desc.push_str("<:GameCorner:967522912242384906><:GameCorner:967522912242384906><:GameCorner:967522912242384906> **500**\n");
-	desc.push_str("<:GameCorner:967522912166903858><:GameCorner:967522912166903858><:GameCorner:967522912166903858> **200**\n");
-	desc.push_str("<:GameCorner:967522912196239510><:GameCorner:967522912196239510><:GameCorner:967522912196239510> **120**\n");
-	desc.push_str("<:GameCorner:967522912275922995><:GameCorner:967522912275922995><:GameCorner:967522912275922995> **80**\n");
-	desc.push_str("<:GameCorner:967522912154296410><:GameCorner:967522912154296410><:GameCorner:967522912154296410> **50**\n");
-	desc.push_str("<:GameCorner:967522912229793882><:GameCorner:967522912229793882><:GameCorner:967522912229793882> **30**\n");
-	desc.push_str("<:GameCorner:967522912166871080><:GameCorner:967522912166871080><:GameCorner:967522912166871080> **15**\n");
-	desc.push_str("<:GameCorner:967522912166871080><:GameCorner:967522912166871080><:GameCorner:967591653135228988> **5**");
+	desc.push_str(&format!("<:GameCorner:967522912242384906><:GameCorner:967522912242384906><:GameCorner:967522912242384906> **{}**\n", (500.0 * player_slot_mult) as i64));
+	desc.push_str(&format!("<:GameCorner:967522912166903858><:GameCorner:967522912166903858><:GameCorner:967522912166903858> **{}**\n", (200.0 * player_slot_mult) as i64));
+	desc.push_str(&format!("<:GameCorner:967522912196239510><:GameCorner:967522912196239510><:GameCorner:967522912196239510> **{}**\n", (120.0 * player_slot_mult) as i64));
+	desc.push_str(&format!("<:GameCorner:967522912275922995><:GameCorner:967522912275922995><:GameCorner:967522912275922995> **{}**\n", (80.0 * player_slot_mult) as i64));
+	desc.push_str(&format!("<:GameCorner:967522912154296410><:GameCorner:967522912154296410><:GameCorner:967522912154296410> **{}**\n", (50.0 * player_slot_mult) as i64));
+	desc.push_str(&format!("<:GameCorner:967522912229793882><:GameCorner:967522912229793882><:GameCorner:967522912229793882> **{}**\n", (30.0 * player_slot_mult) as i64));
+	desc.push_str(&format!("<:GameCorner:967522912166871080><:GameCorner:967522912166871080><:GameCorner:967522912166871080> **{}**\n", (15.0 * player_slot_mult) as i64));
+	desc.push_str(&format!("<:GameCorner:967522912166871080><:GameCorner:967522912166871080><:GameCorner:967591653135228988> **{}**", (5.0 * player_slot_mult) as i64));
 	msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
