@@ -294,7 +294,7 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 				"➡️" => idx = (idx + 1) % embeds.len() as i16,
 				"poketcg:965802882433703936" => {
 					let set = sets.into_iter().nth(idx as usize).unwrap();
-					let cards = card::get_cards_with_query(&format!("set.id:{}", set.id())).await;
+					let cards = card::get_cards_by_set(set).await;
 					message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 					
 					card_paginated_embeds(ctx, msg, cards, player.clone()).await?

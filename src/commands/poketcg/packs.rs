@@ -11,7 +11,7 @@ use crate::sets::{
 };
 use crate::card::{
 	Card,
-	get_cards_with_query
+	get_cards_by_set
 };
 
 use super::Idable;
@@ -55,7 +55,7 @@ impl Pack {
 		let set = get_set(set_id)
 			.await
 			.unwrap();
-		let all_cards = get_cards_with_query(&format!("set.id:{}", set.id()))
+		let all_cards = get_cards_by_set(&set)
 			.await;
 		// let mut all_cards_rarities = vec![];
 		// for card in &all_cards {
