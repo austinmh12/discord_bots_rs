@@ -14,8 +14,6 @@ use crate::card::{
 	get_cards_by_set
 };
 
-use super::Idable;
-
 lazy_static! {
 	static ref RARITY_MAPPING: HashMap<&'static str, i64> = {
 		let mut m = HashMap::new();
@@ -57,14 +55,6 @@ impl Pack {
 			.unwrap();
 		let all_cards = get_cards_by_set(&set)
 			.await;
-		// let mut all_cards_rarities = vec![];
-		// for card in &all_cards {
-		// 	if all_cards_rarities.contains(&card.rarity.as_str()) {
-		// 		continue;
-		// 	}
-		// 	all_cards_rarities.push(card.rarity.as_str());
-		// }
-		// println!("{:?}", all_cards_rarities);
 		let rares = all_cards
 			.iter()
 			.filter(|c| c.rarity != "Common" || c.rarity != "Uncommon" || c.rarity != "Promo")
