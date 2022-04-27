@@ -90,7 +90,7 @@ pub async fn get_sets() -> Vec<Set> {
 		.map(|s| format!("-id:{}", s.id()))
 		.collect::<Vec<String>>()
 		.join(" AND ");
-	let data = api_call("sets", Some(&format!("({})", inner_query)))
+	let data = api_call("sets", Some(vec![("q", &format!("({})", inner_query))]))
 		.await
 		.unwrap();
 	let set_data = data["data"].as_array().unwrap();
@@ -131,7 +131,7 @@ pub async fn get_set(id: &str) -> Option<Set> {
 
 pub async fn get_sets_with_query(query: &str) -> Vec<Set> {
 	let mut ret = vec![];
-	let data = api_call("sets", Some(query)).await.unwrap();
+	let data = api_call("sets", Some(vec![("q", query)])).await.unwrap();
 	let set_data = data["data"].as_array().unwrap();
 	for st in set_data {
 		let set = Set::from_json(st);

@@ -57,7 +57,7 @@ use rand::{
 };
 use crate::BOTTEST_CHECK;
 
-async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Value> {
+async fn api_call(endpoint: &str, params: Option<Vec<(&str, &str)>>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
 	let poketcg_key = dotenv::var("POKETCGAPIKEY").unwrap();
 	let client = reqwest::Client::new();
@@ -66,7 +66,7 @@ async fn api_call(endpoint: &str, params: Option<&str>) -> Option<serde_json::Va
 		.get(format!("https://api.pokemontcg.io/v2/{}", endpoint))
 		.header("X-Api-Key", poketcg_key);
 	req = match params {
-		Some(x) => req.query(&[("q", x)]),
+		Some(x) => req.query(&x),
 		None => req
 	};
 	let data: serde_json::Value = req

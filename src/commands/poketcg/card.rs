@@ -175,7 +175,7 @@ pub async fn get_card(id: &str) -> Card {
 
 pub async fn get_cards_with_query(query: &str) -> Vec<Card> {
 	let mut ret = <Vec<Card>>::new();
-	let data = api_call("cards", Some(query)).await.unwrap();
+	let data = api_call("cards", Some(vec![("q", query)])).await.unwrap();
 	let card_data = data["data"].as_array().unwrap();
 	for cd in card_data {
 		let card = Card::from_json(cd);
@@ -191,12 +191,24 @@ pub async fn get_cards_by_set(set: &Set) -> Vec<Card> {
 	if cached_cards.len() >= set.total as usize {
 		return cached_cards;
 	}
-	let data = api_call("cards", Some(&format!("set.id:{}", set.id()))).await.unwrap();
+	let mut data = api_call("cards", Some(vec![("q", &format!("set.id:{}", set.id()))])).await.unwrap();
 	let card_data = data["data"].as_array().unwrap();
 	for cd in card_data {
 		let card = Card::from_json(cd);
 		if !cached_cards.contains(&card) {
 			ret.push(card);
+		}
+	}
+	let mut page = 1;
+	while data["count"].as_i64().unwrap() > 0 {
+		page += 1;
+		data = api_call("cards", Some(vec![("q", &format!("set.id:{}", set.id())), ("page", page.to_string().as_str())])).await.unwrap();
+		let card_data = data["data"].as_array().unwrap();
+		for cd in card_data {
+			let card = Card::from_json(cd);
+			if !cached_cards.contains(&card) {
+				ret.push(card);
+			}
 		}
 	}
 	// If we've gotten here there are cards to cache
