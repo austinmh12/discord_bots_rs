@@ -1602,11 +1602,13 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 		let players = player::get_players().await;
 		for mut player in players {
 			let mut update = Document::new();
-			if player.daily_packs < 50 {
-				player.daily_packs = 50;
+			let player_daily_packs = 50 + (player.upgrades.daily_pack_amount * 10);
+			let player_daily_slots = 10 + player.upgrades.daily_slot_amount;
+			if player.daily_packs < player_daily_packs {
+				player.daily_packs = player_daily_packs;
 				update.insert("daily_packs", player.daily_packs);
 			}
-			player.daily_slots = 10;
+			player.daily_slots = player_daily_slots;
 			update.insert("daily_slots", player.daily_slots);
 			player::update_player(&player, doc!{"$set": update }).await;
 		}
