@@ -1,3 +1,4 @@
+use bson::Document;
 use serde::{Serialize, Deserialize};
 use serenity::{builder::CreateEmbed, utils::Colour};
 
@@ -31,7 +32,7 @@ impl Upgrade {
 		match upgrade {
 			"daily_time_reset" => 200.0,
 			"daily_reward_mult" => 100.0 + (100.0 * self.daily_reward_mult as f64),
-			"daily_pack_amount" => (1000 + (0..self.daily_pack_amount).map(|i| i * 1000).sum::<i64>()) as f64,
+			"daily_pack_amount" => (1000 + (0..=self.daily_pack_amount).map(|i| i * 1000).sum::<i64>()) as f64,
 			"store_discount" => 250.0 + (250.0 * self.store_discount as f64),
 			"tokenshop_discount" => 250.0 + (250.0 * self.tokenshop_discount as f64),
 			"slot_reward_mult" => 500.0 + (500.0 * self.slot_reward_mult as f64),
@@ -85,5 +86,18 @@ impl Upgrade {
 			.colour(Colour::from_rgb(255, 50, 20));
 
 		ret
+	}
+
+	pub fn to_doc(&self) -> Document {
+		let mut d = Document::new();
+		d.insert("daily_time_reset", self.daily_time_reset);
+		d.insert("daily_reward_mult", self.daily_reward_mult);
+		d.insert("daily_pack_amount", self.daily_pack_amount);
+		d.insert("store_discount", self.store_discount);
+		d.insert("tokenshop_discount", self.tokenshop_discount);
+		d.insert("slot_reward_mult", self.slot_reward_mult);
+		d.insert("daily_slot_amount", self.daily_slot_amount);
+
+		d
 	}
 }
