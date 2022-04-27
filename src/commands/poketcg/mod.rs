@@ -1541,15 +1541,6 @@ pub async fn refresh_card_prices(_ctx: Arc<Context>) {
 		card.last_check = Utc::now() + Duration::days(1);
 		updated_cards.push(card);
 	}
-	// for refreshed_card in refreshed_cards {
-	// 	for mut card in cards.clone() {
-	// 		if card == refreshed_card {
-	// 			card.price = refreshed_card.price;
-	// 			card.last_check = Utc::now() + Duration::days(1);
-	// 			updated_cards.push(card);
-	// 		}
-	// 	}
-	// }
 	card::update_cached_cards(updated_cards).await;
 	println!("Updated cached cards!");
 }
