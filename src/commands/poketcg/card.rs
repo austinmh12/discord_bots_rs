@@ -111,6 +111,16 @@ impl Idable for Card {
 	}
 }
 
+impl PartialEq for Card {
+	fn eq(&self, other: &Self) -> bool {
+		self.card_id == other.card_id
+	}
+
+	fn ne(&self, other: &Self) -> bool {
+		self.card_id != other.card_id
+	}
+}
+
 // pub async fn get_cards() -> Vec<Card> {
 // 	let mut ret = <Vec<Card>>::new();
 // 	let data = api_call("cards", None).await.unwrap();
@@ -178,14 +188,16 @@ pub async fn get_cards_with_query(query: &str) -> Vec<Card> {
 pub async fn get_cards_by_set(set: &Set) -> Vec<Card> {
 	let mut ret = vec![];
 	let cached_cards = get_cards_from_cache_by_set(set).await;
-	if cached_cards.len() == set.total as usize {
+	if cached_cards.len() >= set.total as usize {
 		return cached_cards;
 	}
 	let data = api_call("cards", Some(&format!("set.id:{}", set.id()))).await.unwrap();
 	let card_data = data["data"].as_array().unwrap();
 	for cd in card_data {
 		let card = Card::from_json(cd);
-		ret.push(card);
+		if !cached_cards.contains(&card) {
+			ret.push(card);
+		}
 	}
 	// If we've gotten here there are cards to cache
 	add_cards(&ret).await;
@@ -213,9 +225,19 @@ async fn add_cards(cards: &Vec<Card>) {
 	if cards.len() <= 0 {
 		return;
 	}
+	let cached_cards = get_cards_from_cache().await;
+	let mut new_cards = vec![];
+	for card in cards {
+		if !cached_cards.contains(card) {
+			new_cards.push(card);
+		}
+	}
+	if new_cards.len() <= 0 {
+		return;
+	}
 	let card_collection = get_card_collection().await;
 	card_collection
-		.insert_many(cards, None)
+		.insert_many(new_cards, None)
 		.await
 		.unwrap();
 }
@@ -230,18 +252,18 @@ async fn get_card_from_cache(id: &str) -> Option<Card> {
 	card
 }
 
-// async fn get_cards_from_cache() -> Vec<Card> {
-// 	let card_collection = get_card_collection().await;
-// 	let cards = card_collection
-// 		.find(None, None)
-// 		.await
-// 		.unwrap()
-// 		.try_collect::<Vec<Card>>()
-// 		.await
-// 		.unwrap();
+async fn get_cards_from_cache() -> Vec<Card> {
+	let card_collection = get_card_collection().await;
+	let cards = card_collection
+		.find(None, None)
+		.await
+		.unwrap()
+		.try_collect::<Vec<Card>>()
+		.await
+		.unwrap();
 
-// 	cards
-// }
+	cards
+}
 
 async fn get_multiple_cards_from_cache(card_ids: &Vec<String>) -> Vec<Card> {
 	let card_collection = get_card_collection().await;
