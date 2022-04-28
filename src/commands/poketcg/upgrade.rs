@@ -100,4 +100,38 @@ impl Upgrade {
 
 		d
 	}
+
+	pub fn desc(&self) -> String {
+		let mut ret = String::from("");
+		match self.is_max_upgrade("daily_time_reset") {
+			true => ret.push_str(&format!("**dailytime:** {} ***MAX***\n", self.daily_time_reset)),
+			false => ret.push_str(&format!("**dailytime:** {}\n", self.daily_time_reset))
+		}
+		match self.is_max_upgrade("daily_reward_mult") {
+			true => ret.push_str(&format!("**dailyreward:** {} ***MAX***\n", self.daily_reward_mult)),
+			false => ret.push_str(&format!("**dailyreward:** {}\n", self.daily_reward_mult))
+		}
+		match self.is_max_upgrade("daily_pack_amount") {
+			true => ret.push_str(&format!("**dailypacks:** {} ***MAX***\n", self.daily_pack_amount)),
+			false => ret.push_str(&format!("**dailypacks:** {}\n", self.daily_pack_amount))
+		}
+		match self.is_max_upgrade("store_discount") {
+			true => ret.push_str(&format!("**storediscount:** {} ***MAX***\n", self.store_discount)),
+			false => ret.push_str(&format!("**storediscount:** {}\n", self.store_discount))
+		}
+		match self.is_max_upgrade("tokenshop_discount") {
+			true => ret.push_str(&format!("**tokenshopdiscount:** {} ***MAX***\n", self.tokenshop_discount)),
+			false => ret.push_str(&format!("**tokenshopdiscount:** {}\n", self.tokenshop_discount))
+		}
+		match self.is_max_upgrade("slot_reward_mult") {
+			true => ret.push_str(&format!("**slotreward:** {} ***MAX***\n", self.slot_reward_mult)),
+			false => ret.push_str(&format!("**slotreward:** {}\n", self.slot_reward_mult))
+		}
+		match self.is_max_upgrade("daily_slot_amount") {
+			true => ret.push_str(&format!("**dailyslots:** {} ***MAX***\n", self.daily_slot_amount)),
+			false => ret.push_str(&format!("**dailyslots:** {}\n", self.daily_slot_amount))
+		}
+
+		ret
+	}
 }

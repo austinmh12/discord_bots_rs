@@ -321,7 +321,7 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 }
 
 #[command("my")]
-#[sub_commands(my_cards, my_packs, my_stats)]
+#[sub_commands(my_cards, my_packs, my_stats, my_upgrades)]
 async fn my_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let content = "Here are the available my commands:
 	**.my cards [sort_by - Default: name]** to view your cards.
@@ -421,6 +421,33 @@ async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
 				.title(nickname)
 				.thumbnail(avatar_url);
 			m.set_embed(e);
+
+			m
+		})
+			.await?;
+
+	Ok(())
+}
+
+#[command("upgrades")]
+#[aliases("ups")]
+async fn my_upgrades(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	let nickname = match msg.author_nick(ctx).await {
+		Some(x) => x,
+		None => msg.author.name.clone()
+	};
+	let avatar_url = msg.author.avatar_url().unwrap();
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e
+					.title(nickname)
+					.thumbnail(avatar_url)
+					.description(player.upgrades.desc())
+					.colour(Colour::from_rgb(255, 50, 20))
+			});
 
 			m
 		})
