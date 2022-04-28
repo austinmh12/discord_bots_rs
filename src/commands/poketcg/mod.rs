@@ -1654,8 +1654,6 @@ pub async fn refresh_card_prices(_ctx: Arc<Context>) {
 
 /* Tasks
  * v1.4.0
- * 	Add upgrades for
- * 		token shop discount
  * 	Add global cash sinks (buys for all players) (aka expensive)
  * 		daily reset
  * 		token shop refresh
