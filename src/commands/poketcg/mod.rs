@@ -1271,6 +1271,7 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 	let amount = *amounts.iter().min().unwrap();
 	let slots = slot::Slot::new(amount);
 	let mut roll_displays = vec![];
+	let mut under_2k_reply = String::from("");
 	for roll in slots.rolls {
 		let reward = roll.reward(player.upgrades.slot_reward_mult);
 		player.tokens += reward;
@@ -1282,9 +1283,20 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 			("7", "7", "R") => player.boofs += 1,
 			_ => ()
 		}
-		roll_displays.push(roll.reward_display(player.upgrades.slot_reward_mult));
+		let roll_display = roll.reward_display(player.upgrades.slot_reward_mult);
+		if roll_display.len() + under_2k_reply.len() >= 1900 { // Account for \n
+			roll_displays.push(under_2k_reply);
+			under_2k_reply = String::from("");
+		}
+		under_2k_reply.push_str(&format!("{}\n", roll_display));
 	}
-	msg.reply(&ctx.http, roll_displays.join("\n")).await?;
+	if under_2k_reply.len() > 0 {
+		roll_displays.push(under_2k_reply);
+	}
+	for roll_display in roll_displays {
+		msg.reply(&ctx.http, roll_display).await?;
+	}
+	// println!("{}", &roll_displays.join("\n").len());
 	let mut player_update = Document::new();
 	player_update.insert("tokens", player.tokens);
 	player_update.insert("total_tokens", player.total_tokens);
