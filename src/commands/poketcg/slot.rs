@@ -233,15 +233,16 @@ impl TokenShop {
 		let mut desc = String::from("Welcome to the **Token Shop**! Here you can spend tokens for prized\n");
 		desc.push_str(&format!("You have **{}** tokens\n", player.tokens));
 		desc.push_str("Here are the prizes available today. To purchase one, use **.gamecorner tokenstore (b)uy <slot no> [amount - Default 1]**\n\n");
+		let discount = 1.0 + player.upgrades.tokenshop_discount as f64 * 0.05;
 		for (i, set_id) in self.sets.iter().enumerate() {
 			let num = i + 1;
 			let set = get_set(set_id).await.unwrap();
-			desc.push_str(&format!("**{}:** {} - {} tokens\n", num, set.name, to_tokens(set.pack_price())));
+			desc.push_str(&format!("**{}:** {} - {} tokens\n", num, set.name, (to_tokens(set.pack_price()) as f64 / discount) as i64));
 		}
 		let rare_card = get_card(&self.rare_card).await;
-		desc.push_str(&format!("**4:** {} (_{}_) - {} tokens\n", rare_card.name, rare_card.id(), to_tokens(rare_card.price) * 10));
+		desc.push_str(&format!("**4:** {} (_{}_) - {} tokens\n", rare_card.name, rare_card.id(), ((to_tokens(rare_card.price) * 10) as f64 / discount) as i64));
 		let rainbow_card = get_card(&self.rainbow_card).await;
-		desc.push_str(&format!("**5:** {} (_{}_) - {} tokens", rainbow_card.name, rainbow_card.id(), to_tokens(rainbow_card.price) * 10));
+		desc.push_str(&format!("**5:** {} (_{}_) - {} tokens", rainbow_card.name, rainbow_card.id(), ((to_tokens(rainbow_card.price) * 10) as f64 / discount) as i64));
 		ret
 			.description(&desc)
 			.colour(Colour::from_rgb(255, 50, 20))

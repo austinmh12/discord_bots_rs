@@ -1348,9 +1348,10 @@ async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) ->
 	};
 	let mut update = Document::new();
 	let mut player = player::get_player(msg.author.id.0).await;
+	let discount = 1.0 + player.upgrades.tokenshop_discount as f64 * 0.05;
 	if selection <= 3 {
 		let set = get_set(token_shop.sets.get((selection - 1) as usize).unwrap()).await.unwrap();
-		let base_cost = slot::to_tokens(set.pack_price());
+		let base_cost = (slot::to_tokens(set.pack_price()) as f64 / discount) as i64;
 		if player.tokens < base_cost {
 			msg.reply(&ctx.http, &format!("You don't have enough... You need **{}** more tokens", base_cost - player.tokens)).await?;
 			return Ok(());
@@ -1376,7 +1377,7 @@ async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) ->
 			4 => card::get_card(&token_shop.rare_card).await,
 			_ => card::get_card(&token_shop.rainbow_card).await
 		};
-		let base_cost = slot::to_tokens(card.price) * 10;
+		let base_cost = ((slot::to_tokens(card.price) * 10) as f64 / discount) as i64;
 		if player.tokens < base_cost {
 			msg.reply(&ctx.http, &format!("You don't have enough... You need **{}** more tokens", base_cost - player.tokens)).await?;
 			return Ok(());
@@ -1654,9 +1655,7 @@ pub async fn refresh_card_prices(_ctx: Arc<Context>) {
 /* Tasks
  * v1.4.0
  * 	Add upgrades for
- * 		store doscount
  * 		token shop discount
- * 		daily reward multiplier
  * 	Add global cash sinks (buys for all players) (aka expensive)
  * 		daily reset
  * 		token shop refresh
