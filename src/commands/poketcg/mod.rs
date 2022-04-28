@@ -913,13 +913,15 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 	let mut update = Document::new();
 	let r: i64 = rand::thread_rng().gen_range(0..100);
 	if r <= 2 {
-		player.daily_packs += 50;
+		let player_daily_packs = 50 + (player.upgrades.daily_pack_amount * 10);
+		player.daily_packs += player_daily_packs;
 		update.insert("daily_packs", player.daily_packs);
 		msg.reply(&ctx.http, "***WOAH!*** Your daily packs were reset!").await?;
 	} else {
 		let cash: i64 = rand::thread_rng().gen_range(5..=20);
-		player.cash += cash as f64;
-		player.total_cash += cash as f64;
+		let player_mult = 1.0 + player.upgrades.daily_reward_mult as f64 * 0.1;
+		player.cash += cash as f64 * player_mult;
+		player.total_cash += cash as f64 * player_mult;
 		update.insert("cash", player.cash);
 		update.insert("total_cash", player.total_cash);
 		msg.reply(&ctx.http, format!("You got **${:.2}**", cash as f64)).await?;
@@ -1284,7 +1286,7 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 			_ => ()
 		}
 		let roll_display = roll.reward_display(player.upgrades.slot_reward_mult);
-		if roll_display.len() + under_2k_reply.len() >= 1900 { // Account for \n
+		if roll_display.len() + under_2k_reply.len() >= 1900 { // Much lower than 2000 to account for the varying reward amount and new lines
 			roll_displays.push(under_2k_reply);
 			under_2k_reply = String::from("");
 		}
@@ -1296,7 +1298,6 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 	for roll_display in roll_displays {
 		msg.reply(&ctx.http, roll_display).await?;
 	}
-	// println!("{}", &roll_displays.join("\n").len());
 	let mut player_update = Document::new();
 	player_update.insert("tokens", player.tokens);
 	player_update.insert("total_tokens", player.total_tokens);
@@ -1652,13 +1653,9 @@ pub async fn refresh_card_prices(_ctx: Arc<Context>) {
 /* Tasks
  * v1.4.0
  * 	Add upgrades for
- * 		daily time reset
- * 		slot reward multiplier
  * 		store doscount
  * 		token shop discount
- * 		daily pack amount
  * 		daily reward multiplier
- * 		quiz reward multiplier
  * 	Add global cash sinks (buys for all players) (aka expensive)
  * 		daily reset
  * 		token shop refresh
