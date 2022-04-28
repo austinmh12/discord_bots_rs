@@ -918,10 +918,10 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 		update.insert("daily_packs", player.daily_packs);
 		msg.reply(&ctx.http, "***WOAH!*** Your daily packs were reset!").await?;
 	} else {
-		let cash: i64 = rand::thread_rng().gen_range(5..=20);
 		let player_mult = 1.0 + player.upgrades.daily_reward_mult as f64 * 0.1;
-		player.cash += cash as f64 * player_mult;
-		player.total_cash += cash as f64 * player_mult;
+		let cash: f64 = rand::thread_rng().gen_range(5..=20) as f64 * player_mult;
+		player.cash += cash;
+		player.total_cash += cash;
 		update.insert("cash", player.cash);
 		update.insert("total_cash", player.total_cash);
 		msg.reply(&ctx.http, format!("You got **${:.2}**", cash as f64)).await?;
