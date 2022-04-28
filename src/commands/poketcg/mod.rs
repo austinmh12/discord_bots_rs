@@ -811,9 +811,9 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[aliases("st")]
 #[sub_commands(store_buy)]
 async fn store_main(ctx: &Context, msg: &Message) -> CommandResult {
-	let store_ = store::get_store().await;
-	let player_ = player::get_player(msg.author.id.0).await;
-	let embed = store_.embed_with_player(player_).await;
+	let store = store::get_store().await;
+	let player = player::get_player(msg.author.id.0).await;
+	let embed = store.embed_with_player(player).await;
 	let _ = msg
 		.channel_id
 		.send_message(&ctx.http, |m| {

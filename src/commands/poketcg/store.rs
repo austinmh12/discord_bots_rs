@@ -109,6 +109,7 @@ impl Store {
 		let mut desc = String::from("Welcome to the Card Store! Here you can spend cash for Packs of cards\n");
 		desc.push_str(&format!("You have **${:.2}**\n", player.cash));
 		desc.push_str("Here are the packs available today. To purchase packs, use **.(st)ore (b)uy <slot no. | slot id.> (amount)**\n\n");
+		let discount = 1.0 + player.upgrades.store_discount as f64 * 0.05;
 		for (i, set_id) in self.sets.iter().enumerate() {
 			let num = i + 1;
 			let set = get_set(set_id).await.unwrap();
@@ -121,7 +122,7 @@ impl Store {
 			} else {
 				("Booster Box", 30.0)
 			};
-			desc.push_str(&format!("**{} (_{}_):** {} {} - ${:.2}\n", num, set.id(), set.name, pack_type, set.pack_price() * &price_mult));
+			desc.push_str(&format!("**{} (_{}_):** {} {} - ${:.2}\n", num, set.id(), set.name, pack_type, (set.pack_price() * &price_mult) / discount));
 		}
 		ret
 			.title("Card Store")
@@ -136,7 +137,6 @@ impl Store {
 		ret
 	}
 }
-
 
 async fn get_store_collection() -> Collection<Store> {
 	let client = get_client().await.unwrap();
