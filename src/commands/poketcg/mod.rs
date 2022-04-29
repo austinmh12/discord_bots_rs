@@ -395,7 +395,7 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 					.footer(|f| {
 						let local_timer: DateTime<Local> = DateTime::from(timer.pack_reset);
 
-						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
+						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%M")))
 					})
 			})
 		})
@@ -555,7 +555,7 @@ async fn player_packs(ctx: &Context, msg: &Message) -> CommandResult {
 					.footer(|f| {
 						let local_timer: DateTime<Local> = DateTime::from(timer.pack_reset);
 
-						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
+						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%M")))
 					})
 			})
 		})
@@ -1111,7 +1111,7 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 				&ctx.http, |m| {
 					let local_timer: DateTime<Local> = DateTime::from(player.daily_reset);
 				
-					m.content(format!("Your daily resets **{}**", local_timer.format("%h %d %H:%m")))
+					m.content(format!("Your daily resets **{}**", local_timer.format("%h %d %H:%M")))
 				})
 			.await
 			.unwrap();
@@ -1151,7 +1151,7 @@ async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
 	}
 	if player.quiz_questions <= 0 {
 		let local_timer: DateTime<Local> = DateTime::from(player.quiz_reset);
-		msg.reply(&ctx.http, format!("Your quiz attempts reset **{}**", local_timer.format("%h %d %H:%m"))).await?;
+		msg.reply(&ctx.http, format!("Your quiz attempts reset **{}**", local_timer.format("%h %d %H:%M"))).await?;
 		return Ok(());
 	}
 	let quiz = quiz::Quiz::random_quiz().await;
@@ -1160,7 +1160,7 @@ async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
 		.channel_id
 		.send_message(&ctx.http, |m| {
 			m
-				.content("who's that Pokemon?!")
+				.content("Who's that Pokemon?!")
 				.add_file("./quizsilhouette.PNG")
 		})
 		.await?;
@@ -1494,7 +1494,7 @@ async fn game_corner_main(ctx: &Context, msg: &Message) -> CommandResult {
 					.footer(|f| {
 						let local_timer: DateTime<Local> = DateTime::from(timer.slot_reset);
 
-						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
+						f.text(&format!("Resets {}", local_timer.format("%h %d %H:%M")))
 					})
 					.author(|a| a
 						.icon_url("https://archives.bulbagarden.net/media/upload/9/92/Bag_Coin_Case_Sprite.png")
