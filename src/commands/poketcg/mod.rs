@@ -1749,8 +1749,8 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 	m.insert(5, "tokenshop_discount");
 	m.insert(6, "slot_reward_mult");
 	m.insert(7, "daily_slot_amount");
-	m.insert(7, "quiz_time_reset");
-	m.insert(7, "quiz_question_amount");
+	m.insert(8, "quiz_time_reset");
+	m.insert(9, "quiz_question_amount");
 	let mut selection = match args.single::<i32>() {
 		Ok(x) => x,
 		Err(_) => 0
