@@ -459,9 +459,10 @@ async fn my_upgrades(ctx: &Context, msg: &Message) -> CommandResult {
 #[sub_commands(player_cards, player_packs, player_stats, player_upgrades)]
 async fn player_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let content = "Here are the available player commands:
-	**.player cards [sort_by - Default: name]** to view your cards.
-	**.player packs** to view your packs.
-	**.player stats** to view your stats";
+	**.player cards [sort_by - Default: name]** to view a player's cards.
+	**.player packs** to view a player's packs.
+	**.player stats** to view a player's stats.
+	**.player upgrades** to view a player's upgrades";
 	let _ = player::get_player(msg.author.id.0).await;
 	msg.reply(&ctx.http, content).await?;
 
@@ -471,11 +472,21 @@ async fn player_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("cards")]
 #[aliases("c")]
 async fn player_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let sorting = match args.find::<String>() {
+	let player_mention = msg.mentions.iter().nth(0);
+	match player_mention {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You didn't mention a player.").await?;
+			return Ok(());
+		}
+	}
+	let player_mention = player_mention.unwrap();
+	let player = player::get_player(player_mention.id.0).await;
+	args.advance();
+	let sorting = match args.single::<String>() {
 		Ok(x) => x.to_lowercase(),
 		Err(_) => String::from("name")
 	};
-	let player = player::get_player(msg.author.id.0).await;
 	let mut cards = player_card::player_cards(player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
@@ -512,10 +523,22 @@ async fn player_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[command("packs")]
 #[aliases("p")]
 async fn player_packs(ctx: &Context, msg: &Message) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
+	let player_mention = msg.mentions.iter().nth(0);
+	match player_mention {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You didn't mention a player.").await?;
+			return Ok(());
+		}
+	}
+	let player_mention = player_mention.unwrap();
+	let player = player::get_player(player_mention.id.0).await;
+	let nickname = match player_mention.nick_in(&ctx.http, msg.guild_id.unwrap()).await {
+		Some(x) => x,
+		None => player_mention.name.clone()
+	};
 	let timer = timers::get_timer().await;
-	let mut desc = format!("You have **{}** packs left to open today\n", player.daily_packs);
-	desc.push_str("Use **.(op)enpack <set_id> [amount]** to open packs\n");
+	let mut desc = format!("{} has **{}** packs left to open today\n", nickname, player.daily_packs);
 	for (set_id, amount) in player.packs.iter() {
 		desc.push_str(&format!("**{}** - {}\n", set_id, amount));
 	}
@@ -524,7 +547,7 @@ async fn player_packs(ctx: &Context, msg: &Message) -> CommandResult {
 		.send_message(&ctx.http, |m| {
 			m.embed(|e| {
 				e
-					.title("Your packs")
+					.title(format!("{}'s packs", nickname))
 					.description(&desc)
 					.colour(Colour::from_rgb(255, 50, 20))
 					.footer(|f| {
@@ -541,12 +564,21 @@ async fn player_packs(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("stats")]
 async fn player_stats(ctx: &Context, msg: &Message) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
-	let nickname = match msg.author_nick(ctx).await {
+	let player_mention = msg.mentions.iter().nth(0);
+	match player_mention {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You didn't mention a player.").await?;
+			return Ok(());
+		}
+	}
+	let player_mention = player_mention.unwrap();
+	let player = player::get_player(player_mention.id.0).await;
+	let nickname = match player_mention.nick_in(&ctx.http, msg.guild_id.unwrap()).await {
 		Some(x) => x,
-		None => msg.author.name.clone()
+		None => player_mention.name.clone()
 	};
-	let avatar_url = msg.author.avatar_url().unwrap();
+	let avatar_url = player_mention.avatar_url().unwrap();
 	msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
@@ -567,12 +599,21 @@ async fn player_stats(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("upgrades")]
 #[aliases("ups")]
 async fn player_upgrades(ctx: &Context, msg: &Message) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
-	let nickname = match msg.author_nick(ctx).await {
+	let player_mention = msg.mentions.iter().nth(0);
+	match player_mention {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You didn't mention a player.").await?;
+			return Ok(());
+		}
+	}
+	let player_mention = player_mention.unwrap();
+	let player = player::get_player(player_mention.id.0).await;
+	let nickname = match player_mention.nick_in(&ctx.http, msg.guild_id.unwrap()).await {
 		Some(x) => x,
-		None => msg.author.name.clone()
+		None => player_mention.name.clone()
 	};
-	let avatar_url = msg.author.avatar_url().unwrap();
+	let avatar_url = player_mention.avatar_url().unwrap();
 	msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
