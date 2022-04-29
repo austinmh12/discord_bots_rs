@@ -1169,7 +1169,7 @@ async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
 		.await?;
 	let attachment_id = quiz_msg.attachments[0].id;
 	if let Some(quiz_reply) = &msg.author.await_reply(&ctx).timeout(StdDuration::from_secs(15)).await {
-		let guess = &quiz_reply.content;
+		let guess = &quiz_reply.content.to_lowercase();
 		let gen_guess = match guess.parse::<i64>() {
 			Ok(x) => x,
 			Err(_) => 0
