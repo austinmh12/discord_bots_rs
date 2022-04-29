@@ -1749,6 +1749,8 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 	m.insert(5, "tokenshop_discount");
 	m.insert(6, "slot_reward_mult");
 	m.insert(7, "daily_slot_amount");
+	m.insert(7, "quiz_time_reset");
+	m.insert(7, "quiz_question_amount");
 	let mut selection = match args.single::<i32>() {
 		Ok(x) => x,
 		Err(_) => 0
@@ -1757,11 +1759,11 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		Ok(x) => x,
 		Err(_) => String::from("")
 	};
-	let upgrades = vec!["dailytime", "dailyreward", "dailypacks", "storediscount", "tokenshopdiscount", "slotreward", "dailyslots"];
+	let upgrades = vec!["dailytime", "dailyreward", "dailypacks", "storediscount", "tokenshopdiscount", "slotreward", "dailyslots", "quizreset", "quizattempts"];
 	if selection_str != "" && selection == 0 {
-		selection = (upgrades.iter().position(|r| r == &selection_str).unwrap_or(7) + 1) as i32;
+		selection = (upgrades.iter().position(|r| r == &selection_str).unwrap_or(upgrades.len()) + 1) as i32;
 	}
-	if !(1..=7).contains(&selection) {
+	if !(1..=upgrades.len() as i32).contains(&selection) {
 		msg.channel_id.send_message(&ctx.http, |m| m.content("A selection was not made.")).await?;
 		return Ok(());
 	}
@@ -1795,6 +1797,8 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 			"tokenshop_discount" => player.upgrades.tokenshop_discount += 1,
 			"slot_reward_mult" => player.upgrades.slot_reward_mult += 1,
 			"daily_slot_amount" => player.upgrades.daily_slot_amount += 1,
+			"quiz_time_reset" => player.upgrades.quiz_time_reset += 1,
+			"quiz_question_amount" => player.upgrades.quiz_question_amount += 1,
 			_ => ()
 		}
 		count += 1;
