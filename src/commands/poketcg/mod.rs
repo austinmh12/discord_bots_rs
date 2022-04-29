@@ -1146,8 +1146,9 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
 	let mut player = player::get_player(msg.author.id.0).await;
 	if player.quiz_reset < Utc::now() {
-		player.quiz_questions = 5; // Will need to account for upgrades
-		player.quiz_reset = Utc::now() + Duration::hours(2); // Will need to account for upgrades
+		player.quiz_questions = 5 + player.upgrades.quiz_question_amount;
+		let minutes_til_reset = 120 - 10 * player.upgrades.quiz_time_reset;
+		player.quiz_reset = Utc::now() + Duration::minutes(minutes_til_reset);
 	}
 	if player.quiz_questions <= 0 {
 		let local_timer: DateTime<Local> = DateTime::from(player.quiz_reset);
