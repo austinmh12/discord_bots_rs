@@ -4,6 +4,10 @@ use serenity::{builder::CreateEmbed, utils::Colour};
 
 use super::{player::Player};
 
+fn def_0() -> i64 {
+	0
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Upgrade {
 	pub daily_time_reset: i64,
@@ -12,7 +16,11 @@ pub struct Upgrade {
 	pub store_discount: i64,
 	pub tokenshop_discount: i64,
 	pub slot_reward_mult: i64,
-	pub daily_slot_amount: i64
+	pub daily_slot_amount: i64,
+	#[serde(default = "def_0")]
+	pub quiz_time_reset: i64,
+	#[serde(default = "def_0")]
+	pub quiz_question_amount: i64
 }
 
 impl Upgrade {
@@ -24,7 +32,9 @@ impl Upgrade {
 			store_discount: 0,
 			tokenshop_discount: 0,
 			slot_reward_mult: 0,
-			daily_slot_amount: 0
+			daily_slot_amount: 0,
+			quiz_time_reset: 0,
+			quiz_question_amount: 0
 		}
 	}
 
@@ -37,6 +47,8 @@ impl Upgrade {
 			"tokenshop_discount" => 250.0 + (250.0 * self.tokenshop_discount as f64),
 			"slot_reward_mult" => 500.0 + (500.0 * self.slot_reward_mult as f64),
 			"daily_slot_amount" => 750.0 + (750.0 * self.daily_slot_amount as f64),
+			"quiz_time_reset" =>  300.0,
+			"quiz_question_amount" =>  500.0 + (100.0 * self.quiz_question_amount as f64),
 			_ => 0.0
 		}
 	}
@@ -50,6 +62,8 @@ impl Upgrade {
 			"tokenshop_discount" => self.tokenshop_discount >= 5,
 			"slot_reward_mult" => self.slot_reward_mult >= 10,
 			"daily_slot_amount" => self.daily_slot_amount >= 10,
+			"quiz_time_reset" => self.quiz_time_reset >= 9,
+			"quiz_question_amount" => self.quiz_question_amount >= 5,
 			_ => false
 		}
 	}
@@ -80,6 +94,12 @@ impl Upgrade {
 		if !self.is_max_upgrade("daily_slot_amount") {
 			desc.push_str(&format!("**7 dailyslots:** Increases your daily slots - ${:.2}\n", self.upgrade_cost("daily_slot_amount")));
 		}
+		if !self.is_max_upgrade("quiz_time_reset") {
+			desc.push_str(&format!("**8 quizreset:** Decreases the time between your quiz attempts - ${:.2}\n", self.upgrade_cost("quiz_time_reset")));
+		}
+		if !self.is_max_upgrade("quiz_question_amount") {
+			desc.push_str(&format!("**9 quizattempts:** Increases your quiz questions per reset period - ${:.2}\n", self.upgrade_cost("quiz_question_amount")));
+		}
 		ret
 			.title("Upgrade Shop")
 			.description(&desc)
@@ -97,6 +117,8 @@ impl Upgrade {
 		d.insert("tokenshop_discount", self.tokenshop_discount);
 		d.insert("slot_reward_mult", self.slot_reward_mult);
 		d.insert("daily_slot_amount", self.daily_slot_amount);
+		d.insert("quiz_time_reset", self.quiz_time_reset);
+		d.insert("quiz_question_amount", self.quiz_question_amount);
 
 		d
 	}
@@ -130,6 +152,14 @@ impl Upgrade {
 		match self.is_max_upgrade("daily_slot_amount") {
 			true => ret.push_str(&format!("**dailyslots:** {} ***MAX***\n", self.daily_slot_amount)),
 			false => ret.push_str(&format!("**dailyslots:** {}\n", self.daily_slot_amount))
+		}
+		match self.is_max_upgrade("quiz_time_reset") {
+			true => ret.push_str(&format!("**quizreset:** {} ***MAX***\n", self.quiz_time_reset)),
+			false => ret.push_str(&format!("**quizreset:** {}\n", self.quiz_time_reset))
+		}
+		match self.is_max_upgrade("quiz_question_amount") {
+			true => ret.push_str(&format!("**quizattempts:** {} ***MAX***\n", self.quiz_question_amount)),
+			false => ret.push_str(&format!("**quizattempts:** {}\n", self.quiz_question_amount))
 		}
 
 		ret
