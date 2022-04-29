@@ -64,7 +64,7 @@ lazy_static! {
 }
 
 static DEFAULT_WEIGHT: i32 = 10;
-static FAVOURED_WEIGHT: i32 = 30;
+static FAVOURED_WEIGHT: i32 = 45;
 
 pub struct Slot {
 	pub rolls: Vec<SlotRoll>
