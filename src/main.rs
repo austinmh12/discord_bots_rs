@@ -15,9 +15,12 @@ use std::{
 use dotenv;
 
 use serenity::{async_trait, model::channel::{Message}, framework::standard::{CommandOptions, Reason}};
-use serenity::client::{Client, Context, EventHandler, bridge::gateway::GatewayIntents};
+use serenity::client::{Client, Context, EventHandler};
 use serenity::model::{
-	gateway::Ready,
+	gateway::{
+		Ready,
+		GatewayIntents
+	},
 };
 use serenity::framework::standard::{
     StandardFramework,
@@ -50,6 +53,7 @@ use commands::{
 	game_corner_main,
 	upgrades_main,
 	player_main,
+	quiz_command,
 )]
 struct PokeTCG;
 
@@ -113,6 +117,9 @@ async fn main() {
 	dotenv::dotenv().ok();
 	// Configure the client with the discord token. Make sure one is commented out.
 	let token = dotenv::var("BOTTOKEN").expect("Expected a token in the environment");
+	let intents = GatewayIntents::GUILD_MESSAGES
+		| GatewayIntents::GUILD_MESSAGE_REACTIONS
+		| GatewayIntents::MESSAGE_CONTENT;
 
 	let handler = Handler {
 		is_loop_running: AtomicBool::new(false),
@@ -120,10 +127,9 @@ async fn main() {
 
 	// Create a new instance of the client logging in as the bot. This will automatically
 	// prepend your bot token with "Bot ", which is required by discord.
-	let mut client = Client::builder(&token)
-		.event_handler(handler)
-		.intents(GatewayIntents::GUILD_MESSAGES | GatewayIntents::GUILD_MESSAGE_REACTIONS | GatewayIntents::default())
+	let mut client = Client::builder(&token, intents)
 		.framework(framework)
+		.event_handler(handler)
 		.await
 		.expect("Error creating client");
 

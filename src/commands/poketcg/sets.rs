@@ -28,6 +28,7 @@ pub struct Set {
 	pub total: i32,
 	pub logo: String,
 	pub symbol: String,
+	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
 	pub release_date: DateTime<Utc>
 }
 

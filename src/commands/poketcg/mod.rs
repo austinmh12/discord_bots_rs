@@ -11,6 +11,7 @@ use mongodb::{
 		Document
 	},
 };
+use convert_case::{Case, Casing};
 use std::{time::Duration as StdDuration, sync::Arc, cmp::Ordering, collections::HashMap};
 pub mod card;
 pub mod sets;
@@ -23,6 +24,7 @@ pub mod timers;
 pub mod trade;
 pub mod slot;
 pub mod upgrade;
+pub mod quiz;
 
 use serenity::{
 	framework::{
@@ -1139,12 +1141,92 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-// #[command("quiz")]
-// async fn quiz_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	
+#[command("quiz")]
+#[aliases("q")]
+async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.quiz_reset < Utc::now() {
+		player.quiz_questions = 5; // Will need to account for upgrades
+		player.quiz_reset = Utc::now() + Duration::hours(2); // Will need to account for upgrades
+	}
+	if player.quiz_questions <= 0 {
+		let local_timer: DateTime<Local> = DateTime::from(player.quiz_reset);
+		msg.reply(&ctx.http, format!("Your quiz attempts reset **{}**", local_timer.format("%h %d %H:%m"))).await?;
+		return Ok(());
+	}
+	let quiz = quiz::Quiz::random_quiz().await;
+	quiz.generate_silhouette().await;
+	let mut quiz_msg = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m
+				.content("who's that Pokemon?!")
+				.add_file("./quizsilhouette.PNG")
+		})
+		.await?;
+	let attachment_id = quiz_msg.attachments[0].id;
+	if let Some(quiz_reply) = &msg.author.await_reply(&ctx).timeout(StdDuration::from_secs(15)).await {
+		let guess = &quiz_reply.content;
+		let gen_guess = match guess.parse::<i64>() {
+			Ok(x) => x,
+			Err(_) => 0
+		};
+		if guess == &quiz.guess_name() {
+			let reward = 0.1 * player.current_multiplier as f64;
+			player.quiz_correct += 1;
+			player.current_multiplier += 1;
+			player.cash += reward;
+			player.total_cash += reward;
+			quiz_msg.edit(&ctx.http, |m| {
+				m
+					.content(format!("Correct! It's **{}**\nYou earned **${:.2}** and your multiplier is now **{}**", quiz.name.to_case(Case::Title), reward, player.current_multiplier))
+					.remove_existing_attachment(attachment_id)
+					.attachment("./quizresult.PNG")
+			})
+			.await?;
 
-// 	Ok(())
-// }
+		} else if gen_guess == quiz.generation {
+			let reward = 0.1 * player.current_multiplier as f64;
+			player.quiz_correct += 1;
+			player.cash += reward;
+			player.total_cash += reward;
+			quiz_msg.edit(&ctx.http, |m| {
+				m
+					.content(format!("Sure, it's from **Gen {}**. It's **{}**\nYou earned **${:.2}**", quiz.generation, quiz.name.to_case(Case::Title), reward))
+					.remove_existing_attachment(attachment_id)
+					.attachment("./quizresult.PNG")
+			})
+			.await?;
+		} else {
+			quiz_msg.edit(&ctx.http, |m| {
+				m
+					.content(format!("Wrong! It's **{}** from **Gen {}**", quiz.name.to_case(Case::Title), quiz.generation))
+					.remove_existing_attachment(attachment_id)
+					.attachment("./quizresult.PNG")
+			})
+			.await?;
+		}
+	} else {
+		quiz_msg.edit(&ctx.http, |m| {
+			m
+				.content(format!("You ran out of time, it's **{}** from **Gen {}**", quiz.name.to_case(Case::Title), quiz.generation))
+				.remove_existing_attachment(attachment_id)
+				.attachment("./quizresult.PNG")
+		})
+		.await?;
+	}
+	let mut player_update = Document::new();
+	player.quiz_questions -= 1;
+	player_update.insert("quiz_correct", player.quiz_correct);
+	player_update.insert("current_multiplier", player.current_multiplier);
+	player_update.insert("cash", player.cash);
+	player_update.insert("total_cash", player.total_cash);
+	player_update.insert("quiz_questions", player.quiz_questions);
+	player_update.insert("quiz_reset", player.quiz_reset);
+	player::update_player(&player, doc! { "$set": player_update}).await;
+
+	Ok(())
+}
 
 #[command("savelist")]
 #[aliases("sl", "favourite", "favorite", "fv")]
