@@ -23,9 +23,6 @@ pub mod timers;
 pub mod trade;
 pub mod slot;
 pub mod upgrade;
-use player_card::{
-	player_cards
-};
 
 use serenity::{
 	framework::{
@@ -342,7 +339,7 @@ async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		Err(_) => String::from("name")
 	};
 	let player = player::get_player(msg.author.id.0).await;
-	let mut cards = player_cards(player.cards.clone()).await;
+	let mut cards = player_card::player_cards(player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
@@ -479,7 +476,7 @@ async fn player_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		Err(_) => String::from("name")
 	};
 	let player = player::get_player(msg.author.id.0).await;
-	let mut cards = player_cards(player.cards.clone()).await;
+	let mut cards = player_card::player_cards(player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
@@ -671,7 +668,7 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	};
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
-	for player_card in player_cards(player.cards.clone()).await {
+	for player_card in player_card::player_cards(player.cards.clone()).await {
 		if player.savelist.contains(&player_card.card.id()) {
 			continue;
 		}
@@ -720,7 +717,7 @@ async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	};
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
-	for player_card in player_cards(player.cards.clone()).await {
+	for player_card in player_card::player_cards(player.cards.clone()).await {
 		if player.savelist.contains(&player_card.card.id()) {
 			continue;
 		}
@@ -770,7 +767,7 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 	};
 	let mut player = player::get_player(msg.author.id.0).await;
 	let mut cards_to_sell = vec![];
-	for player_card in player_cards(player.cards.clone()).await {
+	for player_card in player_card::player_cards(player.cards.clone()).await {
 		if player.savelist.contains(&player_card.card.id()) {
 			continue;
 		}
