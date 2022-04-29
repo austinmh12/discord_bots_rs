@@ -405,6 +405,7 @@ async fn my_packs(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("stats")]
+#[aliases("s")]
 async fn my_stats(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	let nickname = match msg.author_nick(ctx).await {
@@ -565,6 +566,7 @@ async fn player_packs(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command("stats")]
+#[aliases("s")]
 async fn player_stats(ctx: &Context, msg: &Message) -> CommandResult {
 	let player_mention = msg.mentions.iter().nth(0);
 	match player_mention {
