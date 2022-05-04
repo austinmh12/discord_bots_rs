@@ -34,6 +34,10 @@ fn def_upgrade() -> Upgrade {
 	Upgrade::new()
 }
 
+fn def_false() -> bool {
+	false
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Player {
 	#[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
@@ -70,7 +74,9 @@ pub struct Player {
 	#[serde(default = "def_0")]
 	pub total_tokens: i64,
 	#[serde(default = "def_upgrade")]
-	pub upgrades: Upgrade
+	pub upgrades: Upgrade,
+	#[serde(default = "def_false")]
+	pub light_mode: bool
 }
 
 impl Player {
@@ -100,7 +106,8 @@ impl Player {
 			boofs: 0,
 			tokens: 0,
 			total_tokens: 0,
-			upgrades: Upgrade::new()
+			upgrades: Upgrade::new(),
+			light_mode: false,
 		}
 	}
 }
