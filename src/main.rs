@@ -54,6 +54,7 @@ use commands::{
 	upgrades_main,
 	player_main,
 	quiz_command,
+	lightmode_command,
 )]
 struct PokeTCG;
 
