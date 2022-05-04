@@ -20,7 +20,9 @@ pub struct Upgrade {
 	#[serde(default = "def_0")]
 	pub quiz_time_reset: i64,
 	#[serde(default = "def_0")]
-	pub quiz_question_amount: i64
+	pub quiz_question_amount: i64,
+	#[serde(default = "def_0")]
+	pub quiz_mult_limit: i64
 }
 
 impl Upgrade {
@@ -34,7 +36,8 @@ impl Upgrade {
 			slot_reward_mult: 0,
 			daily_slot_amount: 0,
 			quiz_time_reset: 0,
-			quiz_question_amount: 0
+			quiz_question_amount: 0,
+			quiz_mult_limit: 0
 		}
 	}
 
@@ -49,6 +52,7 @@ impl Upgrade {
 			"daily_slot_amount" => 750.0 + (750.0 * self.daily_slot_amount as f64),
 			"quiz_time_reset" =>  300.0,
 			"quiz_question_amount" =>  500.0 + (100.0 * self.quiz_question_amount as f64),
+			"quiz_mult_limit" => 400.0 + (250.0 * self.quiz_mult_limit as f64),
 			_ => 0.0
 		}
 	}
@@ -64,6 +68,7 @@ impl Upgrade {
 			"daily_slot_amount" => self.daily_slot_amount >= 10,
 			"quiz_time_reset" => self.quiz_time_reset >= 9,
 			"quiz_question_amount" => self.quiz_question_amount >= 5,
+			"quiz_mult_limit" => self.quiz_mult_limit >= 5,
 			_ => false
 		}
 	}
@@ -100,6 +105,9 @@ impl Upgrade {
 		if !self.is_max_upgrade("quiz_question_amount") {
 			desc.push_str(&format!("**9 quizattempts:** Increases your quiz questions per reset period - ${:.2}\n", self.upgrade_cost("quiz_question_amount")));
 		}
+		if !self.is_max_upgrade("quiz_mult_limit") {
+			desc.push_str(&format!("**10 quizmultiplier:** Increases your max quiz multiplier - ${:.2}\n", self.upgrade_cost("quiz_mult_limit")));
+		}
 		ret
 			.title("Upgrade Shop")
 			.description(&desc)
@@ -119,6 +127,7 @@ impl Upgrade {
 		d.insert("daily_slot_amount", self.daily_slot_amount);
 		d.insert("quiz_time_reset", self.quiz_time_reset);
 		d.insert("quiz_question_amount", self.quiz_question_amount);
+		d.insert("quiz_mult_limit", self.quiz_mult_limit);
 
 		d
 	}
@@ -160,6 +169,10 @@ impl Upgrade {
 		match self.is_max_upgrade("quiz_question_amount") {
 			true => ret.push_str(&format!("**quizattempts:** {} ***MAX***\n", self.quiz_question_amount)),
 			false => ret.push_str(&format!("**quizattempts:** {}\n", self.quiz_question_amount))
+		}
+		match self.is_max_upgrade("quiz_mult_limit") {
+			true => ret.push_str(&format!("**quizmultiplier:** {} ***MAX***\n", self.quiz_mult_limit)),
+			false => ret.push_str(&format!("**quizmultiplier:** {}\n", self.quiz_mult_limit))
 		}
 
 		ret
