@@ -249,7 +249,7 @@ impl TokenShop {
 			.footer(|f| {
 				let local_timer: DateTime<Local> = DateTime::from(self.reset);
 
-				f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
+				f.text(&format!("Resets {}", local_timer.format("%h %d %H:%M")))
 			})
 			.author(|a| a
 				.icon_url("https://archives.bulbagarden.net/media/upload/9/92/Bag_Coin_Case_Sprite.png")
