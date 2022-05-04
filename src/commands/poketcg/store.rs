@@ -131,7 +131,7 @@ impl Store {
 			.footer(|f| {
 				let local_timer: DateTime<Local> = DateTime::from(self.reset);
 
-				f.text(&format!("Resets {}", local_timer.format("%h %d %H:%m")))
+				f.text(&format!("Resets {}", local_timer.format("%h %d %H:%M")))
 			});
 
 		ret
