@@ -1177,7 +1177,9 @@ async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
 		if guess == &quiz.guess_name() {
 			let reward = 0.1 * player.current_multiplier as f64;
 			player.quiz_correct += 1;
-			player.current_multiplier += 1;
+			if player.current_multiplier < player.perm_multiplier {
+				player.current_multiplier += 1;
+			}
 			player.cash += reward;
 			player.total_cash += reward;
 			quiz_msg.edit(&ctx.http, |m| {

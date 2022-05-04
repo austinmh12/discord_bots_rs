@@ -99,7 +99,7 @@ impl Player {
 			quiz_correct: 0,
 			quiz_reset: Utc::now(),
 			savelist: vec![],
-			perm_multiplier: 0,
+			perm_multiplier: 50,
 			daily_slots: 10,
 			slots_rolled: 0,
 			jackpots: 0,
