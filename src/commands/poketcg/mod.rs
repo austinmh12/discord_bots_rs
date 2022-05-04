@@ -1158,7 +1158,7 @@ async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
 		return Ok(());
 	}
 	let quiz = quiz::Quiz::random_quiz().await;
-	quiz.generate_silhouette().await;
+	quiz.generate_silhouette(player.light_mode).await;
 	let mut quiz_msg = msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
@@ -1813,6 +1813,17 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 	update.insert("cash", player.cash);
 	update.insert("upgrades", player.upgrades.to_doc());
 	player::update_player(&player, doc! { "$set": update }).await;
+
+	Ok(())
+}
+
+#[command("lightmode")]
+#[aliases("lm")]
+async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	player.light_mode = !player.light_mode;
+	msg.reply(&ctx.http, format!("Set light mode to **{}**", player.light_mode)).await?;
+	player::update_player(&player, doc! { "$set": {"light_mode": player.light_mode}}).await;
 
 	Ok(())
 }

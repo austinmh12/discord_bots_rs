@@ -56,7 +56,7 @@ impl Quiz {
 		}
 	}
 
-	pub async fn generate_silhouette(&self) {
+	pub async fn generate_silhouette(&self, light_mode: bool) {
 		let resp = reqwest::Client::new()
 			.get(format!("https://img.pokemondb.net/sprites/home/normal/{}.png", self.name))
 			.send().await.unwrap()
@@ -71,7 +71,11 @@ impl Quiz {
 			for j in 0..height {
 				let px = image.get_pixel(i, j);
 				if px.0[3] != 0 {
-					image.put_pixel(i, j, Rgba([0, 0, 0, 255]));
+					if light_mode {
+						image.put_pixel(i, j, Rgba([255, 255, 255, 255]));
+					} else {
+						image.put_pixel(i, j, Rgba([0, 0, 0, 255]));
+					}
 				}
 			}
 		}
