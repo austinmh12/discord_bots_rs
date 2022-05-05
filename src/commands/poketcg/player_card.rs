@@ -17,7 +17,7 @@ impl PaginateEmbed for PlayerCard {
 	fn embed(&self) -> CreateEmbed {
 		let mut e = self.card.embed();
 		e
-			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n**Amount:** {}\n", &self.card.id(), &self.card.rarity, &self.card.price, &self.amount));
+			.description(&self.description());
 
 		e
 	}
@@ -30,6 +30,10 @@ impl CardInfo for PlayerCard {
 
 	fn card_name(&self) -> String {
 		self.card.name.clone()
+	}
+
+	fn description(&self) -> String {
+		format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n**Amount:** {}", &self.card.card_id, &self.card.rarity, &self.card.price, &self.amount)
 	}
 }
 

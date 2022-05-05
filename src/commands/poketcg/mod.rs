@@ -115,6 +115,7 @@ pub trait PaginateEmbed {
 pub trait CardInfo {
 	fn card_id(&self) -> String;
 	fn card_name(&self) -> String;
+	fn description(&self) -> String;
 }
 
 pub trait Idable {
@@ -193,6 +194,9 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
+			if player.savelist.contains(&cards[idx as usize].card_id()) {
+				cur_embed.description(format!("{}\n:white_check_mark: In your savelist", &cards[idx as usize].description()));
+			}
 			m.set_embed(cur_embed);
 
 			if embeds.len() > 1 {
@@ -241,6 +245,9 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &
 			let mut cur_embed = embeds[idx as usize].clone();
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			if player.savelist.contains(&cards[idx as usize].card_id()) {
+				cur_embed.description(format!("{}\n:white_check_mark: In your savelist", &cards[idx as usize].description()));
 			}
 			m.set_embed(cur_embed);
 			m.content(content);

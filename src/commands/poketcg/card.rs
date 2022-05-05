@@ -85,7 +85,7 @@ impl PaginateEmbed for Card {
 		let mut ret = CreateEmbed::default();
 		ret
 			.title(&self.name)
-			.description(format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}\n", &self.card_id, &self.rarity, &self.price))
+			.description(&self.description())
 			.colour(Colour::from_rgb(255, 50, 20))
 			.image(&self.image);
 
@@ -100,6 +100,10 @@ impl CardInfo for Card {
 
 	fn card_name(&self) -> String {
 		self.name.clone()
+	}
+
+	fn description(&self) -> String {
+		format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}", &self.card_id, &self.rarity, &self.price)
 	}
 }
 
