@@ -2072,14 +2072,12 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[command("gs")]
 #[checks(BotTest)]
 async fn admin_greyscale(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
 	let set_id = match args.find::<String>() {
 		Ok(x) => x,
 		Err(_) => String::from("")
 	};
-	let set = sets::get_set(&set_id).await.unwrap();
-	let cards = card::get_cards_by_set(&set).await;
-	// binder_paginated_embeds(ctx, msg, cards, player).await?;
+	let binder = binder::Binder::from_set_id(set_id);
+	binder_paginated_embeds(ctx, msg, binder).await?;
 
 	Ok(())
 }
