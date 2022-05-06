@@ -328,23 +328,18 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 	Ok(())
 }
 
-async fn binder_paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>, mut player: player::Player) -> Result<(), String> {
+async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::Binder) -> Result<(), String> {
 	// TODO: Find a way to tell if something is in your savelist
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let save_icon = ReactionType::try_from("💾").expect("No floppy disk");
+	let set = sets::get_set(&binder.set).await.unwrap();
+	let cards = card::get_cards_by_set(&set).await;
 	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
 	let mut idx: i16 = 0;
-	let resp = reqwest::Client::new()
-		.get(&cards[idx as usize].image)
-		.send().await.unwrap()
-		.bytes().await.unwrap();
-	let reader = Reader::new(Cursor::new(resp))
-		.with_guessed_format()
-		.expect("Can't get image");
-	let image = reader.decode().unwrap().grayscale();
-	image.save("gs.png").unwrap();
-	let mut content = String::from("");
+	if !binder.cards.contains(&cards[idx as usize].card_id()) {
+		generate_greyscale_image(&cards[idx as usize]).await;
+	}
 	let mut message = msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
@@ -352,20 +347,18 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
-			cur_embed.image("attachment://gs.png");
+			if !binder.cards.contains(&cards[idx as usize].card_id()) {
+				cur_embed.image("attachment://gs.png");
+				m.add_file("gs.png");
+			}
 			m.set_embed(cur_embed);
-			m.add_file("gs.png");
 
 			if embeds.len() > 1 {
-				m.reactions([left_arrow.clone(), right_arrow.clone(), save_icon.clone()]);
-			} else {
-				m.reactions([save_icon.clone()]);
+				m.reactions([left_arrow.clone(), right_arrow.clone()]);
 			}
 
 			m			
 		}).await.unwrap();
-	// println!("{:?}", message.attachments);
-	// let mut attachment_id = message.attachments[0].id;
 	loop {
 		if embeds.len() <= 1 {
 			break; // Exit before anything. Probably a way to do this before entering.
@@ -381,51 +374,43 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::
 			match emoji.as_data().as_str() {
 				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
 				"➡️" => idx = (idx + 1) % embeds.len() as i16,
-				"💾" => {
-					let card_id = &cards[idx as usize].card_id();
-					if player.savelist.clone().contains(&card_id) {
-						let index = player.savelist.clone().iter().position(|c| c == card_id).unwrap();
-						player.savelist.remove(index);
-						content = format!("**{}** removed from your savelist!", &cards[idx as usize].card_name());
-					} else {
-						player.savelist.push(card_id.clone());
-						content = format!("**{}** added to your savelist!", &cards[idx as usize].card_name());
-					}
-					player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
-				}
 				_ => continue
 			};
 		} else {
 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 			break;
 		}
-		let resp = reqwest::Client::new()
-			.get(&cards[idx as usize].image)
-			.send().await.unwrap()
-			.bytes().await.unwrap();
-		let reader = Reader::new(Cursor::new(resp))
-			.with_guessed_format()
-			.expect("Can't get image");
-		let image = reader.decode().unwrap().grayscale();
-		image.save("gs.png").unwrap();
+		if !binder.cards.contains(&cards[idx as usize].card_id()) {
+			generate_greyscale_image(&cards[idx as usize]).await;
+		}
 		message.edit(&ctx, |m| {
 			let mut cur_embed = embeds[idx as usize].clone();
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
-			cur_embed.image("attachment://gs.png");
+			if !binder.cards.contains(&cards[idx as usize].card_id()) {
+				cur_embed.image("attachment://gs.png");
+				m.attachment("gs.png");
+			}
 			m.set_embed(cur_embed);
-			m.content(content);
-			// m.remove_existing_attachment(attachment_id);
-			m.attachment("gs.png");
 
 			m
 		}).await.unwrap();
-		// attachment_id = message.attachments[0].id;
-		content = String::from("");
 	}
 
 	Ok(())
+}
+
+async fn generate_greyscale_image(card: &card::Card) {
+	let resp = reqwest::Client::new()
+		.get(&card.image)
+		.send().await.unwrap()
+		.bytes().await.unwrap();
+	let reader = Reader::new(Cursor::new(resp))
+		.with_guessed_format()
+		.expect("Can't get image");
+	let image = reader.decode().unwrap().grayscale();
+	image.save("gs.png").unwrap();
 }
 
 #[command("my")]
@@ -1937,6 +1922,20 @@ async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
+#[command("binder")]
+#[aliases("b")]
+async fn binder_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	match player.current_binder {
+		Some(x) => binder_paginated_embeds(ctx, msg, x).await?,
+		None => {
+			msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;
+		}
+	}
+
+	Ok(())
+}
+
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
 #[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens, admin_greyscale)]
@@ -2038,7 +2037,7 @@ async fn admin_greyscale(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	};
 	let set = sets::get_set(&set_id).await.unwrap();
 	let cards = card::get_cards_by_set(&set).await;
-	binder_paginated_embeds(ctx, msg, cards, player).await?;
+	// binder_paginated_embeds(ctx, msg, cards, player).await?;
 
 	Ok(())
 }
