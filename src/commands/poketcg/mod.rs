@@ -332,7 +332,6 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::B
 	// TODO: Find a way to tell if something is in your savelist
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-	let save_icon = ReactionType::try_from("💾").expect("No floppy disk");
 	let set = sets::get_set(&binder.set).await.unwrap();
 	let cards = card::get_cards_by_set(&set).await;
 	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
@@ -1924,14 +1923,57 @@ async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("binder")]
 #[aliases("b")]
+#[sub_commands(binder_start)]
 async fn binder_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
-	match player.current_binder {
-		Some(x) => binder_paginated_embeds(ctx, msg, x).await?,
-		None => {
+	match player.current_binder.set.as_str() {
+		"" => {
 			msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;
+		},
+		_ => binder_paginated_embeds(ctx, msg, player.current_binder).await?,
+	}
+
+	Ok(())
+}
+
+#[command("start")]
+#[aliases("st")]
+async fn binder_start(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let set_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	let set = sets::get_set(&set_id).await;
+	match set {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "No set found with that id.").await?;
 		}
 	}
+	let set = set.unwrap();
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.current_binder.set.as_str() != "" {
+		let current_binder_set = sets::get_set(&player.current_binder.set).await.unwrap();
+		msg.reply(&ctx.http, format!("You already started a binder for **{}**", current_binder_set.name)).await?;
+		return Ok(());
+	}
+	let binder = binder::Binder::from_set_id(set.id());
+	let _ = msg.reply(&ctx.http, format!("Once a binder has been started, you ***CAN'T*** start another until it's complete.\nDo you want to start a binder for **{}** (y/n)", set.name)).await?;
+	if let Some(confirmation_reply) = &msg.author.await_reply(&ctx).timeout(StdDuration::from_secs(30)).await {
+		if confirmation_reply.content.to_lowercase() != "y" {
+			msg.reply(&ctx.http, "You did not start the binder.").await?;
+			return Ok(());
+		}
+	} else {
+		msg.reply(&ctx.http, "You did not start the binder.").await?;
+		return Ok(());
+	}
+	// Player said "y" to get here
+	player.current_binder = binder;
+	let mut player_update = Document::new();
+	player_update.insert("current_binder", player.current_binder.to_doc());
+	msg.reply(&ctx.http, format!("You started the binder for **{}**", set.name)).await?;
+	player::update_player(&player, doc! { "$set": player_update }).await;
 
 	Ok(())
 }

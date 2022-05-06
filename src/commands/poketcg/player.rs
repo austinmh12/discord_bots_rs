@@ -38,8 +38,8 @@ fn def_false() -> bool {
 	false
 }
 
-fn def_none_binder() -> Option<Binder> {
-	None
+fn def_binder() -> Binder {
+	Binder::empty()
 }
 
 fn def_empty_vec_str() -> Vec<String> {
@@ -85,8 +85,8 @@ pub struct Player {
 	pub upgrades: Upgrade,
 	#[serde(default = "def_false")]
 	pub light_mode: bool,
-	#[serde(default = "def_none_binder")]
-	pub current_binder: Option<Binder>,
+	#[serde(default = "def_binder")]
+	pub current_binder: Binder,
 	#[serde(default = "def_empty_vec_str")]
 	pub completed_binders: Vec<String>
 }
@@ -120,7 +120,7 @@ impl Player {
 			total_tokens: 0,
 			upgrades: Upgrade::new(),
 			light_mode: false,
-			current_binder: None,
+			current_binder: Binder::empty(),
 			completed_binders: vec![],
 		}
 	}

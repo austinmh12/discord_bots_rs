@@ -8,6 +8,13 @@ pub struct Binder {
 }
 
 impl Binder {
+	pub fn empty() -> Self {
+		Self {
+			set: String::from(""),
+			cards: vec![]
+		}
+	}
+
 	pub fn from_set_id(set: String) -> Self {
 		Self {
 			set,
