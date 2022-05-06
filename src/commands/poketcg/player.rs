@@ -20,7 +20,7 @@ use crate::{
 	commands::get_client
 };
 
-use super::{PaginateEmbed, upgrade::Upgrade};
+use super::{PaginateEmbed, upgrade::Upgrade, binder::Binder};
 
 fn def_10() -> i64 {
 	10
@@ -36,6 +36,14 @@ fn def_upgrade() -> Upgrade {
 
 fn def_false() -> bool {
 	false
+}
+
+fn def_none_binder() -> Option<Binder> {
+	None
+}
+
+fn def_empty_vec_str() -> Vec<String> {
+	vec![]
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -76,7 +84,11 @@ pub struct Player {
 	#[serde(default = "def_upgrade")]
 	pub upgrades: Upgrade,
 	#[serde(default = "def_false")]
-	pub light_mode: bool
+	pub light_mode: bool,
+	#[serde(default = "def_none_binder")]
+	pub current_binder: Option<Binder>,
+	#[serde(default = "def_empty_vec_str")]
+	pub completed_binders: Vec<String>
 }
 
 impl Player {
@@ -108,6 +120,8 @@ impl Player {
 			total_tokens: 0,
 			upgrades: Upgrade::new(),
 			light_mode: false,
+			current_binder: None,
+			completed_binders: vec![],
 		}
 	}
 }

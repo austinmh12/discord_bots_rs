@@ -5,6 +5,7 @@ use chrono::{
 	Local,
 };
 use dotenv;
+use image::io::Reader;
 use mongodb::{
 	bson::{
 		doc,
@@ -12,7 +13,7 @@ use mongodb::{
 	},
 };
 use convert_case::{Case, Casing};
-use std::{time::Duration as StdDuration, sync::Arc, cmp::Ordering, collections::HashMap};
+use std::{time::Duration as StdDuration, sync::Arc, cmp::Ordering, collections::HashMap, io::Cursor};
 pub mod card;
 pub mod sets;
 use sets::get_set;
@@ -25,6 +26,7 @@ pub mod trade;
 pub mod slot;
 pub mod upgrade;
 pub mod quiz;
+pub mod binder;
 
 use serenity::{
 	framework::{
@@ -321,6 +323,106 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 
 			m
 		}).await.unwrap();
+	}
+
+	Ok(())
+}
+
+async fn binder_paginated_embeds(ctx: &Context, msg: &Message, cards: Vec<card::Card>, mut player: player::Player) -> Result<(), String> {
+	// TODO: Find a way to tell if something is in your savelist
+	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
+	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
+	let save_icon = ReactionType::try_from("💾").expect("No floppy disk");
+	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
+	let mut idx: i16 = 0;
+	let resp = reqwest::Client::new()
+		.get(&cards[idx as usize].image)
+		.send().await.unwrap()
+		.bytes().await.unwrap();
+	let reader = Reader::new(Cursor::new(resp))
+		.with_guessed_format()
+		.expect("Can't get image");
+	let image = reader.decode().unwrap().grayscale();
+	image.save("gs.png").unwrap();
+	let mut content = String::from("");
+	let mut message = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			let mut cur_embed = embeds[idx as usize].clone();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			cur_embed.image("attachment://gs.png");
+			m.set_embed(cur_embed);
+			m.add_file("gs.png");
+
+			if embeds.len() > 1 {
+				m.reactions([left_arrow.clone(), right_arrow.clone(), save_icon.clone()]);
+			} else {
+				m.reactions([save_icon.clone()]);
+			}
+
+			m			
+		}).await.unwrap();
+	// println!("{:?}", message.attachments);
+	// let mut attachment_id = message.attachments[0].id;
+	loop {
+		if embeds.len() <= 1 {
+			break; // Exit before anything. Probably a way to do this before entering.
+		}
+		if let Some(reaction) = &message
+			.await_reaction(&ctx)
+			.timeout(StdDuration::from_secs(90))
+			.author_id(msg.author.id)
+			.removed(true)
+			.await
+		{
+			let emoji = &reaction.as_inner_ref().emoji;
+			match emoji.as_data().as_str() {
+				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
+				"➡️" => idx = (idx + 1) % embeds.len() as i16,
+				"💾" => {
+					let card_id = &cards[idx as usize].card_id();
+					if player.savelist.clone().contains(&card_id) {
+						let index = player.savelist.clone().iter().position(|c| c == card_id).unwrap();
+						player.savelist.remove(index);
+						content = format!("**{}** removed from your savelist!", &cards[idx as usize].card_name());
+					} else {
+						player.savelist.push(card_id.clone());
+						content = format!("**{}** added to your savelist!", &cards[idx as usize].card_name());
+					}
+					player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
+				}
+				_ => continue
+			};
+		} else {
+			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+			break;
+		}
+		let resp = reqwest::Client::new()
+			.get(&cards[idx as usize].image)
+			.send().await.unwrap()
+			.bytes().await.unwrap();
+		let reader = Reader::new(Cursor::new(resp))
+			.with_guessed_format()
+			.expect("Can't get image");
+		let image = reader.decode().unwrap().grayscale();
+		image.save("gs.png").unwrap();
+		message.edit(&ctx, |m| {
+			let mut cur_embed = embeds[idx as usize].clone();
+			if embeds.len() > 1 {
+				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+			}
+			cur_embed.image("attachment://gs.png");
+			m.set_embed(cur_embed);
+			m.content(content);
+			// m.remove_existing_attachment(attachment_id);
+			m.attachment("gs.png");
+
+			m
+		}).await.unwrap();
+		// attachment_id = message.attachments[0].id;
+		content = String::from("");
 	}
 
 	Ok(())
@@ -1837,7 +1939,7 @@ async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
 
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
-#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens)]
+#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens, admin_greyscale)]
 #[checks(BotTest)]
 async fn admin_main() -> CommandResult {
 	Ok(())
@@ -1922,6 +2024,21 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	let content = roll_displays.join("\n");
 
 	msg.reply(&ctx.http, content).await?;
+
+	Ok(())
+}
+
+#[command("gs")]
+#[checks(BotTest)]
+async fn admin_greyscale(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	let set_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	let set = sets::get_set(&set_id).await.unwrap();
+	let cards = card::get_cards_by_set(&set).await;
+	binder_paginated_embeds(ctx, msg, cards, player).await?;
 
 	Ok(())
 }
