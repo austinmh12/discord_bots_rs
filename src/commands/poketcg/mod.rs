@@ -5,7 +5,6 @@ use chrono::{
 	Local,
 };
 use dotenv;
-use image::io::Reader;
 use mongodb::{
 	bson::{
 		doc,
@@ -13,7 +12,7 @@ use mongodb::{
 	},
 };
 use convert_case::{Case, Casing};
-use std::{time::Duration as StdDuration, sync::Arc, cmp::Ordering, collections::HashMap, io::Cursor};
+use std::{time::Duration as StdDuration, sync::Arc, cmp::Ordering, collections::HashMap};
 pub mod card;
 pub mod sets;
 use sets::get_set;
@@ -130,62 +129,6 @@ pub trait HasSet {
 }
 
 // paginated embeds to search through cards
-async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds: Vec<T>) -> Result<(), String> {
-	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
-	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
-	let mut idx: i16 = 0;
-	let mut message = msg
-		.channel_id
-		.send_message(&ctx.http, |m| {
-			let mut cur_embed = embeds[idx as usize].clone();
-			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-			}
-			m.set_embed(cur_embed);
-
-			if embeds.len() > 1 {
-				m.reactions([left_arrow.clone(), right_arrow.clone()]);
-			}
-
-			m			
-		}).await.unwrap();
-	
-	loop {
-		if embeds.len() <= 1 {
-			break; // Exit before anything. Probably a way to do this before entering.
-		}
-		if let Some(reaction) = &message
-			.await_reaction(&ctx)
-			.timeout(StdDuration::from_secs(90))
-			.author_id(msg.author.id)
-			.removed(true)
-			.await
-		{
-			let emoji = &reaction.as_inner_ref().emoji;
-			match emoji.as_data().as_str() {
-				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
-				"➡️" => idx = (idx + 1) % embeds.len() as i16,
-				_ => continue
-			};
-		} else {
-			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
-			break;
-		}
-		message.edit(&ctx, |m| {
-			let mut cur_embed = embeds[idx as usize].clone();
-			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-			}
-			m.set_embed(cur_embed);
-
-			m
-		}).await.unwrap();
-	}
-
-	Ok(())
-}
-
 async fn card_paginated_embeds<T:CardInfo + PaginateEmbed + HasSet>(ctx: &Context, msg: &Message, cards: Vec<T>, mut player: player::Player) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
@@ -366,7 +309,9 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::B
 	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
 	let mut idx: i16 = 0;
 	if !binder.cards.contains(&cards[idx as usize].card_id()) {
-		generate_greyscale_image(&cards[idx as usize]).await;
+		let card_img = card_image::get_card_image(&cards[idx as usize]).await;
+		let img = card_img.to_dyn_image();
+		img.save("gs.png").unwrap();
 	}
 	let mut message = msg
 		.channel_id
@@ -444,18 +389,6 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::B
 	}
 
 	Ok(())
-}
-
-async fn generate_greyscale_image(card: &card::Card) {
-	let resp = reqwest::Client::new()
-		.get(&card.image)
-		.send().await.unwrap()
-		.bytes().await.unwrap();
-	let reader = Reader::new(Cursor::new(resp))
-		.with_guessed_format()
-		.expect("Can't get image");
-	let image = reader.decode().unwrap().grayscale();
-	image.save("gs.png").unwrap();
 }
 
 #[command("my")]
@@ -1969,7 +1902,7 @@ async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("binder")]
 #[aliases("b")]
-#[sub_commands(binder_start, binder_add)]
+#[sub_commands(binder_start, binder_add, binder_showcase)]
 async fn binder_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	match player.current_binder.set.as_str() {
@@ -2084,6 +2017,14 @@ async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	Ok(())
 }
 
+#[command("showcase")]
+#[aliases("sc")]
+async fn binder_showcase(ctx: &Context, msg: &Message) -> CommandResult {
+	// .my packs but with the binders
+
+	Ok(())
+}
+
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
 #[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens, admin_greyscale)]
@@ -2095,13 +2036,14 @@ async fn admin_main() -> CommandResult {
 #[command("pack")]
 #[checks(BotTest)]
 async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
 	let set_id = args.find::<String>().unwrap();
 	let amount = match args.find::<i32>() {
 		Ok(x) => x as usize,
 		Err(_) => 1usize
 	};
 	let pack = packs::Pack::from_set_id(set_id.as_str(), amount).await.unwrap();
-	paginated_embeds(ctx, msg, pack.cards).await.unwrap();
+	card_paginated_embeds(ctx, msg, pack.cards, player).await.unwrap();
 
 	Ok(())
 }
@@ -2230,30 +2172,16 @@ pub async fn refresh_card_prices(_ctx: Arc<Context>) {
 }
 
 /* Tasks
- * v1.4.0
+ * v1.6.0
  * 	Add global cash sinks (buys for all players) (aka expensive)
  * 		daily reset
  * 		token shop refresh
  * 		store refresh
  * 		pack reset
  * 		slot reset
- * 	Add quiz
- * 		Make it so that quiz only awards money for 5 every 2 hours but people can keep playing
  * Misc
  * 	Add a help command (Okay shits not working so I don't care right now.)
  *	 	Add usage macro to all the commands and sub commands
  * 	Add a changelog command that DMs the user the patch note they want
  * 		Add the current version to the activity
-*/
-
-/* Admin commands
- * cache
- * resetpacks
- * resetquiz
-*/
-
-/*
- * TODOS:
- * 	Add .buy command as a shortcut to .store buy
- * 	Learn image manipulation to make the .quiz commands
 */

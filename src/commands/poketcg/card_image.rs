@@ -26,11 +26,7 @@ impl CardImage {
 	pub fn to_dyn_image(&self) -> DynamicImage {
 		let data = base64::decode(&self.data).unwrap();
 		let img = image::load_from_memory(&data).unwrap();
-		// let reader = Reader::new(Cursor::new(&self.data))
-		// 	.with_guessed_format()
-		// 	.expect("Can't convert image from Vec<u8> to Reader");
 		
-		// reader.decode().unwrap()
 		img
 	}
 }
