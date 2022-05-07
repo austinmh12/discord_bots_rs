@@ -113,6 +113,12 @@ impl Idable for Card {
 	}
 }
 
+impl HasSet for Card {
+	fn set(&self) -> sets::Set {
+		self.set.clone()
+	}
+}
+
 impl PartialEq for Card {
 	fn eq(&self, other: &Self) -> bool {
 		self.card_id == other.card_id

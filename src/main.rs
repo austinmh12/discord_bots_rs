@@ -3,6 +3,7 @@
 
 #[macro_use]
 extern crate lazy_static;
+extern crate base64;
 
 use std::{
 	sync::{

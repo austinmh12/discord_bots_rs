@@ -27,6 +27,7 @@ pub mod slot;
 pub mod upgrade;
 pub mod quiz;
 pub mod binder;
+pub mod card_image;
 
 use serenity::{
 	framework::{
@@ -124,6 +125,10 @@ pub trait Idable {
 	fn id(&self) -> String;
 }
 
+pub trait HasSet {
+	fn set(&self) -> sets::Set;
+}
+
 // paginated embeds to search through cards
 async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds: Vec<T>) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
@@ -181,11 +186,11 @@ async fn paginated_embeds<T:PaginateEmbed>(ctx: &Context, msg: &Message, embeds:
 	Ok(())
 }
 
-async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &Message, cards: Vec<T>, mut player: player::Player) -> Result<(), String> {
-	// TODO: Find a way to tell if something is in your savelist
+async fn card_paginated_embeds<T:CardInfo + PaginateEmbed + HasSet>(ctx: &Context, msg: &Message, cards: Vec<T>, mut player: player::Player) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let save_icon = ReactionType::try_from("💾").expect("No floppy disk");
+	let binder_icon = ReactionType::try_from(":pokeball:972277627077423124").expect("No pokeball");
 	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
 	let mut idx: i16 = 0;
 	let mut content = String::from("");
@@ -202,9 +207,9 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &
 			m.set_embed(cur_embed);
 
 			if embeds.len() > 1 {
-				m.reactions([left_arrow.clone(), right_arrow.clone(), save_icon.clone()]);
+				m.reactions([left_arrow.clone(), right_arrow.clone(), save_icon.clone(), binder_icon.clone()]);
 			} else {
-				m.reactions([save_icon.clone()]);
+				m.reactions([save_icon.clone(), binder_icon.clone()]);
 			}
 
 			m			
@@ -236,8 +241,31 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &
 						content = format!("**{}** added to your savelist!", &cards[idx as usize].card_name());
 					}
 					player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
+				},
+				"pokeball:972277627077423124" => {
+					let card_id = cards[idx as usize].card_id().clone();
+					if player.current_binder.cards.contains(&card_id) {
+						content = format!("**{}** is already in your binder!", &cards[idx as usize].card_name());
+					} else if &cards[idx as usize].set().id() != &player.current_binder.set {
+						content = String::from("This card doesn't go in your binder!");
+					} else {
+						*player.cards.entry(cards[idx as usize].card_id()).or_insert(0) -= 1;
+						if *player.cards.entry(cards[idx as usize].card_id()).or_insert(0) == 0 {
+							player.cards.remove(&card_id);
+						}
+						content = format!("**{}** has been added to your binder!", &cards[idx as usize].card_name());
+						player.current_binder.cards.push(card_id);
+						let mut player_cards = Document::new();
+						for (crd, amt) in player.cards.iter() {
+							player_cards.insert(crd, amt);
+						}
+						player::update_player(&player, doc! { "$set": {"cards": player_cards, "current_binder": player.current_binder.to_doc()} }).await;
+					}
 				}
-				_ => continue
+				_ => {
+					println!("{}", &emoji.as_data().as_str());
+					continue
+				}
 			};
 		} else {
 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
@@ -250,6 +278,8 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed>(ctx: &Context, msg: &
 			}
 			if player.savelist.contains(&cards[idx as usize].card_id()) {
 				cur_embed.description(format!("{}\n:white_check_mark: In your savelist", &cards[idx as usize].description()));
+			} else {
+				cur_embed.description(&cards[idx as usize].description());
 			}
 			m.set_embed(cur_embed);
 			m.content(content);
@@ -329,7 +359,6 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 }
 
 async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::Binder) -> Result<(), String> {
-	// TODO: Find a way to tell if something is in your savelist
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let set = sets::get_set(&binder.set).await.unwrap();
@@ -379,15 +408,18 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::B
 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 			break;
 		}
-		if !binder.cards.contains(&cards[idx as usize].card_id()) {
-			generate_greyscale_image(&cards[idx as usize]).await;
+		let in_binder = binder.cards.contains(&cards[idx as usize].card_id());
+		if !in_binder {
+			let card_img = card_image::get_card_image(&cards[idx as usize]).await;
+			let img = card_img.to_dyn_image();
+			img.save("gs.png").unwrap();
 		}
 		message.edit(&ctx, |m| {
 			let mut cur_embed = embeds[idx as usize].clone();
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
-			if !binder.cards.contains(&cards[idx as usize].card_id()) {
+			if !in_binder {
 				cur_embed.image("attachment://gs.png");
 				m.attachment("gs.png");
 			}
@@ -395,6 +427,20 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::B
 
 			m
 		}).await.unwrap();
+
+		// This needs to be done after setting the embed without the attachment
+		// otherwise the attachment won't be removed until the next cycle of a card in
+		// the binder.
+		if in_binder {
+			let attachments = message.attachments.clone();
+			message.edit(&ctx, |m| {
+				for attachment in attachments {
+					m.remove_existing_attachment(attachment.id);
+				}
+
+				m
+			}).await.unwrap();
+		}
 	}
 
 	Ok(())
@@ -1923,7 +1969,7 @@ async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("binder")]
 #[aliases("b")]
-#[sub_commands(binder_start)]
+#[sub_commands(binder_start, binder_add)]
 async fn binder_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	match player.current_binder.set.as_str() {
@@ -1973,6 +2019,66 @@ async fn binder_start(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 	let mut player_update = Document::new();
 	player_update.insert("current_binder", player.current_binder.to_doc());
 	msg.reply(&ctx.http, format!("You started the binder for **{}**", set.name)).await?;
+	player::update_player(&player, doc! { "$set": player_update }).await;
+
+	Ok(())
+}
+
+#[command("add")]
+#[aliases("a", "+")]
+async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let card_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if card_id.as_str() == "" {
+		msg.reply(&ctx.http, "No card was provided.").await?;
+		return Ok(());
+	}
+	let card = card::get_card(&card_id).await;
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.current_binder.set.as_str() == "" {
+		msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;
+		return Ok(());
+	}
+	if !player.cards.contains_key(&card.card_id()) {
+		msg.reply(&ctx.http, "You don't own that card.").await?;
+		return Ok(());
+	}
+	let current_binder_set = sets::get_set(&player.current_binder.set).await.unwrap();
+	if current_binder_set.id() != card.set.id() {
+		msg.reply(&ctx.http, "That card doesn't belong in this binder.").await?;
+		return Ok(());
+	}
+	if player.current_binder.cards.contains(&card.id()) {
+		msg.reply(&ctx.http, "That card is already in the binder").await?;
+		return Ok(());
+	}
+	let mut player_update = Document::new();
+	if player.savelist.contains(&card.card_id()) && player.cards.get(&card.card_id()).unwrap() == &1 {
+		let _ = msg.reply(&ctx.http, format!("**{}** is in your savelist, and you only have 1 left. Do you want to add it to your binder? (y/n)", card.name)).await?;
+		if let Some(confirmation_reply) = &msg.author.await_reply(&ctx).timeout(StdDuration::from_secs(30)).await {
+			if confirmation_reply.content.to_lowercase() != "y" {
+				msg.reply(&ctx.http, "You didn't add the card to your binder.").await?;
+				return Ok(());
+			}
+		} else {
+			msg.reply(&ctx.http, "You didn't add the card to your binder.").await?;
+			return Ok(());
+		}
+	}
+	*player.cards.entry(card.card_id()).or_insert(0) -= 1;
+	if *player.cards.entry(card.card_id()).or_insert(0) == 0 {
+		player.cards.remove(&card.card_id());
+	}
+	player.current_binder.cards.push(card.card_id());
+	let mut player_cards = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_cards.insert(crd, amt);
+	}
+	player_update.insert("cards", player_cards);
+	player_update.insert("current_binder", player.current_binder.to_doc());
+	msg.reply(&ctx.http, format!("You added **{}** to your binder!", card.name)).await?;
 	player::update_player(&player, doc! { "$set": player_update }).await;
 
 	Ok(())

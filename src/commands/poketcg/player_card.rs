@@ -6,7 +6,7 @@ use crate::commands::poketcg::card::{
 	get_multiple_cards_by_id
 };
 
-use super::{PaginateEmbed, CardInfo, Idable};
+use super::{PaginateEmbed, CardInfo, Idable, HasSet, sets::Set};
 
 pub struct PlayerCard {
 	pub card: Card,
@@ -40,6 +40,12 @@ impl CardInfo for PlayerCard {
 impl Idable for PlayerCard {
 	fn id(&self) -> String {
 		self.card.card_id.clone()
+	}
+}
+
+impl HasSet for PlayerCard {
+	fn set(&self) -> Set {
+		self.card.set.clone()
 	}
 }
 
