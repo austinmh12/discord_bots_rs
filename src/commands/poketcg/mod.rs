@@ -144,9 +144,17 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed + HasSet>(ctx: &Contex
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
-			if player.savelist.contains(&cards[idx as usize].card_id()) {
-				cur_embed.description(format!("{}\n:white_check_mark: In your savelist", &cards[idx as usize].description()));
+			let mut extra_desc = String::from("");
+			if &player.current_binder.set == &cards[idx as usize].set().id() {
+				match player.current_binder.cards.contains(&cards[idx as usize].card_id()) {
+					true => extra_desc.push_str("<:pokeball:972277627077423124> In your binder\n"),
+					false => extra_desc.push_str("<:GameCorner:967591653135228988> Not in your binder\n")
+				}
 			}
+			if player.savelist.contains(&cards[idx as usize].card_id()) {
+				extra_desc.push_str(":white_check_mark: In your savelist");
+			}
+			cur_embed.description(format!("{}\n{}", &cards[idx as usize].description(), extra_desc));
 			m.set_embed(cur_embed);
 
 			if embeds.len() > 1 {
@@ -192,17 +200,33 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed + HasSet>(ctx: &Contex
 					} else if &cards[idx as usize].set().id() != &player.current_binder.set {
 						content = String::from("This card doesn't go in your binder!");
 					} else {
+						let current_binder_set = sets::get_set(&player.current_binder.set).await.unwrap();
+						let mut player_update = Document::new();
 						*player.cards.entry(cards[idx as usize].card_id()).or_insert(0) -= 1;
 						if *player.cards.entry(cards[idx as usize].card_id()).or_insert(0) == 0 {
 							player.cards.remove(&card_id);
 						}
-						content = format!("**{}** has been added to your binder!", &cards[idx as usize].card_name());
-						player.current_binder.cards.push(card_id);
 						let mut player_cards = Document::new();
 						for (crd, amt) in player.cards.iter() {
 							player_cards.insert(crd, amt);
 						}
-						player::update_player(&player, doc! { "$set": {"cards": player_cards, "current_binder": player.current_binder.to_doc()} }).await;
+						player_update.insert("cards", player_cards);
+						player.current_binder.cards.push(cards[idx as usize].card_id().clone());
+						if player.current_binder.is_complete().await {
+							player.completed_binders.push(player.current_binder.set);
+							player.current_binder = binder::Binder::empty();
+							player_update.insert("completed_binders", player.completed_binders.clone());
+							content = format!("You completed the **{}** binder!", current_binder_set.name);
+						} else {
+							content = format!("You added **{}** to your binder!", &cards[idx as usize].card_name());
+						}
+						player_update.insert("current_binder", player.current_binder.to_doc());
+						let mut player_cards = Document::new();
+						for (crd, amt) in player.cards.iter() {
+							player_cards.insert(crd, amt);
+						}
+						player_update.insert("cards", player_cards);
+						player::update_player(&player, doc! { "$set": player_update }).await;
 					}
 				}
 				_ => {
@@ -219,11 +243,17 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed + HasSet>(ctx: &Contex
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
-			if player.savelist.contains(&cards[idx as usize].card_id()) {
-				cur_embed.description(format!("{}\n:white_check_mark: In your savelist", &cards[idx as usize].description()));
-			} else {
-				cur_embed.description(&cards[idx as usize].description());
+			let mut extra_desc = String::from("");
+			if &player.current_binder.set == &cards[idx as usize].set().id() {
+				match player.current_binder.cards.contains(&cards[idx as usize].card_id()) {
+					true => extra_desc.push_str("<:pokeball:972277627077423124> In your binder\n"),
+					false => extra_desc.push_str("<:GameCorner:967591653135228988> Not in your binder\n")
+				}
 			}
+			if player.savelist.contains(&cards[idx as usize].card_id()) {
+				extra_desc.push_str(":white_check_mark: In your savelist");
+			}
+			cur_embed.description(format!("{}\n{}", &cards[idx as usize].description(), extra_desc));
 			m.set_embed(cur_embed);
 			m.content(content);
 
@@ -2004,14 +2034,21 @@ async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	if *player.cards.entry(card.card_id()).or_insert(0) == 0 {
 		player.cards.remove(&card.card_id());
 	}
-	player.current_binder.cards.push(card.card_id());
 	let mut player_cards = Document::new();
 	for (crd, amt) in player.cards.iter() {
 		player_cards.insert(crd, amt);
 	}
 	player_update.insert("cards", player_cards);
+	player.current_binder.cards.push(card.card_id());
+	if player.current_binder.is_complete().await {
+		player.completed_binders.push(player.current_binder.set);
+		player.current_binder = binder::Binder::empty();
+		player_update.insert("completed_binders", player.completed_binders.clone());
+		msg.reply(&ctx.http, format!("You completed the **{}** binder!", current_binder_set.name)).await?;
+	} else {
+		msg.reply(&ctx.http, format!("You added **{}** to your binder!", card.name)).await?;
+	}
 	player_update.insert("current_binder", player.current_binder.to_doc());
-	msg.reply(&ctx.http, format!("You added **{}** to your binder!", card.name)).await?;
 	player::update_player(&player, doc! { "$set": player_update }).await;
 
 	Ok(())
@@ -2020,7 +2057,27 @@ async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[command("showcase")]
 #[aliases("sc")]
 async fn binder_showcase(ctx: &Context, msg: &Message) -> CommandResult {
-	// .my packs but with the binders
+	let player = player::get_player(msg.author.id.0).await;
+	if player.completed_binders.len() == 0 {
+		msg.reply(&ctx.http, "You have no completed binders!").await?;
+		return Ok(());
+	}
+	let mut desc = String::from("");
+	for completed_binder in player.completed_binders {
+		let set = sets::get_set(&completed_binder).await.unwrap();
+		desc.push_str(&format!(":first_place: **{}** (_{}_)\n", set.name, set.id()));
+	}
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.embed(|e| {
+				e
+					.title("Your Completed Binders")
+					.description(&desc)
+					.colour(Colour::from_rgb(255, 50, 20))
+			})
+		})
+		.await?;
 
 	Ok(())
 }

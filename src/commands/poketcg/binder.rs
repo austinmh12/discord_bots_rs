@@ -1,5 +1,9 @@
 use bson::Document;
 use serde::{Serialize, Deserialize};
+use super::{
+	sets,
+	card
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Binder {
@@ -28,6 +32,13 @@ impl Binder {
 		d.insert("cards", &self.cards);
 
 		d
+	}
+
+	pub async fn is_complete(&self) -> bool {
+		let set = sets::get_set(&self.set).await.unwrap();
+		let cards = card::get_cards_by_set(&set).await;
+
+		cards.len() == self.cards.len()
 	}
 
 }
