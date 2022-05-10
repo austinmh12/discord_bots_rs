@@ -2167,7 +2167,7 @@ async fn binder_missing(ctx: &Context, msg: &Message) -> CommandResult {
 
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
-#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens)]
+#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens, admin_set_cards)]
 #[checks(BotTest)]
 async fn admin_main() -> CommandResult {
 	Ok(())
@@ -2253,6 +2253,40 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	let content = roll_displays.join("\n");
 
 	msg.reply(&ctx.http, content).await?;
+
+	Ok(())
+}
+
+#[command("set")]
+#[checks(BotTest)]
+async fn admin_set_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	let set_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	let set = sets::get_set(&set_id).await;
+	match set {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "No set found with that id.").await?;
+		}
+	}
+	let set = set.unwrap();
+	let cards = card::get_cards_by_set(&set).await;
+	for card in cards {
+		*player.cards.entry(card.card_id()).or_insert(0) -= 1;
+		if *player.cards.entry(card.card_id()).or_insert(0) == 0 {
+			player.cards.remove(&card.card_id());
+		}
+	}
+	let mut player_update = Document::new();
+	let mut player_cards = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_cards.insert(crd, amt);
+	}
+	player_update.insert("cards", player_cards);
+	player::update_player(&player, doc! { "$set": player_update }).await;
 
 	Ok(())
 }
