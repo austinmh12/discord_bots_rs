@@ -336,6 +336,7 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::P
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let set = sets::get_set(&player.current_binder.set).await.unwrap();
 	let set_cards = card::get_cards_by_set(&set).await;
+	let footer_extra = format!("({}/{} - {:.1}%)", player.current_binder.cards.len(), set_cards.len(), (player.current_binder.cards.len() as f64 / set_cards.len() as f64) * 100.0);
 	let cards = if missing_only {
 		set_cards
 			.iter()
@@ -357,7 +358,7 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::P
 		.send_message(&ctx.http, |m| {
 			let mut cur_embed = embeds[idx as usize].clone();
 			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+				cur_embed.footer(|f| f.text(format!("{}/{} {}", idx + 1, embeds.len(), footer_extra)));
 			}
 			if !player.current_binder.cards.contains(&cards[idx as usize].card_id()) {
 				cur_embed.image("attachment://gs.png");
@@ -401,7 +402,7 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::P
 		message.edit(&ctx, |m| {
 			let mut cur_embed = embeds[idx as usize].clone();
 			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+				cur_embed.footer(|f| f.text(format!("{}/{} {}", idx + 1, embeds.len(), footer_extra)));
 			}
 			if !in_binder {
 				cur_embed.image("attachment://gs.png");
