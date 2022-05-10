@@ -824,7 +824,10 @@ async fn sell_cards_helper(mut player: player::Player, mode: SellMode, rares: bo
 	for (card_to_sell, amount) in cards_to_sell.clone() {
 		*player.cards.entry(card_to_sell.card_id()).or_insert(0) -= amount;
 		total_sold += amount;
-		total_cash += amount as f64 * card_to_sell.price();
+		total_cash += match player.completed_binders.contains(&card_to_sell.set().id()) {
+			true => amount as f64 * card_to_sell.price() * 1.25,
+			false => amount as f64 * card_to_sell.price()
+		};
 		sold_cards.push(card_to_sell.clone());
 	}
 	player.cards.retain(|_, v| *v > 0);
