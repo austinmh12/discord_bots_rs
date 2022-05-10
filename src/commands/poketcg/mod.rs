@@ -1985,6 +1985,10 @@ async fn binder_start(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		msg.reply(&ctx.http, format!("You already started a binder for **{}**", current_binder_set.name)).await?;
 		return Ok(());
 	}
+	if player.completed_binders.contains(&set.id()) {
+		msg.reply(&ctx.http, format!("You already completed a binder for **{}**", set.name)).await?;
+		return Ok(());
+	}
 	let binder = binder::Binder::from_set_id(set.id());
 	let _ = msg.reply(&ctx.http, format!("Once a binder has been started, you ***CAN'T*** start another until it's complete.\nDo you want to start a binder for **{}** (y/n)", set.name)).await?;
 	if let Some(confirmation_reply) = &msg.author.await_reply(&ctx).timeout(StdDuration::from_secs(30)).await {
