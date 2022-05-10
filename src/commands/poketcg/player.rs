@@ -139,7 +139,10 @@ impl PaginateEmbed for Player {
 		desc.push_str(&format!("**Jackpots:** {} | **Boofs:** {}\n\n", &self.jackpots, &self.boofs));
 		desc.push_str(&format!("**Quiz Questions Remaining:** {}\n", &self.quiz_questions));
 		desc.push_str(&format!("**Quiz Questions Answered:** {}\n\n", &self.quiz_correct));
-		desc.push_str(&format!("**Current Binder:** {} | **Completed Binders:** {}\n\n", &self.current_binder.set, &self.completed_binders.len()));
+		match self.current_binder.set.as_str() {
+			"" => desc.push_str(&format!("**Current Binder:** None! | **Completed Binders:** {}\n\n", &self.completed_binders.len())),
+			_ => desc.push_str(&format!("**Current Binder:** {} | **Completed Binders:** {}\n\n", &self.current_binder.set, &self.completed_binders.len()))
+		}
 		desc.push_str(&format!("Quiz resets at **{}**\n", quiz_reset_local.format("%m/%d %H:%M")));
 		desc.push_str(&format!("Daily reset at **{}**", daily_reset_local.format("%m/%d %H:%M")));
 		let mut ret = CreateEmbed::default();
