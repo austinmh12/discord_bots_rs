@@ -1190,7 +1190,10 @@ async fn store_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	} else {
 		(30.0, 36)
 	};
-	let discount = 1.0 + player.upgrades.store_discount as f64 * 0.05;
+	let mut discount = 1.0 + player.upgrades.store_discount as f64 * 0.05;
+	if player.completed_binders.contains(&set.id()) {
+		discount += 0.15;
+	}
 	let base_cost = (set.pack_price() * &price_mult) / discount;
 	if player.cash < base_cost {
 		msg.channel_id.send_message(&ctx.http, |m| m.content(&format!("You don't have enough... You need **${:.2}** more", base_cost - player.cash))).await?;

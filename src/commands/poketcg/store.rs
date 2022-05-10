@@ -122,7 +122,13 @@ impl Store {
 			} else {
 				("Booster Box", 30.0)
 			};
-			desc.push_str(&format!("**{} (_{}_):** {} {} - ${:.2}\n", num, set.id(), set.name, pack_type, (set.pack_price() * &price_mult) / discount));
+			match player.completed_binders.contains(&set_id) {
+				true => {
+					let discount_mod = discount + 0.15;
+					desc.push_str(&format!("**{} (_{}_):** {} {} - ${:.2}\n", num, set.id(), set.name, pack_type, (set.pack_price() * &price_mult) / discount_mod))
+				},
+				false => desc.push_str(&format!("**{} (_{}_):** {} {} - ${:.2}\n", num, set.id(), set.name, pack_type, (set.pack_price() * &price_mult) / discount))
+			}
 		}
 		ret
 			.title("Card Store")
