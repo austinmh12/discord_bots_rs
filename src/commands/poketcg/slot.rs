@@ -237,7 +237,7 @@ impl TokenShop {
 		for (i, set_id) in self.sets.iter().enumerate() {
 			let num = i + 1;
 			let set = get_set(set_id).await.unwrap();
-			desc.push_str(&format!("**{}:** {} - {} tokens\n", num, set.name, (to_tokens(set.pack_price()) as f64 / discount) as i64));
+			desc.push_str(&format!("**{}:** {} (_{}_) - {} tokens\n", num, set.name, set.id(), (to_tokens(set.pack_price()) as f64 / discount) as i64));
 		}
 		let rare_card = get_card(&self.rare_card).await;
 		desc.push_str(&format!("**4:** {} (_{}_) - {} tokens\n", rare_card.name, rare_card.id(), ((to_tokens(rare_card.price) * 10) as f64 / discount) as i64));
