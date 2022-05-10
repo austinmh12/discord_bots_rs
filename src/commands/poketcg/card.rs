@@ -313,6 +313,9 @@ async fn get_cards_from_cache() -> Vec<Card> {
 }
 
 async fn get_multiple_cards_from_cache(card_ids: &Vec<String>) -> Vec<Card> {
+	if card_ids.len() == 0 {
+		return vec![];
+	}
 	let card_collection = get_card_collection().await;
 	let mut docs = vec![];
 	for card_id in card_ids {

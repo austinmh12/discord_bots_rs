@@ -456,6 +456,7 @@ async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 	let mut cards = player_card::player_cards(player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
+		return Ok(());
 	} else {
 		match sorting.replace("-", "").as_str() {
 			"id" => cards.sort_by(|c1, c2| {
@@ -2275,7 +2276,7 @@ async fn admin_set_cards(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	let set = set.unwrap();
 	let cards = card::get_cards_by_set(&set).await;
 	for card in cards {
-		*player.cards.entry(card.card_id()).or_insert(0) -= 1;
+		*player.cards.entry(card.card_id()).or_insert(0) += 1;
 		if *player.cards.entry(card.card_id()).or_insert(0) == 0 {
 			player.cards.remove(&card.card_id());
 		}
@@ -2287,6 +2288,7 @@ async fn admin_set_cards(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	}
 	player_update.insert("cards", player_cards);
 	player::update_player(&player, doc! { "$set": player_update }).await;
+	msg.reply(&ctx.http, format!("Added all the cards for **{}**", set.name)).await?;
 
 	Ok(())
 }
