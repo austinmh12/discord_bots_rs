@@ -105,6 +105,10 @@ impl CardInfo for Card {
 	fn description(&self) -> String {
 		format!("**ID:** {}\n**Rarity:** {}\n**Price:** ${:.2}", &self.card_id, &self.rarity, &self.price)
 	}
+
+	fn price(&self) -> f64 {
+		self.price.clone()
+	}
 }
 
 impl Idable for Card {

@@ -118,6 +118,7 @@ pub trait CardInfo {
 	fn card_id(&self) -> String;
 	fn card_name(&self) -> String;
 	fn description(&self) -> String;
+	fn price(&self) -> f64;
 }
 
 pub trait Idable {
@@ -126,6 +127,13 @@ pub trait Idable {
 
 pub trait HasSet {
 	fn set(&self) -> sets::Set;
+}
+
+enum SellMode {
+	Under(f64),
+	Duplicates,
+	All,
+	BySet(String),
 }
 
 // paginated embeds to search through cards
@@ -760,13 +768,14 @@ async fn player_upgrades(ctx: &Context, msg: &Message) -> CommandResult {
 
 
 #[command("sell")]
-#[sub_commands(sell_card, sell_under, sell_dups, sell_all, sell_packs)]
+#[sub_commands(sell_card, sell_under, sell_dups, sell_all, sell_packs, sell_set)]
 async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let content = "Here are the available selling commands:
 	**.sell card <card id> [amount - Default: _1_]** to sell a specific card.
 	**.sell under [value - Default: _1.00_] [rares - Default: _false_]** to sell all cards worth less than the value entered.
 	**.sell dups [rares - Default: _false_]** to sell all duplicate cards until 1 remains. Doesn\'t sell rares by default.
 	**.sell all [rares - Default: _false_]** to sell all cards. Doesn\'t sell rares by default.
+	**.sell set <set id> [rares - Default: _false_]** to sell all cards from a specific set. Doesn\'t sell rares by default.
 	**.sell packs <set id> [amount - Default: 1]** to sell a pack.";
 	msg
 		.channel_id
@@ -774,6 +783,62 @@ async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
 		.await?;
 
 	Ok(())
+}
+
+async fn sell_cards_helper(mut player: player::Player, mode: SellMode, rares: bool) -> (Vec<player_card::PlayerCard>, i64, f64, Document) {
+	// Does the actual removal and calculation of the cards worths
+	// Returns the list of cards sold, total sold, total earned, and the document to update the player with
+	let player_cards = player_card::player_cards(player.cards.clone()).await;
+	let mut cards_to_sell = vec![];
+	for player_card in player_cards {
+		let sellable = match mode {
+			SellMode::Under(value) => player_card.price() <= value,
+			SellMode::Duplicates => player_card.amount > 1,
+			SellMode::All => true,
+			SellMode::BySet(ref set_id) => player_card.set().id().as_str() == set_id
+		};
+		// If it fails the first filter, do nothing
+		if !sellable {
+			continue;
+		}
+		let sellable = if rares {
+			true
+		} else if vec!["Common", "Uncommon"].contains(&player_card.card.rarity.as_str()) {
+			true
+		} else {
+			false
+		};
+		// If it fails the second filter, do nothing
+		if !sellable {
+			continue;
+		}
+		// If all the sellable filters pass, add the card with an amount based on the savelist
+		match player.savelist.contains(&player_card.card_id()) {
+			true => cards_to_sell.push((player_card.clone(), player_card.amount - 1)),
+			false => cards_to_sell.push((player_card.clone(), player_card.amount))
+		}
+	}
+	let mut total_sold = 0;
+	let mut total_cash = 0.00;
+	let mut sold_cards = vec![];
+	for (card_to_sell, amount) in cards_to_sell.clone() {
+		*player.cards.entry(card_to_sell.card_id()).or_insert(0) -= amount;
+		total_sold += amount;
+		total_cash += amount as f64 * card_to_sell.price();
+		sold_cards.push(card_to_sell.clone());
+	}
+	player.cards.retain(|_, v| *v > 0);
+	let mut player_update = Document::new();
+	let mut player_card_update = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_card_update.insert(crd, amt);
+	}
+	player_update.insert("cards", player_card_update);
+	player_update.insert("cards_sold", player.cards_sold);
+	player_update.insert("cash", player.cash);
+	player_update.insert("total_cash", player.total_cash);
+
+	(sold_cards, total_sold, total_cash, player_update)
 }
 
 #[command("card")]
@@ -833,43 +898,9 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 		Ok(x) => x,
 		Err(_) => false
 	};
-	let mut player = player::get_player(msg.author.id.0).await;
-	let mut cards_to_sell = vec![];
-	for player_card in player_card::player_cards(player.cards.clone()).await {
-		if player.savelist.contains(&player_card.card.id()) {
-			continue;
-		}
-		if player_card.card.price <= value {
-			if rares {
-				cards_to_sell.push(player_card)
-			} else if vec!["Common", "Uncommon"].contains(&player_card.card.rarity.as_str()) {
-				cards_to_sell.push(player_card)
-			} else {
-				continue;
-			}
-		}
-	}
-	let mut total_sold = 0;
-	let mut total_cash = 0.00;
-	for card_to_sell in cards_to_sell {
-		*player.cards.entry(card_to_sell.card.id()).or_insert(0) -= card_to_sell.amount;
-		total_sold += card_to_sell.amount;
-		total_cash += card_to_sell.amount as f64 * card_to_sell.card.price;
-	}
-	player.cards.retain(|_, v| *v > 0);
-	let mut update = Document::new();
-	player.cards_sold += total_sold;
-	player.cash += total_cash;
-	player.total_cash += total_cash;
-	update.insert("cards_sold", player.cards_sold);
-	update.insert("cash", player.cash);
-	update.insert("total_cash", player.total_cash);
-	let mut player_cards = Document::new();
-	for (crd, amt) in player.cards.iter() {
-		player_cards.insert(crd, amt);
-	}
-	update.insert("cards", player_cards);
-	player::update_player(&player, doc! { "$set": update }).await;
+	let player = player::get_player(msg.author.id.0).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::Under(value), rares).await;
+	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
 	Ok(())
@@ -882,44 +913,9 @@ async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		Ok(x) => x,
 		Err(_) => false
 	};
-	let mut player = player::get_player(msg.author.id.0).await;
-	let mut cards_to_sell = vec![];
-	for player_card in player_card::player_cards(player.cards.clone()).await {
-		if player.savelist.contains(&player_card.card.id()) {
-			continue;
-		}
-		if player_card.amount > 1 {
-			if rares {
-				cards_to_sell.push(player_card)
-			} else if vec!["Common", "Uncommon"].contains(&player_card.card.rarity.as_str()) {
-				cards_to_sell.push(player_card)
-			} else {
-				continue;
-			}
-		}
-	}
-	let mut total_sold = 0;
-	let mut total_cash = 0.00;
-	for card_to_sell in cards_to_sell {
-		let amt = card_to_sell.amount - 1;
-		*player.cards.entry(card_to_sell.card.id()).or_insert(0) -= amt;
-		total_sold += amt;
-		total_cash += amt as f64 * card_to_sell.card.price;
-	}
-	player.cards.retain(|_, v| *v > 0);
-	let mut update = Document::new();
-	player.cards_sold += total_sold;
-	player.cash += total_cash;
-	player.total_cash += total_cash;
-	update.insert("cards_sold", player.cards_sold);
-	update.insert("cash", player.cash);
-	update.insert("total_cash", player.total_cash);
-	let mut player_cards = Document::new();
-	for (crd, amt) in player.cards.iter() {
-		player_cards.insert(crd, amt);
-	}
-	update.insert("cards", player_cards);
-	player::update_player(&player, doc! { "$set": update }).await;
+	let player = player::get_player(msg.author.id.0).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::Duplicates, rares).await;
+	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
 	Ok(())
@@ -932,41 +928,36 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		Ok(x) => x,
 		Err(_) => false
 	};
-	let mut player = player::get_player(msg.author.id.0).await;
-	let mut cards_to_sell = vec![];
-	for player_card in player_card::player_cards(player.cards.clone()).await {
-		if player.savelist.contains(&player_card.card.id()) {
-			continue;
+	let player = player::get_player(msg.author.id.0).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::All, rares).await;
+	player::update_player(&player, doc! { "$set": player_update }).await;
+	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
+
+	Ok(())
+}
+
+#[command("set")]
+#[aliases("s")]
+async fn sell_set(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let set_id = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	let set = sets::get_set(&set_id).await;
+	match set {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "No set found with that id.").await?;
 		}
-		if rares {
-			cards_to_sell.push(player_card)
-		} else if vec!["Common", "Uncommon"].contains(&player_card.card.rarity.as_str()) {
-			cards_to_sell.push(player_card)
-		} else {
-			continue;
-		}
 	}
-	let mut total_sold = 0;
-	let mut total_cash = 0.00;
-	for card_to_sell in cards_to_sell {
-		*player.cards.entry(card_to_sell.card.id()).or_insert(0) -= card_to_sell.amount;
-		total_sold += card_to_sell.amount;
-		total_cash += card_to_sell.amount as f64 * card_to_sell.card.price;
-	}
-	player.cards.retain(|_, v| *v > 0);
-	let mut update = Document::new();
-	player.cards_sold += total_sold;
-	player.cash += total_cash;
-	player.total_cash += total_cash;
-	update.insert("cards_sold", player.cards_sold);
-	update.insert("cash", player.cash);
-	update.insert("total_cash", player.total_cash);
-	let mut player_cards = Document::new();
-	for (crd, amt) in player.cards.iter() {
-		player_cards.insert(crd, amt);
-	}
-	update.insert("cards", player_cards);
-	player::update_player(&player, doc! { "$set": update }).await;
+	let set = set.unwrap();
+	let rares = match args.find::<bool>() {
+		Ok(x) => x,
+		Err(_) => false
+	};
+	let player = player::get_player(msg.author.id.0).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::BySet(set.id()), rares).await;
+	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
 	Ok(())
