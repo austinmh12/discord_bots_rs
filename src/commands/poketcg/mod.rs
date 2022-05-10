@@ -448,7 +448,16 @@ async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
 		match sorting.replace("-", "").as_str() {
-			"id" => cards.sort_by(|c1, c2| c1.card.id().cmp(&c2.card.id())),
+			"id" => cards.sort_by(|c1, c2| {
+				if c1.set().id() == c2.set().id() {
+					let c1_num = c1.id().split("-").collect::<Vec<&str>>()[1].parse::<i64>().unwrap_or(999);
+					let c2_num = c2.id().split("-").collect::<Vec<&str>>()[1].parse::<i64>().unwrap_or(999);
+	
+					c1_num.cmp(&c2_num)
+				} else {
+					c1.id().cmp(&c2.id())
+				}
+			}),
 			"amount" => cards.sort_by(|c1, c2| c2.amount.cmp(&c1.amount)),
 			"price" => cards.sort_by(|c1, c2| {
 				if c1.card.price < c2.card.price {
