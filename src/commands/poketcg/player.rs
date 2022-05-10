@@ -134,7 +134,7 @@ impl PaginateEmbed for Player {
 		desc.push_str(&format!("**Current Packs:** {}\n", self.packs.values().map(|v| v.clone() as i32).sum::<i32>()));
 		desc.push_str(&format!("**Opened Packs:** {} | **Bought Packs:** {}\n\n", &self.packs_opened, &self.packs_bought));
 		desc.push_str(&format!("**Total Cards:** {} | **Cards Sold:** {}\n\n", &self.total_cards, &self.cards_sold));
-		desc.push_str(&format!("**Slots Rolled:** {}\n", &self.slots_rolled));
+		desc.push_str(&format!("**Slot Rolls:** {} | **Slots Rolled:** {}\n", &self.daily_slots, &self.slots_rolled));
 		desc.push_str(&format!("**Tokens:** {} | **Total Tokens:** {}\n", &self.tokens, &self.total_tokens));
 		desc.push_str(&format!("**Jackpots:** {} | **Boofs:** {}\n\n", &self.jackpots, &self.boofs));
 		desc.push_str(&format!("**Quiz Questions Remaining:** {}\n", &self.quiz_questions));
