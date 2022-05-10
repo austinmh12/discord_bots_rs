@@ -8,6 +8,7 @@ use crate::commands::poketcg::card::{
 
 use super::{PaginateEmbed, CardInfo, Idable, HasSet, sets::Set};
 
+#[derive(Clone)]
 pub struct PlayerCard {
 	pub card: Card,
 	pub amount: i64

@@ -331,14 +331,23 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 	Ok(())
 }
 
-async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::Binder) -> Result<(), String> {
+async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::Player, missing_only: bool) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-	let set = sets::get_set(&binder.set).await.unwrap();
-	let cards = card::get_cards_by_set(&set).await;
+	let set = sets::get_set(&player.current_binder.set).await.unwrap();
+	let set_cards = card::get_cards_by_set(&set).await;
+	let cards = if missing_only {
+		set_cards
+			.iter()
+			.filter(|c| !player.current_binder.cards.contains(&c.card_id()))
+			.map(|c| c.to_owned())
+			.collect::<Vec<card::Card>>()
+	} else {
+		set_cards
+	};
 	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
 	let mut idx: i16 = 0;
-	if !binder.cards.contains(&cards[idx as usize].card_id()) {
+	if !player.current_binder.cards.contains(&cards[idx as usize].card_id()) {
 		let card_img = card_image::get_card_image(&cards[idx as usize]).await;
 		let img = card_img.to_dyn_image();
 		img.save("gs.png").unwrap();
@@ -350,7 +359,7 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::B
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
-			if !binder.cards.contains(&cards[idx as usize].card_id()) {
+			if !player.current_binder.cards.contains(&cards[idx as usize].card_id()) {
 				cur_embed.image("attachment://gs.png");
 				m.add_file("gs.png");
 			}
@@ -383,7 +392,7 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, binder: binder::B
 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 			break;
 		}
-		let in_binder = binder.cards.contains(&cards[idx as usize].card_id());
+		let in_binder = player.current_binder.cards.contains(&cards[idx as usize].card_id());
 		if !in_binder {
 			let card_img = card_image::get_card_image(&cards[idx as usize]).await;
 			let img = card_img.to_dyn_image();
@@ -1941,14 +1950,14 @@ async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("binder")]
 #[aliases("b")]
-#[sub_commands(binder_start, binder_add, binder_showcase)]
+#[sub_commands(binder_start, binder_add, binder_showcase, binder_missing)]
 async fn binder_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = player::get_player(msg.author.id.0).await;
 	match player.current_binder.set.as_str() {
 		"" => {
 			msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;
 		},
-		_ => binder_paginated_embeds(ctx, msg, player.current_binder).await?,
+		_ => binder_paginated_embeds(ctx, msg, player, false).await?,
 	}
 
 	Ok(())
@@ -1998,6 +2007,7 @@ async fn binder_start(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
 #[command("add")]
 #[aliases("a", "+")]
+#[sub_commands(binder_add_bulk)]
 async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let card_id = match args.find::<String>() {
 		Ok(x) => x,
@@ -2063,6 +2073,52 @@ async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	Ok(())
 }
 
+#[command("bulk")]
+#[aliases("b")]
+async fn binder_add_bulk(ctx: &Context, msg: &Message) -> CommandResult {
+	let mut player = player::get_player(msg.author.id.0).await;
+	if player.current_binder.set.as_str() == "" {
+		msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;
+		return Ok(());
+	}
+	let cards = player_card::player_cards(player.cards.clone()).await;
+	let binder_cards = cards
+		.iter()
+		.filter(|c| c.set().id() == player.current_binder.set && !player.current_binder.cards.contains(&c.card_id()))
+		.map(|c| c.to_owned())
+		.collect::<Vec<player_card::PlayerCard>>();
+	if binder_cards.len() <= 0 {
+		msg.reply(&ctx.http, "No cards to add!").await?;
+		return Ok(());
+	}
+	let mut player_update = Document::new();
+	for binder_card in binder_cards.clone() {
+		*player.cards.entry(binder_card.card_id()).or_insert(0) -= 1;
+		if *player.cards.entry(binder_card.card_id()).or_insert(0) == 0 {
+			player.cards.remove(&binder_card.card_id());
+		}
+		player.current_binder.cards.push(binder_card.card_id());
+	}
+	let mut player_cards = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_cards.insert(crd, amt);
+	}
+	player_update.insert("cards", player_cards);
+	if player.current_binder.is_complete().await {
+		let current_binder_set = sets::get_set(&player.current_binder.set).await.unwrap();
+		player.completed_binders.push(player.current_binder.set);
+		player.current_binder = binder::Binder::empty();
+		player_update.insert("completed_binders", player.completed_binders.clone());
+		msg.reply(&ctx.http, format!("You completed the **{}** binder!", current_binder_set.name)).await?;
+	} else {
+		msg.reply(&ctx.http, format!("You added **{}** cards to your binder!", binder_cards.len())).await?;
+	}
+	player_update.insert("current_binder", player.current_binder.to_doc());
+	player::update_player(&player, doc! { "$set": player_update }).await;
+
+	Ok(())
+}
+
 #[command("showcase")]
 #[aliases("sc")]
 async fn binder_showcase(ctx: &Context, msg: &Message) -> CommandResult {
@@ -2091,9 +2147,22 @@ async fn binder_showcase(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
+#[command("missing")]
+#[aliases("m")]
+async fn binder_missing(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	if player.current_binder.set.as_str() == "" {
+		msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;
+		return Ok(());
+	}
+	binder_paginated_embeds(ctx, msg, player, true).await?;
+
+	Ok(())
+}
+
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
-#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens, admin_greyscale)]
+#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens)]
 #[checks(BotTest)]
 async fn admin_main() -> CommandResult {
 	Ok(())
@@ -2179,19 +2248,6 @@ async fn admin_mock_slot(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	let content = roll_displays.join("\n");
 
 	msg.reply(&ctx.http, content).await?;
-
-	Ok(())
-}
-
-#[command("gs")]
-#[checks(BotTest)]
-async fn admin_greyscale(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let set_id = match args.find::<String>() {
-		Ok(x) => x,
-		Err(_) => String::from("")
-	};
-	let binder = binder::Binder::from_set_id(set_id);
-	binder_paginated_embeds(ctx, msg, binder).await?;
 
 	Ok(())
 }
