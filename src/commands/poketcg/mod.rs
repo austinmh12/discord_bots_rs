@@ -831,6 +831,9 @@ async fn sell_cards_helper(mut player: player::Player, mode: SellMode, rares: bo
 		sold_cards.push(card_to_sell.clone());
 	}
 	player.cards.retain(|_, v| *v > 0);
+	player.cash += total_cash;
+	player.total_cash += total_cash;
+	player.cards_sold += total_sold;
 	let mut player_update = Document::new();
 	let mut player_card_update = Document::new();
 	for (crd, amt) in player.cards.iter() {
@@ -903,6 +906,7 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	};
 	let player = player::get_player(msg.author.id.0).await;
 	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::Under(value), rares).await;
+	println!("{:?}", &player_update);
 	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
@@ -1317,6 +1321,18 @@ async fn quiz_command(ctx: &Context, msg: &Message) -> CommandResult {
 			quiz_msg.edit(&ctx.http, |m| {
 				m
 					.content(format!("Sure, it's from **Gen {}**. It's **{}**\nYou earned **${:.2}**", quiz.generation, quiz.name.to_case(Case::Title), reward))
+					.remove_existing_attachment(attachment_id)
+					.attachment("./quizresult.PNG")
+			})
+			.await?;
+		} else if guess == "pikachu" && &quiz.guess_name() == "clefairy" {
+			let reward = 1.0 * player.current_multiplier as f64;
+			player.quiz_correct += 1;
+			player.cash += reward;
+			player.total_cash += reward;
+			quiz_msg.edit(&ctx.http, |m| {
+				m
+					.content("It's **Clefairy**! ***FUCK***")
 					.remove_existing_attachment(attachment_id)
 					.attachment("./quizresult.PNG")
 			})
