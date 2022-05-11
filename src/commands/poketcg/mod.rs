@@ -343,7 +343,17 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::P
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let set = sets::get_set(&player.current_binder.set).await.unwrap();
-	let set_cards = card::get_cards_by_set(&set).await;
+	let mut set_cards = card::get_cards_by_set(&set).await;
+	set_cards.sort_by(|c1, c2| {
+		if c1.set().id() == c2.set().id() {
+			let c1_num = c1.id().split("-").collect::<Vec<&str>>()[1].parse::<i64>().unwrap_or(999);
+			let c2_num = c2.id().split("-").collect::<Vec<&str>>()[1].parse::<i64>().unwrap_or(999);
+
+			c1_num.cmp(&c2_num)
+		} else {
+			c1.id().cmp(&c2.id())
+		}
+	});
 	let footer_extra = format!("({}/{} - {:.1}%)", player.current_binder.cards.len(), set_cards.len(), (player.current_binder.cards.len() as f64 / set_cards.len() as f64) * 100.0);
 	let cards = if missing_only {
 		set_cards
@@ -625,7 +635,16 @@ async fn player_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
 		match sorting.replace("-", "").as_str() {
-			"id" => cards.sort_by(|c1, c2| c1.card.id().cmp(&c2.card.id())),
+			"id" => cards.sort_by(|c1, c2| {
+				if c1.set().id() == c2.set().id() {
+					let c1_num = c1.id().split("-").collect::<Vec<&str>>()[1].parse::<i64>().unwrap_or(999);
+					let c2_num = c2.id().split("-").collect::<Vec<&str>>()[1].parse::<i64>().unwrap_or(999);
+	
+					c1_num.cmp(&c2_num)
+				} else {
+					c1.id().cmp(&c2.id())
+				}
+			}),
 			"amount" => cards.sort_by(|c1, c2| c2.amount.cmp(&c1.amount)),
 			"price" => cards.sort_by(|c1, c2| {
 				if c1.card.price < c2.card.price {
@@ -766,7 +785,6 @@ async fn player_upgrades(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-
 #[command("sell")]
 #[sub_commands(sell_card, sell_under, sell_dups, sell_all, sell_packs, sell_set)]
 async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
@@ -906,7 +924,6 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	};
 	let player = player::get_player(msg.author.id.0).await;
 	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::Under(value), rares).await;
-	println!("{:?}", &player_update);
 	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
