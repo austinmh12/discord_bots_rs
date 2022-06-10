@@ -79,34 +79,34 @@ impl Upgrade {
 		desc.push_str(&format!("You have **${:.2}**\n", player.cash));
 		desc.push_str("Here are the upgrades available. To purchase an upgrade, use **.(up)grades (b)uy <slot no. | name.> [amount]**\n\n");
 		if !self.is_max_upgrade("daily_time_reset") {
-			desc.push_str(&format!("**1 dailytime:** Decreases the time between daily resets - ${:.2}\n", self.upgrade_cost("daily_time_reset")));
+			desc.push_str(&format!("**1 dailytime:** Decreases the time between daily resets - ${:.2} _(lvl {})_\n", self.upgrade_cost("daily_time_reset"), self.daily_time_reset));
 		}
 		if !self.is_max_upgrade("daily_reward_mult") {
-			desc.push_str(&format!("**2 dailyreward:** Increases your daily rewards - ${:.2}\n", self.upgrade_cost("daily_reward_mult")));
+			desc.push_str(&format!("**2 dailyreward:** Increases your daily rewards - ${:.2} _(lvl {})_\n", self.upgrade_cost("daily_reward_mult"), self.daily_reward_mult));
 		}
 		if !self.is_max_upgrade("daily_pack_amount") {
-			desc.push_str(&format!("**3 dailypacks:** Increases your daily packs - ${:.2}\n", self.upgrade_cost("daily_pack_amount")));
+			desc.push_str(&format!("**3 dailypacks:** Increases your daily packs - ${:.2} _(lvl {})_\n", self.upgrade_cost("daily_pack_amount"), self.daily_pack_amount));
 		}
 		if !self.is_max_upgrade("store_discount") {
-			desc.push_str(&format!("**4 storediscount:** Gives a discount at the store - ${:.2}\n", self.upgrade_cost("store_discount")));
+			desc.push_str(&format!("**4 storediscount:** Gives a discount at the store - ${:.2} _(lvl {})_\n", self.upgrade_cost("store_discount"), self.store_discount));
 		}
 		if !self.is_max_upgrade("tokenshop_discount") {
-			desc.push_str(&format!("**5 tokenshopdiscount:** Gives a discount at the token shop - ${:.2}\n", self.upgrade_cost("tokenshop_discount")));
+			desc.push_str(&format!("**5 tokenshopdiscount:** Gives a discount at the token shop - ${:.2} _(lvl {})_\n", self.upgrade_cost("tokenshop_discount"), self.tokenshop_discount));
 		}
 		if !self.is_max_upgrade("slot_reward_mult") {
-			desc.push_str(&format!("**6 slotreward:** Increases your slot machine rewards - ${:.2}\n", self.upgrade_cost("slot_reward_mult")));
+			desc.push_str(&format!("**6 slotreward:** Increases your slot machine rewards - ${:.2} _(lvl {})_\n", self.upgrade_cost("slot_reward_mult"), self.slot_reward_mult));
 		}
 		if !self.is_max_upgrade("daily_slot_amount") {
-			desc.push_str(&format!("**7 dailyslots:** Increases your daily slots - ${:.2}\n", self.upgrade_cost("daily_slot_amount")));
+			desc.push_str(&format!("**7 dailyslots:** Increases your daily slots - ${:.2} _(lvl {})_\n", self.upgrade_cost("daily_slot_amount"), self.daily_slot_amount));
 		}
 		if !self.is_max_upgrade("quiz_time_reset") {
-			desc.push_str(&format!("**8 quizreset:** Decreases the time between your quiz attempts - ${:.2}\n", self.upgrade_cost("quiz_time_reset")));
+			desc.push_str(&format!("**8 quizreset:** Decreases the time between your quiz attempts - ${:.2} _(lvl {})_\n", self.upgrade_cost("quiz_time_reset"), self.quiz_time_reset));
 		}
 		if !self.is_max_upgrade("quiz_question_amount") {
-			desc.push_str(&format!("**9 quizattempts:** Increases your quiz questions per reset period - ${:.2}\n", self.upgrade_cost("quiz_question_amount")));
+			desc.push_str(&format!("**9 quizattempts:** Increases your quiz questions per reset period - ${:.2} _(lvl {})_\n", self.upgrade_cost("quiz_question_amount"), self.quiz_question_amount));
 		}
 		if !self.is_max_upgrade("quiz_mult_limit") {
-			desc.push_str(&format!("**10 quizmultiplier:** Increases your max quiz multiplier - ${:.2}\n", self.upgrade_cost("quiz_mult_limit")));
+			desc.push_str(&format!("**10 quizmultiplier:** Increases your max quiz multiplier - ${:.2} _(lvl {})_\n", self.upgrade_cost("quiz_mult_limit"), self.quiz_mult_limit));
 		}
 		ret
 			.title("Upgrade Shop")
