@@ -1,6 +1,3 @@
-use std::{
-	collections::HashMap,
-};
 use rand::{
 	prelude::*
 };
@@ -13,34 +10,7 @@ use crate::card::{
 	Card,
 	get_cards_by_set
 };
-
-lazy_static! {
-	static ref RARITY_MAPPING: HashMap<&'static str, i64> = {
-		let mut m = HashMap::new();
-		m.insert("Rare", 75);
-		m.insert("Rare ACE", 10);
-		m.insert("Rare BREAK", 10);
-		m.insert("Rare Holo", 40);
-		m.insert("Rare Holo EX", 12);
-		m.insert("Rare Holo GX", 12);
-		m.insert("Rare Holo LV.X", 12);
-		m.insert("Rare Holo Star", 8);
-		m.insert("Rare Holo V", 15);
-		m.insert("Rare Holo VMAX", 10);
-		m.insert("Rare Prime", 10);
-		m.insert("Rare Prism Star", 10);
-		m.insert("Rare Rainbow", 5);
-		m.insert("Rare Secret", 1);
-		m.insert("Rare Shining", 20);
-		m.insert("Rare Shiny", 5);
-		m.insert("Rare Shiny GX", 2);
-		m.insert("Rare Ultra", 5);
-		m.insert("Amazing Rare", 15);
-		m.insert("LEGEND", 3);
-		
-		m
-	};
-}
+use crate::commands::poketcg::RARITY_MAPPING;
 
 #[derive(Debug)]
 pub struct Pack {

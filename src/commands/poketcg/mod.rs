@@ -110,6 +110,34 @@ const RARITY_ORDER: &'static [&str] = &[
 	"Unknown",
 ];
 
+lazy_static! {
+	static ref RARITY_MAPPING: HashMap<&'static str, i64> = {
+		let mut m = HashMap::new();
+		m.insert("Rare", 75);
+		m.insert("Rare ACE", 10);
+		m.insert("Rare BREAK", 10);
+		m.insert("Rare Holo", 40);
+		m.insert("Rare Holo EX", 12);
+		m.insert("Rare Holo GX", 12);
+		m.insert("Rare Holo LV.X", 12);
+		m.insert("Rare Holo Star", 8);
+		m.insert("Rare Holo V", 15);
+		m.insert("Rare Holo VMAX", 10);
+		m.insert("Rare Prime", 10);
+		m.insert("Rare Prism Star", 10);
+		m.insert("Rare Rainbow", 5);
+		m.insert("Rare Secret", 1);
+		m.insert("Rare Shining", 20);
+		m.insert("Rare Shiny", 5);
+		m.insert("Rare Shiny GX", 2);
+		m.insert("Rare Ultra", 5);
+		m.insert("Amazing Rare", 15);
+		m.insert("LEGEND", 3);
+		
+		m
+	};
+}
+
 pub trait PaginateEmbed {
 	fn embed(&self) -> CreateEmbed;
 }
@@ -282,6 +310,8 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 	let sets = &embeds.clone();
 	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
 	let mut idx: i16 = 0;
+	let mut set = sets.into_iter().nth(idx as usize).unwrap();
+	let mut set_avg_price = get_set_average_price(set).await;
 	let mut message = msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
@@ -289,6 +319,7 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
+			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
 			m.set_embed(cur_embed);
 
 			if embeds.len() > 1 {
@@ -325,11 +356,14 @@ async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Se
 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 			break;
 		}
+		set = sets.into_iter().nth(idx as usize).unwrap();
+		set_avg_price = get_set_average_price(set).await;
 		message.edit(&ctx, |m| {
 			let mut cur_embed = embeds[idx as usize].clone();
 			if embeds.len() > 1 {
 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
 			}
+			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
 			m.set_embed(cur_embed);
 
 			m
@@ -447,6 +481,52 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::P
 	}
 
 	Ok(())
+}
+
+async fn get_set_average_price(set: &sets::Set) -> f64 {
+	let all_cards = card::get_cards_by_set(set).await;
+	let rares = all_cards
+		.iter()
+		.filter(|c| c.rarity != "Common" || c.rarity != "Uncommon" || c.rarity != "Promo")
+		.map(|c| c.to_owned())
+		.collect::<Vec<card::Card>>();
+	let uncommons = all_cards
+		.iter()
+		.filter(|c| c.rarity == "Uncommon")
+		.map(|c| c.to_owned())
+		.collect::<Vec<card::Card>>();
+	let commons = all_cards
+		.iter()
+		.filter(|c| c.rarity == "Common")
+		.map(|c| c.to_owned())
+		.collect::<Vec<card::Card>>();
+	let promos = all_cards
+		.iter()
+		.filter(|c| c.rarity == "Promo" || c.rarity == "Classic Collection" || c.rarity == "Unknown")
+		.map(|c| c.to_owned())
+		.collect::<Vec<card::Card>>();
+	if commons.len() > 0 && uncommons.len() > 0 && rares.len() > 0 {
+		let common_price: f64 = (commons.iter().map(|c| c.price).sum::<f64>() / commons.len() as f64) * 6.0;
+		let uncommon_price: f64 = (uncommons.iter().map(|c| c.price).sum::<f64>() / uncommons.len() as f64) * 3.0;
+		let mut rare_prices = vec![];
+		for (rarity, weight) in RARITY_MAPPING.iter() {
+			let current_rarity_cards = rares
+				.iter()
+				.filter(|c| &c.rarity.as_str() == rarity)
+				.map(|c| c.to_owned())
+				.collect::<Vec<card::Card>>();
+			if current_rarity_cards.len() == 0 {
+				continue;
+			}
+			let rarity_price: f64 = current_rarity_cards.iter().map(|c| c.price).sum::<f64>() / current_rarity_cards.len() as f64;
+			rare_prices.push((rarity_price, weight));
+		}
+		let rares_price: f64 = rare_prices.iter().map(|rp| rp.0 * *rp.1 as f64).sum::<f64>() / rare_prices.iter().map(|rp| *rp.1 as f64).sum::<f64>();
+		return common_price + uncommon_price + rares_price;
+	} else {
+		let promo_price: f64 = promos.iter().map(|c| c.price).sum::<f64>() / promos.len() as f64;
+		return promo_price;
+	}
 }
 
 #[command("my")]
