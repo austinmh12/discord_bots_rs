@@ -2151,6 +2151,7 @@ async fn binder_add_bulk(ctx: &Context, msg: &Message) -> CommandResult {
 	}
 	player_update.insert("current_binder", player.current_binder.to_doc());
 	player::update_player(&player, doc! { "$set": player_update }).await;
+	card_paginated_embeds(ctx, msg, binder_cards, player).await?;
 
 	Ok(())
 }
