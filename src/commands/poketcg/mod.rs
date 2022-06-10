@@ -2027,15 +2027,36 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		let cost = player.upgrades.upgrade_cost(upgrade_selection);
 		player.cash -= cost;
 		match upgrade_selection {
-			"daily_time_reset" => player.upgrades.daily_time_reset += 1,
+			"daily_time_reset" => {
+				player.upgrades.daily_time_reset += 1;
+				let now = Utc::now();
+				if player.daily_reset >= now {
+					player.daily_reset = player.daily_reset - Duration::hours(1);
+				}
+			},
 			"daily_reward_mult" => player.upgrades.daily_reward_mult += 1,
-			"daily_pack_amount" => player.upgrades.daily_pack_amount += 1,
+			"daily_pack_amount" => {
+				player.upgrades.daily_pack_amount += 1;
+				player.daily_packs += 10;
+			},
 			"store_discount" => player.upgrades.store_discount += 1,
 			"tokenshop_discount" => player.upgrades.tokenshop_discount += 1,
 			"slot_reward_mult" => player.upgrades.slot_reward_mult += 1,
-			"daily_slot_amount" => player.upgrades.daily_slot_amount += 1,
-			"quiz_time_reset" => player.upgrades.quiz_time_reset += 1,
-			"quiz_question_amount" => player.upgrades.quiz_question_amount += 1,
+			"daily_slot_amount" => {
+				player.upgrades.daily_slot_amount += 1;
+				player.daily_slots += 1;
+			},
+			"quiz_time_reset" => {
+				player.upgrades.quiz_time_reset += 1;
+				let now = Utc::now();
+				if player.quiz_reset >= now {
+					player.quiz_reset = player.quiz_reset - Duration::minutes(10);
+				}
+			},
+			"quiz_question_amount" => {
+				player.upgrades.quiz_question_amount += 1;
+				player.quiz_questions += 1;
+			},
 			"quiz_mult_limit" => player.upgrades.quiz_mult_limit += 1,
 			_ => ()
 		}
@@ -2044,6 +2065,11 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 	msg.reply(&ctx.http, format!("You bought {} **{}**", count, upgrades[(selection - 1) as usize])).await?;
 	update.insert("cash", player.cash);
 	update.insert("upgrades", player.upgrades.to_doc());
+	update.insert("daily_reset", player.daily_reset);
+	update.insert("daily_packs", player.daily_packs);
+	update.insert("daily_slots", player.daily_slots);
+	update.insert("quiz_reset", player.quiz_reset);
+	update.insert("quiz_questions", player.quiz_questions);
 	player::update_player(&player, doc! { "$set": update }).await;
 
 	Ok(())
