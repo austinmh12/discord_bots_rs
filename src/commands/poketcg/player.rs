@@ -14,7 +14,9 @@ use mongodb::{
 };
 use chrono::{
 	DateTime, 
-	Utc, Local,
+	Utc, 
+	Local,
+	Duration
 };
 use futures::stream::{TryStreamExt};
 use serenity::{
@@ -578,6 +580,136 @@ async fn player_upgrades(ctx: &Context, msg: &Message) -> CommandResult {
 			m
 		})
 			.await?;
+
+	Ok(())
+}
+
+#[command("upgrades")]
+#[aliases("up")]
+#[sub_commands(upgrades_buy)]
+async fn upgrades_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = get_player(msg.author.id.0).await;
+	let embed = player.upgrades.clone().embed_with_player(player).await;
+	let _ = msg
+		.channel_id
+		.send_message(&ctx.http, |m| {
+			m.set_embed(embed);
+
+			m
+		})
+		.await;
+
+	Ok(())
+}
+
+#[command("buy")]
+#[aliases("b")]
+async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let mut m = HashMap::new();
+	m.insert(1, "daily_time_reset");
+	m.insert(2, "daily_reward_mult");
+	m.insert(3, "daily_pack_amount");
+	m.insert(4, "store_discount");
+	m.insert(5, "tokenshop_discount");
+	m.insert(6, "slot_reward_mult");
+	m.insert(7, "daily_slot_amount");
+	m.insert(8, "quiz_time_reset");
+	m.insert(9, "quiz_question_amount");
+	m.insert(10, "quiz_mult_limit");
+	let mut selection = match args.single::<i32>() {
+		Ok(x) => x,
+		Err(_) => 0
+	};
+	let selection_str = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	let upgrades = vec!["dailytime", "dailyreward", "dailypacks", "storediscount", "tokenshopdiscount", "slotreward", "dailyslots", "quizreset", "quizattempts", "quizmultiplier"];
+	if selection_str != "" && selection == 0 {
+		selection = (upgrades.iter().position(|r| r == &selection_str).unwrap_or(upgrades.len()) + 1) as i32;
+	}
+	if !(1..=upgrades.len() as i32).contains(&selection) {
+		msg.channel_id.send_message(&ctx.http, |m| m.content("A selection was not made.")).await?;
+		return Ok(());
+	}
+	let upgrade_selection = m.get(&selection).unwrap().clone();
+	let amount = match args.find::<i32>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let mut update = Document::new();
+	let mut player = get_player(msg.author.id.0).await;
+	if player.cash < player.upgrades.upgrade_cost(upgrade_selection) {
+		msg.reply(&ctx.http, &format!("You don't have enough... You need **${}** more", player.upgrades.upgrade_cost(upgrade_selection) - player.cash)).await?;
+		return Ok(());
+	}
+	if player.upgrades.is_max_upgrade(upgrade_selection) {
+		msg.reply(&ctx.http, "That upgrade is already at it's highest level").await?;
+		return Ok(());
+	}
+	let mut count = 0;
+	while player.cash >= player.upgrades.upgrade_cost(upgrade_selection) && count < amount {
+		if player.upgrades.is_max_upgrade(upgrade_selection) {
+			break;
+		}
+		let cost = player.upgrades.upgrade_cost(upgrade_selection);
+		player.cash -= cost;
+		match upgrade_selection {
+			"daily_time_reset" => {
+				player.upgrades.daily_time_reset += 1;
+				let now = Utc::now();
+				if player.daily_reset >= now {
+					player.daily_reset = player.daily_reset - Duration::hours(1);
+				}
+			},
+			"daily_reward_mult" => player.upgrades.daily_reward_mult += 1,
+			"daily_pack_amount" => {
+				player.upgrades.daily_pack_amount += 1;
+				player.daily_packs += 10;
+			},
+			"store_discount" => player.upgrades.store_discount += 1,
+			"tokenshop_discount" => player.upgrades.tokenshop_discount += 1,
+			"slot_reward_mult" => player.upgrades.slot_reward_mult += 1,
+			"daily_slot_amount" => {
+				player.upgrades.daily_slot_amount += 1;
+				player.daily_slots += 1;
+			},
+			"quiz_time_reset" => {
+				player.upgrades.quiz_time_reset += 1;
+				let now = Utc::now();
+				if player.quiz_reset >= now {
+					player.quiz_reset = player.quiz_reset - Duration::minutes(10);
+				}
+			},
+			"quiz_question_amount" => {
+				player.upgrades.quiz_question_amount += 1;
+				player.quiz_questions += 1;
+			},
+			"quiz_mult_limit" => player.upgrades.quiz_mult_limit += 1,
+			_ => ()
+		}
+		count += 1;
+	}
+	msg.reply(&ctx.http, format!("You bought {} **{}**", count, upgrades[(selection - 1) as usize])).await?;
+	update.insert("cash", player.cash);
+	update.insert("upgrades", player.upgrades.to_doc());
+	update.insert("daily_reset", player.daily_reset);
+	update.insert("daily_packs", player.daily_packs);
+	update.insert("daily_slots", player.daily_slots);
+	update.insert("quiz_reset", player.quiz_reset);
+	update.insert("quiz_questions", player.quiz_questions);
+	update_player(&player, doc! { "$set": update }).await;
+
+	Ok(())
+}
+
+#[command("lightmode")]
+#[aliases("lm")]
+async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
+	let mut player = get_player(msg.author.id.0).await;
+	player.light_mode = !player.light_mode;
+	msg.reply(&ctx.http, format!("Set light mode to **{}**", player.light_mode)).await?;
+	update_player(&player, doc! { "$set": {"light_mode": player.light_mode}}).await;
 
 	Ok(())
 }
