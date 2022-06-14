@@ -27,6 +27,7 @@ pub mod upgrade;
 pub mod quiz;
 pub mod binder;
 pub mod card_image;
+pub mod decks;
 
 use serenity::{
 	framework::{
@@ -2302,6 +2303,26 @@ async fn binder_missing(ctx: &Context, msg: &Message) -> CommandResult {
 
 	Ok(())
 }
+
+#[command("deck")]
+#[aliases("dk")]
+async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let content = "Here are the available deck commands:
+	**.decks** to see all your current decks.
+	**.deck view <name | slot #>** to view a specific deck
+	**.deck create [name - Default: _slot #_]** to create a new deck.
+	**.deck delete <name | slot #>** to delete a deck that you've created.
+	**.deck add <cardID:amount> <name | slot #>** to add cards to a deck.
+	**.deck remove <cardID:amount> <name | slot #>** to remove cards from a deck.";
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| m.content(content))
+		.await?;
+
+	Ok(())
+}
+
+#[]
 
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
