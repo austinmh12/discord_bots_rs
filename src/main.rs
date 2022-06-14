@@ -42,7 +42,8 @@ use commands::{
 		store::*,
 		binder::*,
 		slot::*,
-		quiz::*
+		quiz::*,
+		decks::*
 	}
 };
 

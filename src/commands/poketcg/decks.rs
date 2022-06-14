@@ -8,9 +8,36 @@ use mongodb::{
 	}, 
 	Collection
 };
-use serenity::{builder::CreateEmbed, utils::Colour};
+use serenity::{
+	framework::{
+		standard::{
+			macros::{
+				command
+			},
+			Args,
+			CommandResult
+		},
+	},
+	builder::{
+		CreateEmbed
+	},
+	model::{
+		channel::{
+			Message,
+		},
+	},
+	utils::{
+		Colour
+	},
+	prelude::*
+};
 
-use crate::commands::get_client;
+use crate::{
+	commands::get_client,
+	player::{
+		get_player
+	}
+};
 
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -85,4 +112,67 @@ pub async fn update_deck(deck: &Deck, update: Document) {
 		)
 		.await
 		.unwrap();
+}
+
+#[command("decks")]
+#[aliases("dks")]
+async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
+	let player = get_player(msg.author.id.0).await;
+	let decks = get_decks_by_player(player.discord_id).await;
+	match decks.len() {
+		0 => {
+			msg.reply(&ctx.http, "You don't have any decks! Use **.deck create <name>** to create one!").await?;
+		},
+		_ => () // Need to revamp set_paginated_embed to take Trait PaginatedEmbed + HasCards
+	}
+
+	Ok(())
+}
+
+#[command("view")]
+#[aliases("v")]
+async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("create")]
+#[aliases("c")]
+async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let deck_name = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name!").await?;
+		return Ok(());
+	}
+	let player = get_player(msg.author.id.0).await;
+
+	Ok(())
+}
+
+#[command("delete")]
+#[aliases("d")]
+async fn deck_delete(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("add")]
+#[aliases("a")]
+async fn deck_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("remove")]
+#[aliases("r")]
+async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
 }

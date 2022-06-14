@@ -11,12 +11,11 @@ use mongodb::{
 		Document
 	},
 };
-use convert_case::{Case, Casing};
-use std::{time::Duration as StdDuration, sync::Arc, cmp::Ordering, collections::HashMap};
+use std::{time::Duration as StdDuration, sync::Arc, collections::HashMap};
 pub mod card;
 use card::SEARCH_CARD_COMMAND;
 pub mod sets;
-use sets::{get_set, SEARCH_SET_COMMAND};
+use sets::{SEARCH_SET_COMMAND};
 pub mod packs;
 pub mod player;
 pub mod store;
@@ -30,6 +29,7 @@ pub mod quiz;
 pub mod binder;
 pub mod card_image;
 pub mod decks;
+use decks::*;
 
 use serenity::{
 	framework::{
@@ -49,9 +49,6 @@ use serenity::{
 			Message,
 			ReactionType
 		},
-	},
-	utils::{
-		Colour
 	},
 	prelude::*
 };
@@ -929,69 +926,6 @@ async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
 		.channel_id
 		.send_message(&ctx.http, |m| m.content(content))
 		.await?;
-
-	Ok(())
-}
-
-#[command("decks")]
-#[aliases("dks")]
-async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
-	let decks = decks::get_decks_by_player(player.discord_id).await;
-	match decks.len() {
-		0 => {
-			msg.reply(&ctx.http, "You don't have any decks! Use **.deck create <name>** to create one!").await?;
-		},
-		_ => () // Need to revamp set_paginated_embed to take Trait PaginatedEmbed + HasCards
-	}
-
-	Ok(())
-}
-
-#[command("view")]
-#[aliases("v")]
-async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
-
-	Ok(())
-}
-
-#[command("create")]
-#[aliases("c")]
-async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let deck_name = match args.find::<String>() {
-		Ok(x) => x,
-		Err(_) => String::from("")
-	};
-	if deck_name == String::from("") {
-		msg.reply(&ctx.http, "You didn't provide a deck name!").await?;
-		return Ok(());
-	}
-	let player = player::get_player(msg.author.id.0).await;
-
-	Ok(())
-}
-
-#[command("delete")]
-#[aliases("d")]
-async fn deck_delete(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
-
-	Ok(())
-}
-
-#[command("add")]
-#[aliases("a")]
-async fn deck_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
-
-	Ok(())
-}
-
-#[command("remove")]
-#[aliases("r")]
-async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
 
 	Ok(())
 }
