@@ -36,7 +36,9 @@ use crate::{
 	commands::get_client,
 	player::{
 		get_player
-	}
+	},
+	card::get_multiple_cards_by_id,
+	commands::poketcg::card_paginated_embeds
 };
 
 
@@ -135,7 +137,19 @@ async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("view")]
 #[aliases("v")]
 async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let deck_name = args.rest().to_lowercase();
+	let player = get_player(msg.author.id.0).await;
+	let deck = get_deck(player.discord_id, deck_name.clone()).await;
+	match deck {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You don't have a deck with that name.").await?;
+			return Ok(());
+		}
+	}
+	let deck = deck.unwrap();
+	let cards = get_multiple_cards_by_id(deck.cards).await;
+	card_paginated_embeds(ctx, msg, cards, player).await?;
 
 	Ok(())
 }
