@@ -38,7 +38,8 @@ use commands::{
 	poketcg::*,
 	poketcg::player::*,
 	poketcg::sets::*,
-	poketcg::store::*
+	poketcg::store::*,
+	poketcg::binder::*,
 };
 
 #[group]
