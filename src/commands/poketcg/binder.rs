@@ -1,10 +1,8 @@
 use mongodb::{
 	bson::{
 		doc,
-		oid::ObjectId,
 		Document
-	}, 
-	Collection
+	},
 };
 use serde::{Serialize, Deserialize};
 use super::{
@@ -27,9 +25,6 @@ use serenity::{
 			Args,
 			CommandResult
 		},
-	},
-	builder::{
-		CreateEmbed
 	},
 	model::{
 		channel::{

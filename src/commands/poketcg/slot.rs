@@ -15,7 +15,6 @@ use serenity::{
 	model::{
 		channel::{
 			Message,
-			ReactionType
 		},
 	},
 	utils::{
