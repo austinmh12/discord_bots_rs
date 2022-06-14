@@ -123,7 +123,10 @@ async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
 		0 => {
 			msg.reply(&ctx.http, "You don't have any decks! Use **.deck create <name>** to create one!").await?;
 		},
-		_ => () // Need to revamp set_paginated_embed to take Trait PaginatedEmbed + HasCards
+		_ => {
+			let content = decks.iter().map(|d| d.name.clone()).collect::<Vec<String>>().join("\n");
+			msg.reply(&ctx.http, content).await?;
+		} // Need to revamp set_paginated_embed to take Trait PaginatedEmbed + HasCards
 	}
 
 	Ok(())
@@ -140,10 +143,7 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[command("create")]
 #[aliases("c")]
 async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let deck_name = match args.find::<String>() {
-		Ok(x) => x.to_lowercase(),
-		Err(_) => String::from("")
-	};
+	let deck_name = args.rest().to_lowercase();
 	if deck_name == String::from("") {
 		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
 		return Ok(());
