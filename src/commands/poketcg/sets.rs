@@ -16,6 +16,29 @@ use mongodb::{
 	Collection
 };
 use serde::{Serialize, Deserialize};
+use serenity::{
+	framework::{
+		standard::{
+			macros::{
+				command
+			},
+			Args,
+			CommandResult
+		},
+	},
+	builder::{
+		CreateEmbed
+	},
+	model::{
+		channel::{
+			Message,
+		},
+	},
+	utils::{
+		Colour
+	},
+	prelude::*
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Set {
@@ -190,4 +213,40 @@ async fn get_sets_from_cache() -> Vec<Set> {
 		.unwrap();
 
 	sets
+}
+
+#[command("set")]
+async fn search_set(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	let search_str = args.rest();
+	let sets = get_sets_with_query(&format!("{}", search_str))
+		.await;
+	if sets.len() == 0 {
+		msg.reply(&ctx.http, "No sets found.").await?;
+	} else {
+		set_paginated_embeds(ctx, msg, sets).await?;
+	}
+
+	Ok(())
+}
+
+#[command("sets")]
+async fn sets_command(ctx: &Context, msg: &Message) -> CommandResult {
+	let sets = get_sets().await;
+	set_paginated_embeds(ctx, msg, sets).await?;
+
+	Ok(())
+}
+
+#[command("set")]
+async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	let set_id = args.rest();
+	let set = get_set(set_id).await;
+	match set {
+		Some(x) => set_paginated_embeds(ctx, msg, vec![x]).await?,
+		None => {
+			msg.reply(&ctx.http, "No set found with that id.").await?;
+		}
+	}
+
+	Ok(())
 }

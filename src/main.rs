@@ -36,7 +36,9 @@ mod commands;
 
 use commands::{
 	poketcg::*,
-	poketcg::player::*
+	poketcg::player::*,
+	poketcg::sets::*,
+	poketcg::store::*
 };
 
 #[group]

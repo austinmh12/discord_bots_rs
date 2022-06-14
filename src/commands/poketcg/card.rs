@@ -18,6 +18,29 @@ use chrono::{
 };
 use tokio::task;
 use crate::{sets::Set, commands::get_client};
+use serenity::{
+	framework::{
+		standard::{
+			macros::{
+				command
+			},
+			Args,
+			CommandResult
+		},
+	},
+	builder::{
+		CreateEmbed
+	},
+	model::{
+		channel::{
+			Message,
+		},
+	},
+	utils::{
+		Colour
+	},
+	prelude::*
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Card {
@@ -377,4 +400,19 @@ pub async fn update_cached_cards(cards: Vec<Card>) {
 				.unwrap();
 		}))
 	}
+}
+
+#[command("card")]
+async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+	let player = player::get_player(msg.author.id.0).await;
+	let search_str = args.rest();
+	let cards = get_cards_with_query(&format!("{}", search_str))
+		.await;
+	if cards.len() == 0 {
+		msg.reply(&ctx.http, "No cards found.").await?;
+	} else {
+		card_paginated_embeds(ctx, msg, cards, player).await?;
+	}
+
+	Ok(())
 }
