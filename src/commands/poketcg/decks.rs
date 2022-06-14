@@ -44,7 +44,7 @@ async fn get_deck_collection() -> Collection<Deck> {
 	collection
 }
 
-async fn add_deck(deck: &Deck) {
+pub async fn add_deck(deck: &Deck) {
 	let deck_collection = get_deck_collection().await;
 	deck_collection
 		.insert_one(deck, None)
@@ -52,7 +52,7 @@ async fn add_deck(deck: &Deck) {
 		.unwrap();
 }
 
-async fn get_decks_by_player(discord_id: i64) -> Vec<Deck> {
+pub async fn get_decks_by_player(discord_id: i64) -> Vec<Deck> {
 	let deck_collection = get_deck_collection().await;
 	let decks = deck_collection
 		.find(doc! { "discord_id": discord_id }, None)
@@ -65,7 +65,7 @@ async fn get_decks_by_player(discord_id: i64) -> Vec<Deck> {
 	decks
 }
 
-async fn get_deck(discord_id: i64, name: String) -> Option<Deck> {
+pub async fn get_deck(discord_id: i64, name: String) -> Option<Deck> {
 	let deck_collection = get_deck_collection().await;
 	let deck = deck_collection
 		.find_one(doc! { "discord_id": discord_id, "name": name }, None)
@@ -75,7 +75,7 @@ async fn get_deck(discord_id: i64, name: String) -> Option<Deck> {
 	deck
 }
 
-async fn update_deck(deck: &Deck, update: Document) {
+pub async fn update_deck(deck: &Deck, update: Document) {
 	let deck_collection = get_deck_collection().await;
 	deck_collection
 		.update_one(

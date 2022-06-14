@@ -2326,7 +2326,14 @@ async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("decks")]
 #[aliases("dks")]
 async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
-
+	let player = player::get_player(msg.author.id.0).await;
+	let decks = decks::get_decks_by_player(player.discord_id).await;
+	match decks.len() {
+		0 => {
+			msg.reply(&ctx.http, "You don't have any decks! Use **.deck create <name>** to create one!").await?;
+		},
+		_ => () // Need to revamp set_paginated_embed to take Trait PaginatedEmbed + HasCards
+	}
 
 	Ok(())
 }

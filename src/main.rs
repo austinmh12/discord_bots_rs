@@ -57,6 +57,8 @@ use commands::{
 	quiz_command,
 	lightmode_command,
 	binder_main,
+	deck_main,
+	decks_command,
 )]
 struct PokeTCG;
 
