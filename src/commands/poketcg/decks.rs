@@ -141,14 +141,24 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[aliases("c")]
 async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let deck_name = match args.find::<String>() {
-		Ok(x) => x,
+		Ok(x) => x.to_lowercase(),
 		Err(_) => String::from("")
 	};
 	if deck_name == String::from("") {
-		msg.reply(&ctx.http, "You didn't provide a deck name!").await?;
+		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
 		return Ok(());
 	}
 	let player = get_player(msg.author.id.0).await;
+	match get_deck(player.discord_id, deck_name.clone()).await {
+		Some(_) => {
+			msg.reply(&ctx.http, "You already have a deck with that name!").await?;
+			return Ok(());
+		},
+		None => ()
+	}
+	let deck = Deck::empty(player.discord_id, deck_name.clone());
+	add_deck(&deck).await;
+	msg.reply(&ctx.http, format!("You created the deck **{}**", deck_name)).await?;
 
 	Ok(())
 }
