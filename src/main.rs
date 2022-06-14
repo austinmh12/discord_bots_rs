@@ -40,6 +40,7 @@ use commands::{
 	poketcg::sets::*,
 	poketcg::store::*,
 	poketcg::binder::*,
+	poketcg::slot::*,
 };
 
 #[group]
