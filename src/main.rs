@@ -35,12 +35,15 @@ use serenity::framework::standard::{
 mod commands;
 
 use commands::{
-	poketcg::*,
-	poketcg::player::*,
-	poketcg::sets::*,
-	poketcg::store::*,
-	poketcg::binder::*,
-	poketcg::slot::*,
+	poketcg::{
+		*,
+		player::*,
+		sets::*,
+		store::*,
+		binder::*,
+		slot::*,
+		quiz::*
+	}
 };
 
 #[group]
