@@ -2349,7 +2349,15 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[command("create")]
 #[aliases("c")]
 async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let deck_name = match args.find::<String>() {
+		Ok(x) => x,
+		Err(_) => String::from("")
+	};
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name!").await?;
+		return Ok(());
+	}
+	let player = player::get_player(msg.author.id.0).await;
 
 	Ok(())
 }
