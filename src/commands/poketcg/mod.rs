@@ -2306,6 +2306,7 @@ async fn binder_missing(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("deck")]
 #[aliases("dk")]
+#[sub_commands(deck_view, deck_create, deck_delete, deck_add, deck_remove)]
 async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let content = "Here are the available deck commands:
 	**.decks** to see all your current decks.
@@ -2322,7 +2323,53 @@ async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-#[]
+#[command("decks")]
+#[aliases("dks")]
+async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("view")]
+#[aliases("v")]
+async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("create")]
+#[aliases("c")]
+async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("delete")]
+#[aliases("d")]
+async fn deck_delete(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("add")]
+#[aliases("a")]
+async fn deck_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
+
+#[command("remove")]
+#[aliases("r")]
+async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	
+
+	Ok(())
+}
 
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
