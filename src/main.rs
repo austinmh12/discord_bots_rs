@@ -36,6 +36,7 @@ mod commands;
 
 use commands::{
 	poketcg::*,
+	poketcg::player::*
 };
 
 #[group]
