@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use futures::TryStreamExt;
 use serde::{Serialize, Deserialize};
 use mongodb::{
@@ -48,7 +50,7 @@ pub struct Deck {
 	id: Option<ObjectId>,
 	pub discord_id: i64,
 	pub name: String,
-	pub cards: Vec<String>
+	pub cards: HashMap<String, i64>
 }
 
 impl Deck {
@@ -57,7 +59,7 @@ impl Deck {
 			id: None,
 			discord_id,
 			name,
-			cards: vec![]
+			cards: HashMap::new()
 		}
 	}
 
