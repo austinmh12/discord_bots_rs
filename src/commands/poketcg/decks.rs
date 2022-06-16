@@ -50,7 +50,8 @@ pub struct Deck {
 	id: Option<ObjectId>,
 	pub discord_id: i64,
 	pub name: String,
-	pub cards: HashMap<String, i64>
+	pub cards: HashMap<String, i64>,
+	pub display_card: String
 }
 
 impl Deck {
@@ -59,7 +60,8 @@ impl Deck {
 			id: None,
 			discord_id,
 			name,
-			cards: HashMap::new()
+			cards: HashMap::new(),
+			display_card: "".into()
 		}
 	}
 
@@ -141,6 +143,9 @@ async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
 async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 	let deck_name = args.rest().to_lowercase();
 	let player = get_player(msg.author.id.0).await;
+	if deck_name == String::from("") {
+		return decks_command(ctx, msg, args).await;
+	}
 	let deck = get_deck(player.discord_id, deck_name.clone()).await;
 	match deck {
 		Some(_) => (),
@@ -150,7 +155,7 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		}
 	}
 	let deck = deck.unwrap();
-	let cards = get_multiple_cards_by_id(deck.cards).await;
+	let cards = get_multiple_cards_by_id(deck.cards.keys().into_iter().map(|k| k.into()).collect::<Vec<String>>()).await;
 	card_paginated_embeds(ctx, msg, cards, player).await?;
 
 	Ok(())

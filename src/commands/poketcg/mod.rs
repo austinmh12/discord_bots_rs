@@ -917,11 +917,14 @@ async fn trade_main(ctx: &Context, msg: &Message) -> CommandResult {
 async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let content = "Here are the available deck commands:
 	**.decks** to see all your current decks.
-	**.deck view <name | slot #>** to view a specific deck
+	**.deck view <name>** to view a specific deck
 	**.deck create <name>** to create a new deck.
 	**.deck delete <name>** to delete a deck that you've created.
 	**.deck add <name> [<cardID:amount>/...]** to add cards to a deck.
-	**.deck remove <name> [<cardID:amount>/...]** to remove cards from a deck.";
+	**.deck remove <name> [<cardID:amount>/...]** to remove cards from a deck.
+	**.deck energy add <name> <type> [amount - Default: 1]** to add a basic energy to a deck.
+	**.deck energy remove <name> <type> [amount - Default: 1]** to remove a basic energy from a deck.
+	**.deck display <name> <cardID>** to set the display card of the deck";
 	msg
 		.channel_id
 		.send_message(&ctx.http, |m| m.content(content))
