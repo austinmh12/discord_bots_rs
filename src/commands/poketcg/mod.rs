@@ -52,6 +52,7 @@ use serenity::{
 	},
 	prelude::*
 };
+use async_trait::async_trait;
 
 use serde_json;
 use rand::{
@@ -157,221 +158,17 @@ pub trait HasSet {
 	fn set(&self) -> sets::Set;
 }
 
+#[async_trait]
+pub trait Scrollable {
+	async fn scroll_through(&self, ctx: &Context, msg: &Message) -> Result<(), String>;
+}
+
 enum SellMode {
 	Under(f64),
 	Duplicates,
 	All,
 	BySet(String),
 }
-
-// paginated embeds to search through cards
-async fn card_paginated_embeds<T:CardInfo + PaginateEmbed + HasSet>(ctx: &Context, msg: &Message, cards: Vec<T>, mut player: player::Player) -> Result<(), String> {
-	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
-	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-	let save_icon = ReactionType::try_from("💾").expect("No floppy disk");
-	let binder_icon = ReactionType::try_from(":pokeball:972277627077423124").expect("No pokeball");
-	let embeds = cards.iter().map(|e| e.embed()).collect::<Vec<_>>();
-	let mut idx: i16 = 0;
-	let mut content = String::from("");
-	let mut message = msg
-		.channel_id
-		.send_message(&ctx.http, |m| {
-			let mut cur_embed = embeds[idx as usize].clone();
-			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-			}
-			let mut extra_desc = String::from("");
-			if &player.current_binder.set == &cards[idx as usize].set().id() {
-				match player.current_binder.cards.contains(&cards[idx as usize].card_id()) {
-					true => extra_desc.push_str("<:pokeball:972277627077423124> In your binder\n"),
-					false => extra_desc.push_str("<:GameCorner:967591653135228988> Not in your binder\n")
-				}
-			}
-			if player.savelist.contains(&cards[idx as usize].card_id()) {
-				extra_desc.push_str(":white_check_mark: In your savelist");
-			}
-			cur_embed.description(format!("{}\n{}", &cards[idx as usize].description(), extra_desc));
-			m.set_embed(cur_embed);
-
-			if embeds.len() > 1 {
-				m.reactions([left_arrow.clone(), right_arrow.clone(), save_icon.clone(), binder_icon.clone()]);
-			} else {
-				m.reactions([save_icon.clone(), binder_icon.clone()]);
-			}
-
-			m			
-		}).await.unwrap();
-	
-	loop {
-		if embeds.len() <= 1 {
-			break; // Exit before anything. Probably a way to do this before entering.
-		}
-		if let Some(reaction) = &message
-			.await_reaction(&ctx)
-			.timeout(StdDuration::from_secs(90))
-			.author_id(msg.author.id)
-			.removed(true)
-			.await
-		{
-			let emoji = &reaction.as_inner_ref().emoji;
-			match emoji.as_data().as_str() {
-				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
-				"➡️" => idx = (idx + 1) % embeds.len() as i16,
-				"💾" => {
-					let card_id = &cards[idx as usize].card_id();
-					if player.savelist.clone().contains(&card_id) {
-						let index = player.savelist.clone().iter().position(|c| c == card_id).unwrap();
-						player.savelist.remove(index);
-						content = format!("**{}** removed from your savelist!", &cards[idx as usize].card_name());
-					} else {
-						player.savelist.push(card_id.clone());
-						content = format!("**{}** added to your savelist!", &cards[idx as usize].card_name());
-					}
-					player::update_player(&player, doc! { "$set": { "savelist": player.savelist.clone()}}).await;
-				},
-				"pokeball:972277627077423124" => {
-					let card_id = cards[idx as usize].card_id().clone();
-					if player.current_binder.cards.contains(&card_id) {
-						content = format!("**{}** is already in your binder!", &cards[idx as usize].card_name());
-					} else if &cards[idx as usize].set().id() != &player.current_binder.set {
-						content = String::from("This card doesn't go in your binder!");
-					} else {
-						let current_binder_set = sets::get_set(&player.current_binder.set).await.unwrap();
-						let mut player_update = Document::new();
-						*player.cards.entry(cards[idx as usize].card_id()).or_insert(0) -= 1;
-						if *player.cards.entry(cards[idx as usize].card_id()).or_insert(0) == 0 {
-							player.cards.remove(&card_id);
-						}
-						let mut player_cards = Document::new();
-						for (crd, amt) in player.cards.iter() {
-							player_cards.insert(crd, amt);
-						}
-						player_update.insert("cards", player_cards);
-						player.current_binder.cards.push(cards[idx as usize].card_id().clone());
-						if player.current_binder.is_complete().await {
-							player.completed_binders.push(player.current_binder.set);
-							player.current_binder = binder::Binder::empty();
-							player_update.insert("completed_binders", player.completed_binders.clone());
-							content = format!("You completed the **{}** binder!", current_binder_set.name);
-						} else {
-							content = format!("You added **{}** to your binder!", &cards[idx as usize].card_name());
-						}
-						player_update.insert("current_binder", player.current_binder.to_doc());
-						let mut player_cards = Document::new();
-						for (crd, amt) in player.cards.iter() {
-							player_cards.insert(crd, amt);
-						}
-						player_update.insert("cards", player_cards);
-						player::update_player(&player, doc! { "$set": player_update }).await;
-					}
-				}
-				_ => {
-					println!("{}", &emoji.as_data().as_str());
-					continue
-				}
-			};
-		} else {
-			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
-			break;
-		}
-		message.edit(&ctx, |m| {
-			let mut cur_embed = embeds[idx as usize].clone();
-			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-			}
-			let mut extra_desc = String::from("");
-			if &player.current_binder.set == &cards[idx as usize].set().id() {
-				match player.current_binder.cards.contains(&cards[idx as usize].card_id()) {
-					true => extra_desc.push_str("<:pokeball:972277627077423124> In your binder\n"),
-					false => extra_desc.push_str("<:GameCorner:967591653135228988> Not in your binder\n")
-				}
-			}
-			if player.savelist.contains(&cards[idx as usize].card_id()) {
-				extra_desc.push_str(":white_check_mark: In your savelist");
-			}
-			cur_embed.description(format!("{}\n{}", &cards[idx as usize].description(), extra_desc));
-			m.set_embed(cur_embed);
-			m.content(content);
-
-			m
-		}).await.unwrap();
-
-		content = String::from("");
-	}
-
-	Ok(())
-}
-
-// async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Set>) -> Result<(), String> {
-// 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
-// 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-// 	let pokemon_card = ReactionType::try_from("<:poketcg:965802882433703936>").expect("No TCG Back");
-// 	let player = player::get_player(msg.author.id.0).await;
-// 	let sets = &embeds.clone();
-// 	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
-// 	let mut idx: i16 = 0;
-// 	let mut set = sets.into_iter().nth(idx as usize).unwrap();
-// 	let mut set_avg_price = get_set_average_price(set).await;
-// 	let mut message = msg
-// 		.channel_id
-// 		.send_message(&ctx.http, |m| {
-// 			let mut cur_embed = embeds[idx as usize].clone();
-// 			if embeds.len() > 1 {
-// 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-// 			}
-// 			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
-// 			m.set_embed(cur_embed);
-
-// 			if embeds.len() > 1 {
-// 				m.reactions([left_arrow.clone(), right_arrow.clone(), pokemon_card.clone()]);
-// 			} else {
-// 				m.reactions([pokemon_card.clone()]);
-// 			}
-
-// 			m			
-// 		}).await.unwrap();
-	
-// 	loop {
-// 		if let Some(reaction) = &message
-// 			.await_reaction(&ctx)
-// 			.timeout(StdDuration::from_secs(90))
-// 			.author_id(msg.author.id)
-// 			.removed(true)
-// 			.await
-// 		{
-// 			let emoji = &reaction.as_inner_ref().emoji;
-// 			match emoji.as_data().as_str() {
-// 				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
-// 				"➡️" => idx = (idx + 1) % embeds.len() as i16,
-// 				"poketcg:965802882433703936" => {
-// 					let set = sets.into_iter().nth(idx as usize).unwrap();
-// 					let cards = card::get_cards_by_set(set).await;
-// 					message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
-					
-// 					card_paginated_embeds(ctx, msg, cards, player.clone()).await?
-// 				},
-// 				_ => continue
-// 			};
-// 		} else {
-// 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
-// 			break;
-// 		}
-// 		set = sets.into_iter().nth(idx as usize).unwrap();
-// 		set_avg_price = get_set_average_price(set).await;
-// 		message.edit(&ctx, |m| {
-// 			let mut cur_embed = embeds[idx as usize].clone();
-// 			if embeds.len() > 1 {
-// 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-// 			}
-// 			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
-// 			m.set_embed(cur_embed);
-
-// 			m
-// 		}).await.unwrap();
-// 	}
-
-// 	Ok(())
-// }
 
 async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::Player, missing_only: bool) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
@@ -835,7 +632,7 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 		}
 		update.insert("cards", player_cards);
 		player::update_player(&player, doc! { "$set": update }).await;
-		card_paginated_embeds(ctx, msg, pack.cards, player).await?;
+		pack.cards.scroll_through(ctx, msg).await?;
 	} else {
 		msg.reply(&ctx.http, "You don't have that pack").await?;
 	}
@@ -951,7 +748,7 @@ async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 		Err(_) => 1usize
 	};
 	let pack = packs::Pack::from_set_id(set_id.as_str(), amount).await.unwrap();
-	card_paginated_embeds(ctx, msg, pack.cards, player).await.unwrap();
+	pack.cards.scroll_through(ctx, msg).await?;
 
 	Ok(())
 }

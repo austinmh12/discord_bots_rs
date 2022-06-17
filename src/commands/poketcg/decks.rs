@@ -41,7 +41,7 @@ use crate::{
 		get_player
 	},
 	card::get_multiple_cards_by_id,
-	commands::poketcg::{card_paginated_embeds},
+	commands::poketcg::Scrollable,
 };
 
 
@@ -164,9 +164,8 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	}
 	let deck = deck.unwrap();
 	let cards: Vec<super::card::Card> = vec![];
+	cards.scroll_through(ctx, msg).await?;
 	
-	card_paginated_embeds(ctx, msg, cards, player).await?;
-
 	Ok(())
 }
 

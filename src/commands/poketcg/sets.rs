@@ -108,6 +108,81 @@ impl Idable for Set {
 	}
 }
 
+#[async_trait]
+impl Scrollable for Vec<Set> {
+	async fn scroll_through(&self, ctx: &Context, msg: &Message) -> Result<(), String> {
+		let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
+		let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
+		let pokemon_card = ReactionType::try_from("<:poketcg:965802882433703936>").expect("No TCG Back");
+		let sets = &self.clone();
+		let embeds = self.iter().map(|e| e.embed()).collect::<Vec<_>>();
+		let mut idx: i16 = 0;
+		let mut set = sets.into_iter().nth(idx as usize).unwrap();
+		let mut set_avg_price = super::get_set_average_price(set).await;
+		let mut message = msg
+			.channel_id
+			.send_message(&ctx.http, |m| {
+				let mut cur_embed = embeds[idx as usize].clone();
+				if embeds.len() > 1 {
+					cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+				}
+				cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
+				m.set_embed(cur_embed);
+
+				if embeds.len() > 1 {
+					m.reactions([left_arrow.clone(), right_arrow.clone(), pokemon_card.clone()]);
+				} else {
+					m.reactions([pokemon_card.clone()]);
+				}
+
+				m			
+			}).await.unwrap();
+		
+		loop {
+			if let Some(reaction) = &message
+				.await_reaction(&ctx)
+				.timeout(StdDuration::from_secs(90))
+				.author_id(msg.author.id)
+				.removed(true)
+				.await
+			{
+				let emoji = &reaction.as_inner_ref().emoji;
+				match emoji.as_data().as_str() {
+					"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
+					"➡️" => idx = (idx + 1) % embeds.len() as i16,
+					"poketcg:965802882433703936" => {
+						let set = sets.into_iter().nth(idx as usize).unwrap();
+						let cards = card::get_cards_by_set(set).await;
+						message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+						
+						// Skip for now
+						cards.scroll_through(ctx, msg).await?
+						// card_paginated_embeds(ctx, msg, cards, player.clone()).await?
+					},
+					_ => continue
+				};
+			} else {
+				message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+				break;
+			}
+			set = sets.into_iter().nth(idx as usize).unwrap();
+			set_avg_price = get_set_average_price(set).await;
+			message.edit(&ctx, |m| {
+				let mut cur_embed = embeds[idx as usize].clone();
+				if embeds.len() > 1 {
+					cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+				}
+				cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
+				m.set_embed(cur_embed);
+
+				m
+			}).await.unwrap();
+		}
+
+		Ok(())
+	}
+}
+
 pub async fn get_sets() -> Vec<Set> {
 	let mut ret = vec![];
 	let cached_sets = get_sets_from_cache().await;
@@ -253,83 +328,4 @@ async fn set_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	}
 
 	Ok(())
-}
-
-#[async_trait]
-trait Scrollable {
-	async fn scroll_through(&self, ctx: &Context, msg: &Message) -> Result<(), String>;
-}
-
-#[async_trait]
-impl Scrollable for Vec<Set> {
-	async fn scroll_through(&self, ctx: &Context, msg: &Message) -> Result<(), String> {
-		let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
-		let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-		let pokemon_card = ReactionType::try_from("<:poketcg:965802882433703936>").expect("No TCG Back");
-		let sets = &self.clone();
-		let embeds = self.iter().map(|e| e.embed()).collect::<Vec<_>>();
-		let mut idx: i16 = 0;
-		let mut set = sets.into_iter().nth(idx as usize).unwrap();
-		let mut set_avg_price = super::get_set_average_price(set).await;
-		let mut message = msg
-			.channel_id
-			.send_message(&ctx.http, |m| {
-				let mut cur_embed = embeds[idx as usize].clone();
-				if embeds.len() > 1 {
-					cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-				}
-				cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
-				m.set_embed(cur_embed);
-
-				if embeds.len() > 1 {
-					m.reactions([left_arrow.clone(), right_arrow.clone(), pokemon_card.clone()]);
-				} else {
-					m.reactions([pokemon_card.clone()]);
-				}
-
-				m			
-			}).await.unwrap();
-		
-		loop {
-			if let Some(reaction) = &message
-				.await_reaction(&ctx)
-				.timeout(StdDuration::from_secs(90))
-				.author_id(msg.author.id)
-				.removed(true)
-				.await
-			{
-				let emoji = &reaction.as_inner_ref().emoji;
-				match emoji.as_data().as_str() {
-					"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
-					"➡️" => idx = (idx + 1) % embeds.len() as i16,
-					"poketcg:965802882433703936" => {
-						let set = sets.into_iter().nth(idx as usize).unwrap();
-						let cards = card::get_cards_by_set(set).await;
-						message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
-						
-						// Skip for now
-						// card_paginated_embeds(ctx, msg, cards, player.clone()).await?
-					},
-					_ => continue
-				};
-			} else {
-				message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
-				break;
-			}
-			set = sets.into_iter().nth(idx as usize).unwrap();
-			set_avg_price = get_set_average_price(set).await;
-			message.edit(&ctx, |m| {
-				let mut cur_embed = embeds[idx as usize].clone();
-				if embeds.len() > 1 {
-					cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-				}
-				cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
-				m.set_embed(cur_embed);
-
-				m
-			}).await.unwrap();
-		}
-
-		Ok(())
-	}
 }

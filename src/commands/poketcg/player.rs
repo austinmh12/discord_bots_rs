@@ -53,7 +53,6 @@ use super::{
 	binder::Binder,
 	RARITY_ORDER,
 	player_card,
-	card_paginated_embeds,
 	timers,
 	HasSet,
 	Idable,
@@ -61,6 +60,7 @@ use super::{
 		get_multiple_cards_by_id,
 		get_card
 	},
+	Scrollable
 };
 
 fn def_10() -> i64 {
@@ -311,7 +311,7 @@ async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		if sorting.contains("-") {
 			cards.reverse();
 		}
-		card_paginated_embeds(ctx, msg, cards, player).await?;
+		cards.scroll_through(ctx, msg).await?;
 	}
 
 	Ok(())
@@ -469,7 +469,7 @@ async fn player_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		if sorting.contains("-") {
 			cards.reverse();
 		}
-		card_paginated_embeds(ctx, msg, cards, player).await?;
+		cards.scroll_through(ctx, msg).await?;
 	}
 
 	Ok(())
@@ -728,7 +728,7 @@ async fn savelist_main(ctx: &Context, msg: &Message) -> CommandResult {
 		msg.reply(&ctx.http, "You have no cards in your savelist! Use **.savelist add <card id>** to add a card\nOr use the :floppy_disk: emoji when scrolling through cards!").await?;
 	} else {
 		cards.sort_by(|c1, c2| c1.name.cmp(&c2.name));
-		card_paginated_embeds(ctx, msg, cards, player).await?;
+		cards.scroll_through(ctx, msg).await?;
 	}
 
 	Ok(())
