@@ -302,76 +302,76 @@ async fn card_paginated_embeds<T:CardInfo + PaginateEmbed + HasSet>(ctx: &Contex
 	Ok(())
 }
 
-async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Set>) -> Result<(), String> {
-	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
-	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
-	let pokemon_card = ReactionType::try_from("<:poketcg:965802882433703936>").expect("No TCG Back");
-	let player = player::get_player(msg.author.id.0).await;
-	let sets = &embeds.clone();
-	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
-	let mut idx: i16 = 0;
-	let mut set = sets.into_iter().nth(idx as usize).unwrap();
-	let mut set_avg_price = get_set_average_price(set).await;
-	let mut message = msg
-		.channel_id
-		.send_message(&ctx.http, |m| {
-			let mut cur_embed = embeds[idx as usize].clone();
-			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-			}
-			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
-			m.set_embed(cur_embed);
+// async fn set_paginated_embeds(ctx: &Context, msg: &Message, embeds: Vec<sets::Set>) -> Result<(), String> {
+// 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
+// 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
+// 	let pokemon_card = ReactionType::try_from("<:poketcg:965802882433703936>").expect("No TCG Back");
+// 	let player = player::get_player(msg.author.id.0).await;
+// 	let sets = &embeds.clone();
+// 	let embeds = embeds.iter().map(|e| e.embed()).collect::<Vec<_>>();
+// 	let mut idx: i16 = 0;
+// 	let mut set = sets.into_iter().nth(idx as usize).unwrap();
+// 	let mut set_avg_price = get_set_average_price(set).await;
+// 	let mut message = msg
+// 		.channel_id
+// 		.send_message(&ctx.http, |m| {
+// 			let mut cur_embed = embeds[idx as usize].clone();
+// 			if embeds.len() > 1 {
+// 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+// 			}
+// 			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
+// 			m.set_embed(cur_embed);
 
-			if embeds.len() > 1 {
-				m.reactions([left_arrow.clone(), right_arrow.clone(), pokemon_card.clone()]);
-			} else {
-				m.reactions([pokemon_card.clone()]);
-			}
+// 			if embeds.len() > 1 {
+// 				m.reactions([left_arrow.clone(), right_arrow.clone(), pokemon_card.clone()]);
+// 			} else {
+// 				m.reactions([pokemon_card.clone()]);
+// 			}
 
-			m			
-		}).await.unwrap();
+// 			m			
+// 		}).await.unwrap();
 	
-	loop {
-		if let Some(reaction) = &message
-			.await_reaction(&ctx)
-			.timeout(StdDuration::from_secs(90))
-			.author_id(msg.author.id)
-			.removed(true)
-			.await
-		{
-			let emoji = &reaction.as_inner_ref().emoji;
-			match emoji.as_data().as_str() {
-				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
-				"➡️" => idx = (idx + 1) % embeds.len() as i16,
-				"poketcg:965802882433703936" => {
-					let set = sets.into_iter().nth(idx as usize).unwrap();
-					let cards = card::get_cards_by_set(set).await;
-					message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+// 	loop {
+// 		if let Some(reaction) = &message
+// 			.await_reaction(&ctx)
+// 			.timeout(StdDuration::from_secs(90))
+// 			.author_id(msg.author.id)
+// 			.removed(true)
+// 			.await
+// 		{
+// 			let emoji = &reaction.as_inner_ref().emoji;
+// 			match emoji.as_data().as_str() {
+// 				"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
+// 				"➡️" => idx = (idx + 1) % embeds.len() as i16,
+// 				"poketcg:965802882433703936" => {
+// 					let set = sets.into_iter().nth(idx as usize).unwrap();
+// 					let cards = card::get_cards_by_set(set).await;
+// 					message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 					
-					card_paginated_embeds(ctx, msg, cards, player.clone()).await?
-				},
-				_ => continue
-			};
-		} else {
-			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
-			break;
-		}
-		set = sets.into_iter().nth(idx as usize).unwrap();
-		set_avg_price = get_set_average_price(set).await;
-		message.edit(&ctx, |m| {
-			let mut cur_embed = embeds[idx as usize].clone();
-			if embeds.len() > 1 {
-				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
-			}
-			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
-			m.set_embed(cur_embed);
+// 					card_paginated_embeds(ctx, msg, cards, player.clone()).await?
+// 				},
+// 				_ => continue
+// 			};
+// 		} else {
+// 			message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+// 			break;
+// 		}
+// 		set = sets.into_iter().nth(idx as usize).unwrap();
+// 		set_avg_price = get_set_average_price(set).await;
+// 		message.edit(&ctx, |m| {
+// 			let mut cur_embed = embeds[idx as usize].clone();
+// 			if embeds.len() > 1 {
+// 				cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+// 			}
+// 			cur_embed.description(format!("{}\n**Avg Sell Value:** ${:.2}", set.description(), set_avg_price));
+// 			m.set_embed(cur_embed);
 
-			m
-		}).await.unwrap();
-	}
+// 			m
+// 		}).await.unwrap();
+// 	}
 
-	Ok(())
-}
+// 	Ok(())
+// }
 
 async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::Player, missing_only: bool) -> Result<(), String> {
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");

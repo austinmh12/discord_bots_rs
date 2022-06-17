@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use async_trait::async_trait;
 use futures::TryStreamExt;
 use serde::{Serialize, Deserialize};
 use mongodb::{
@@ -40,7 +41,7 @@ use crate::{
 		get_player
 	},
 	card::get_multiple_cards_by_id,
-	commands::poketcg::card_paginated_embeds
+	commands::poketcg::{card_paginated_embeds},
 };
 
 
@@ -66,7 +67,14 @@ impl Deck {
 	}
 
 	pub fn is_valid(&self) -> bool {
-		self.cards.len() == 60 as usize
+		self.cards.values().sum::<i64>() == 60
+	}
+
+	pub async fn get_cards(&self) -> Vec<super::card::Card> {
+		let card_ids = self.cards.keys().into_iter().map(|k| k.into()).collect::<Vec<String>>();
+		let cards = get_multiple_cards_by_id(card_ids).await;
+
+		cards
 	}
 }
 
@@ -155,7 +163,8 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		}
 	}
 	let deck = deck.unwrap();
-	let cards = get_multiple_cards_by_id(deck.cards.keys().into_iter().map(|k| k.into()).collect::<Vec<String>>()).await;
+	let cards: Vec<super::card::Card> = vec![];
+	
 	card_paginated_embeds(ctx, msg, cards, player).await?;
 
 	Ok(())
