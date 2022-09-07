@@ -165,7 +165,7 @@ async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("deck")]
 #[aliases("dk")]
-#[sub_commands(deck_view, deck_create, deck_delete, deck_add, deck_remove)]
+#[sub_commands(deck_view, deck_create, deck_delete, deck_add, deck_remove, deck_energy_main, deck_display)]
 async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let content = "Here are the available deck commands:
 	**.decks** to see all your current decks.
@@ -267,6 +267,9 @@ async fn deck_delete(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 	}
 	// Player said "y" to get here
 	for (crd, amt) in deck.cards.iter() {
+		if vec!["col1-94", "col1-93", "col1-89", "col1-88", "col1-91", "col1-95", "col1-92", "col1-90"].contains(&crd.as_str()) {
+			continue;
+		}
 		*player.cards.entry(crd.clone()).or_insert(0) += amt;
 	}
 	// Update the player
@@ -323,6 +326,7 @@ async fn deck_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		}
 		*deck.cards.entry(card_id.clone()).or_insert(0) += amt;
 	}
+	player.cards.retain(|_, v| *v > 0);
 	// Update the player
 	let mut player_update = Document::new();
 	let mut player_cards_update = Document::new();
@@ -375,12 +379,16 @@ async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 		return Ok(());
 	}
 	for (card_id, amt) in deckcards.cards {
+		if vec!["col1-94", "col1-93", "col1-89", "col1-88", "col1-91", "col1-95", "col1-92", "col1-90"].contains(&card_id.as_str()) {
+			continue;
+		}
 		*deck.cards.entry(card_id.clone()).or_insert(0) -= amt;
 		if *deck.cards.entry(card_id.clone()).or_insert(0) == 0 {
 			deck.cards.remove(&card_id);
 		}
 		*player.cards.entry(card_id.clone()).or_insert(0) += amt;
 	}
+	deck.cards.retain(|_, v| *v > 0);
 	// Update the player
 	let mut player_update = Document::new();
 	let mut player_cards_update = Document::new();
@@ -413,19 +421,16 @@ async fn deck_energy_main(ctx: &Context, msg: &Message) -> CommandResult {
 	**.deck energy remove <name> <type> [amount - Default: 1]** to remove a basic energy from a deck.
 
 	Energy types are:
-		- Colorless/Normal
-		- Darkness/Dark
-		- Dragon
-		- Fairy
-		- Fighting
-		- Fire
-		- Grass
-		- Lightning/Electric
-		- Metal/Steel
-		- Psychic
-		- Water
+		• ***Darkness/Dark***
+		• ***Fighting***
+		• ***Fire***
+		• ***Grass***
+		• ***Lightning/Electric***
+		• ***Metal/Steel***
+		• ***Psychic***
+		• ***Water***
 	
-	For non-basic energies, those must be added via **.deck add <name> <card str>";
+	For non-basic energies, those must be added via **.deck add <name> <card str>**";
 	msg
 		.channel_id
 		.send_message(&ctx.http, |m| m.content(content))
@@ -437,7 +442,59 @@ async fn deck_energy_main(ctx: &Context, msg: &Message) -> CommandResult {
 #[command("add")]
 #[aliases("a")]
 async fn deck_energy_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let deck_name = args.find::<String>().unwrap_or(String::from(""));
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
+		return Ok(());
+	}
+	let energy_type = args.find::<String>().unwrap_or(String::from(""));
+	if energy_type == "" {
+		msg.reply(&ctx.http, "You didn't provide an energy type.").await?;
+		return Ok(());
+	}
+	let energy_card = match energy_type.to_lowercase().as_str() {
+		"darkness" | "dark" => "col1-94",
+		"fighting" => "col1-93",
+		"fire" => "col1-89",
+		"grass" => "col1-88",
+		"lightning" | "electric" => "col1-91",
+		"metal" | "steel" => "col1-95",
+		"psychic" => "col1-92",
+		"water" => "col1-90",
+		_ => {
+			msg.reply(&ctx.http, "You didn't select a valid basic energy type.").await?;
+			return Ok(());
+		},
+	};
+	let amount = match args.find::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let player = get_player(msg.author.id.0).await;
+	let deck = get_deck(player.discord_id, deck_name.clone()).await;
+	match deck {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You don't have a deck with that name.").await?;
+			return Ok(());
+		}
+	}
+	let mut deck = deck.unwrap();
+	if amount + deck.cards.values().sum::<i64>() > 60 {
+		msg.reply(&ctx.http, "Your deck will have more than 60 cards. Remove some to add more").await?;
+		return Ok(());
+	}
+	*deck.cards.entry(energy_card.into()).or_insert(0) += amount;
+	// Update the deck
+	let mut deck_update = Document::new();
+	let mut deck_card_update = Document::new();
+	for (crd, amt) in deck.cards.iter() {
+		deck_card_update.insert(crd, amt);
+	}
+	deck_update.insert("cards", deck_card_update);
+	update_deck(&deck, doc! { "$set": deck_update }).await;
 
+	msg.reply(&ctx.http, format!{"You added **{} {}** energies to **{}**", amount, energy_type, deck.name}).await?;
 
 	Ok(())
 }
@@ -445,7 +502,60 @@ async fn deck_energy_add(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[command("remove")]
 #[aliases("r")]
 async fn deck_energy_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let deck_name = args.find::<String>().unwrap_or(String::from(""));
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
+		return Ok(());
+	}
+	let energy_type = args.find::<String>().unwrap_or(String::from(""));
+	if energy_type == "" {
+		msg.reply(&ctx.http, "You didn't provide an energy type.").await?;
+		return Ok(());
+	}
+	let energy_card = match energy_type.to_lowercase().as_str() {
+		"darkness" | "dark" => "col1-94",
+		"fighting" => "col1-93",
+		"fire" => "col1-89",
+		"grass" => "col1-88",
+		"lightning" | "electric" => "col1-91",
+		"metal" | "steel" => "col1-95",
+		"psychic" => "col1-92",
+		"water" => "col1-90",
+		_ => {
+			msg.reply(&ctx.http, "You didn't select a valid basic energy type.").await?;
+			return Ok(());
+		},
+	};
+	let mut amount = match args.find::<i64>() {
+		Ok(x) => x,
+		Err(_) => 1
+	};
+	let player = get_player(msg.author.id.0).await;
+	let deck = get_deck(player.discord_id, deck_name.clone()).await;
+	match deck {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You don't have a deck with that name.").await?;
+			return Ok(());
+		}
+	}
+	let mut deck = deck.unwrap();
+	let energy_amount = deck.cards.get(energy_card.into()).unwrap_or(&0).clone();
+	if energy_amount < amount {
+		amount = energy_amount;
+	}
+	*deck.cards.entry(energy_card.into()).or_insert(0) -= amount;
+	deck.cards.retain(|_, v| *v > 0);
+	// Update the deck
+	let mut deck_update = Document::new();
+	let mut deck_card_update = Document::new();
+	for (crd, amt) in deck.cards.iter() {
+		deck_card_update.insert(crd, amt);
+	}
+	deck_update.insert("cards", deck_card_update);
+	update_deck(&deck, doc! { "$set": deck_update }).await;
 
+	msg.reply(&ctx.http, format!{"You removed **{} {}** energies from **{}**", amount, energy_type, deck.name}).await?;
 
 	Ok(())
 }
