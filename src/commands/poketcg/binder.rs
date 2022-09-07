@@ -67,9 +67,9 @@ impl Binder {
 		d
 	}
 
-	pub async fn is_complete(&self) -> bool {
+	pub async fn is_complete(&self, ctx: &Context) -> bool {
 		let set = sets::get_set(&self.set).await.unwrap();
-		let cards = card::get_cards_by_set(&set).await;
+		let cards = card::get_cards_by_set(ctx, &set).await;
 
 		cards.len() == self.cards.len()
 	}
@@ -191,7 +191,7 @@ async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 	}
 	player_update.insert("cards", player_cards);
 	player.current_binder.cards.push(card.card_id());
-	if player.current_binder.is_complete().await {
+	if player.current_binder.is_complete(ctx).await {
 		player.completed_binders.push(player.current_binder.set);
 		player.current_binder = Binder::empty();
 		player_update.insert("completed_binders", player.completed_binders.clone());
@@ -213,7 +213,7 @@ async fn binder_add_bulk(ctx: &Context, msg: &Message) -> CommandResult {
 		msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;
 		return Ok(());
 	}
-	let cards = player_card::player_cards(player.cards.clone()).await;
+	let cards = player_card::player_cards(ctx, player.cards.clone()).await;
 	let binder_cards = cards
 		.iter()
 		.filter(|c| c.set().id() == player.current_binder.set && !player.current_binder.cards.contains(&c.card_id()))
@@ -236,7 +236,7 @@ async fn binder_add_bulk(ctx: &Context, msg: &Message) -> CommandResult {
 		player_cards.insert(crd, amt);
 	}
 	player_update.insert("cards", player_cards);
-	if player.current_binder.is_complete().await {
+	if player.current_binder.is_complete(ctx).await {
 		let current_binder_set = sets::get_set(&player.current_binder.set).await.unwrap();
 		player.completed_binders.push(player.current_binder.set);
 		player.current_binder = Binder::empty();

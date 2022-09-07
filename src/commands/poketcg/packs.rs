@@ -1,6 +1,7 @@
 use rand::{
 	prelude::*
 };
+use serenity::prelude::Context;
 
 use crate::sets::{
 	Set,
@@ -19,11 +20,11 @@ pub struct Pack {
 }
 
 impl Pack {
-	pub async fn from_set_id(set_id: &str, amount: usize) -> Result<Self, String> {
+	pub async fn from_set_id(ctx: &Context, set_id: &str, amount: usize) -> Result<Self, String> {
 		let set = get_set(set_id)
 			.await
 			.unwrap();
-		let all_cards = get_cards_by_set(&set)
+		let all_cards = get_cards_by_set(ctx, &set)
 			.await;
 		let rares = all_cards
 			.iter()

@@ -274,7 +274,7 @@ async fn my_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		Err(_) => String::from("name")
 	};
 	let player = get_player(msg.author.id.0).await;
-	let mut cards = player_card::player_cards(player.cards.clone()).await;
+	let mut cards = player_card::player_cards(ctx, player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
 		return Ok(());
@@ -433,7 +433,7 @@ async fn player_cards(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		Ok(x) => x.to_lowercase(),
 		Err(_) => String::from("name")
 	};
-	let mut cards = player_card::player_cards(player.cards.clone()).await;
+	let mut cards = player_card::player_cards(ctx, player.cards.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards!").await?;
 	} else {
@@ -723,7 +723,7 @@ async fn lightmode_command(ctx: &Context, msg: &Message) -> CommandResult {
 #[sub_commands(savelist_add, savelist_clear, savelist_remove)]
 async fn savelist_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let player = get_player(msg.author.id.0).await;
-	let mut cards = get_multiple_cards_by_id(player.savelist.clone()).await;
+	let mut cards = get_multiple_cards_by_id(ctx, player.savelist.clone()).await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "You have no cards in your savelist! Use **.savelist add <card id>** to add a card\nOr use the :floppy_disk: emoji when scrolling through cards!").await?;
 	} else {

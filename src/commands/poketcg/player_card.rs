@@ -1,13 +1,4 @@
 use serenity::{
-	framework::{
-		standard::{
-			macros::{
-				command
-			},
-			Args,
-			CommandResult
-		},
-	},
 	builder::{
 		CreateEmbed
 	},
@@ -15,9 +6,6 @@ use serenity::{
 		channel::{
 			Message,
 		},
-	},
-	utils::{
-		Colour
 	},
 	prelude::*
 };
@@ -166,7 +154,7 @@ impl Scrollable for Vec<PlayerCard> {
 							}
 							player_update.insert("cards", player_cards);
 							player.current_binder.cards.push(self[idx as usize].card_id().clone());
-							if player.current_binder.is_complete().await {
+							if player.current_binder.is_complete(ctx).await {
 								player.completed_binders.push(player.current_binder.set);
 								player.current_binder = binder::Binder::empty();
 								player_update.insert("completed_binders", player.completed_binders.clone());
@@ -221,11 +209,11 @@ impl Scrollable for Vec<PlayerCard> {
 	}
 }
 
-pub async fn player_cards(cards_hash: HashMap<String, i64>) -> Vec<PlayerCard> {
+pub async fn player_cards(ctx: &Context, cards_hash: HashMap<String, i64>) -> Vec<PlayerCard> {
 	let mut ret = vec![];
 	let card_hash_clone = cards_hash.clone();
 	let card_ids: Vec<String> = card_hash_clone.into_keys().collect();
-	let cards = get_multiple_cards_by_id(card_ids.clone()).await;
+	let cards = get_multiple_cards_by_id(ctx, card_ids.clone()).await;
 	for card in cards {
 		let amount = cards_hash.get(&card.id()).unwrap().to_owned();
 		ret.push(PlayerCard {card, amount: amount.clone()});

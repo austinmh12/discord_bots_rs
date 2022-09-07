@@ -243,7 +243,7 @@ impl Scrollable for Vec<Card> {
 							}
 							player_update.insert("cards", player_cards);
 							player.current_binder.cards.push(self[idx as usize].card_id().clone());
-							if player.current_binder.is_complete().await {
+							if player.current_binder.is_complete(ctx).await {
 								player.completed_binders.push(player.current_binder.set);
 								player.current_binder = binder::Binder::empty();
 								player_update.insert("completed_binders", player.completed_binders.clone());

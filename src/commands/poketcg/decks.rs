@@ -77,9 +77,9 @@ impl Deck {
 		self.cards.values().sum::<i64>() == 60
 	}
 
-	pub async fn get_cards(&self) -> Vec<Card> {
+	pub async fn get_cards(&self, ctx: &Context) -> Vec<Card> {
 		let card_ids = self.cards.keys().into_iter().map(|k| k.into()).collect::<Vec<String>>();
-		let cards = get_multiple_cards_by_id(card_ids).await;
+		let cards = get_multiple_cards_by_id(ctx, card_ids).await;
 
 		cards
 	}
@@ -88,7 +88,7 @@ impl Deck {
 		let image: String = match self.display_card.as_str() {
 			"" => {
 				let mut ret = "".into();
-				let cards = self.get_cards().await;
+				let cards = self.get_cards(ctx).await;
 				if cards.len() != 0 {
 					ret = cards.into_iter().nth(0).unwrap().image;
 				}
@@ -161,7 +161,7 @@ impl Scrollable for Vec<Deck> {
 					"➡️" => idx = (idx + 1) % embeds.len() as i16,
 					"poketcg:965802882433703936" => {
 						let deck = decks.into_iter().nth(idx as usize).unwrap();
-						let cards = deck.get_cards().await;
+						let cards = deck.get_cards(ctx).await;
 						message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");	
 						cards.scroll_through(ctx, msg).await?
 					},
@@ -309,7 +309,7 @@ async fn deck_view(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 		.into_iter()
 		.map(|c| c.into())
 		.collect::<Vec<String>>();
-	let cards = get_multiple_cards_by_id(card_ids).await;
+	let cards = get_multiple_cards_by_id(ctx, card_ids).await;
 	cards.scroll_through(ctx, msg).await?;
 	
 	Ok(())
