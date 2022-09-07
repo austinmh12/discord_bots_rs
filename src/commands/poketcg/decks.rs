@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use super::*;
+use async_trait::async_trait;
 use futures::TryStreamExt;
 use serde::{Serialize, Deserialize};
 use mongodb::{
@@ -21,17 +23,17 @@ use serenity::{
 			CommandResult
 		},
 	},
-	// builder::{
-	// 	CreateEmbed
-	// },
+	builder::{
+		CreateEmbed
+	},
 	model::{
 		channel::{
 			Message,
 		},
 	},
-	// utils::{
-	// 	Colour
-	// },
+	utils::{
+		Colour
+	},
 	prelude::*
 };
 
@@ -44,6 +46,7 @@ use crate::{
 	},
 	card::{
 		get_multiple_cards_by_id,
+		get_card,
 		Card
 	},
 	commands::poketcg::Scrollable,
@@ -74,15 +77,117 @@ impl Deck {
 		self.cards.values().sum::<i64>() == 60
 	}
 
-	pub async fn get_cards(&self) -> Vec<super::card::Card> {
+	pub async fn get_cards(&self) -> Vec<Card> {
 		let card_ids = self.cards.keys().into_iter().map(|k| k.into()).collect::<Vec<String>>();
 		let cards = get_multiple_cards_by_id(card_ids).await;
 
 		cards
 	}
+
+	pub async fn get_display_image(&self) -> String {
+		let image: String = match self.display_card.as_str() {
+			"" => {
+				let mut ret = "".into();
+				let cards = self.get_cards().await;
+				if cards.len() != 0 {
+					ret = cards.into_iter().nth(0).unwrap().image;
+				}
+
+				ret
+			},
+			_ => {
+				let card = get_card(&self.display_card).await;
+
+				card.image
+			}
+		};
+
+		image
+	}
 }
 
-// TODO: Implement Scrollable for deck
+impl PaginateEmbed for Deck {
+	fn embed(&self) -> CreateEmbed {
+		let mut ret = CreateEmbed::default();
+		ret
+			.title(&self.name)
+			.colour(Colour::from_rgb(255, 50, 20));
+
+		ret
+	}
+}
+
+#[async_trait]
+impl Scrollable for Vec<Deck> {
+	async fn scroll_through(&self, ctx: &Context, msg: &Message) -> Result<(), String> {
+		let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
+		let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
+		let pokemon_card = ReactionType::try_from("<:poketcg:965802882433703936>").expect("No TCG Back");
+		let decks = &self.clone();
+		let embeds = self.iter().map(|e| e.embed()).collect::<Vec<_>>();
+		let mut idx: i16 = 0;
+		let mut deck = decks.into_iter().nth(idx as usize).unwrap();
+		let mut deck_display = deck.get_display_image().await;
+		let mut message = msg
+			.channel_id
+			.send_message(&ctx.http, |m| {
+				let mut cur_embed = embeds[idx as usize].clone();
+				if embeds.len() > 1 {
+					cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+				}
+				cur_embed.image(deck_display);
+				m.set_embed(cur_embed);
+
+				if embeds.len() > 1 {
+					m.reactions([left_arrow.clone(), right_arrow.clone(), pokemon_card.clone()]);
+				} else {
+					m.reactions([pokemon_card.clone()]);
+				}
+
+				m			
+			}).await.unwrap();
+		
+		loop {
+			if let Some(reaction) = &message
+				.await_reaction(&ctx)
+				.timeout(StdDuration::from_secs(90))
+				.author_id(msg.author.id)
+				.removed(true)
+				.await
+			{
+				let emoji = &reaction.as_inner_ref().emoji;
+				match emoji.as_data().as_str() {
+					"⬅️" => idx = (idx - 1).rem_euclid(embeds.len() as i16),
+					"➡️" => idx = (idx + 1) % embeds.len() as i16,
+					"poketcg:965802882433703936" => {
+						let deck = decks.into_iter().nth(idx as usize).unwrap();
+						let cards = deck.get_cards().await;
+						message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");	
+						cards.scroll_through(ctx, msg).await?
+					},
+					_ => continue
+				};
+			} else {
+				message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
+				break;
+			}
+			deck = decks.into_iter().nth(idx as usize).unwrap();
+			deck_display = deck.get_display_image().await;
+			message.edit(&ctx, |m| {
+				let mut cur_embed = embeds[idx as usize].clone();
+				if embeds.len() > 1 {
+					cur_embed.footer(|f| f.text(format!("{}/{}", idx + 1, embeds.len())));
+				}
+				cur_embed.image(deck_display);
+				m.set_embed(cur_embed);
+
+				m
+			}).await.unwrap();
+		}
+
+		Ok(())
+	}
+}
 
 async fn get_deck_collection() -> Collection<Deck> {
 	let client = get_client().await.unwrap();
@@ -154,10 +259,7 @@ async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
 		0 => {
 			msg.reply(&ctx.http, "You don't have any decks! Use **.deck create <name>** to create one!").await?;
 		},
-		_ => {
-			let content = decks.iter().map(|d| d.name.clone()).collect::<Vec<String>>().join("\n");
-			msg.reply(&ctx.http, content).await?;
-		} // Need to revamp set_paginated_embed to take Trait PaginatedEmbed + HasCards
+		_ => decks.scroll_through(ctx, msg).await?
 	}
 
 	Ok(())
@@ -208,7 +310,6 @@ async fn deck_view(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 		.map(|c| c.into())
 		.collect::<Vec<String>>();
 	let cards = get_multiple_cards_by_id(card_ids).await;
-	// let cards: Vec<super::card::Card> = vec![];
 	cards.scroll_through(ctx, msg).await?;
 	
 	Ok(())
@@ -345,7 +446,7 @@ async fn deck_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 	deck_update.insert("cards", deck_card_update);
 	update_deck(&deck, doc! { "$set": deck_update }).await;
 
-	msg.reply(&ctx.http, format!{"You added **{}** to **{}**", card_str, deck.name}).await?;
+	msg.reply(&ctx.http, format!("You added **{}** to **{}**", card_str, deck.name)).await?;
 
 	Ok(())
 }
@@ -407,7 +508,7 @@ async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 	deck_update.insert("cards", deck_card_update);
 	update_deck(&deck, doc! { "$set": deck_update }).await;
 
-	msg.reply(&ctx.http, format!{"You removed **{}** from **{}**", card_str, deck.name}).await?;
+	msg.reply(&ctx.http, format!("You removed **{}** from **{}**", card_str, deck.name)).await?;
 
 	Ok(())
 }
@@ -494,7 +595,7 @@ async fn deck_energy_add(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	deck_update.insert("cards", deck_card_update);
 	update_deck(&deck, doc! { "$set": deck_update }).await;
 
-	msg.reply(&ctx.http, format!{"You added **{} {}** energies to **{}**", amount, energy_type, deck.name}).await?;
+	msg.reply(&ctx.http, format!("You added **{} {}** energies to **{}**", amount, energy_type, deck.name)).await?;
 
 	Ok(())
 }
@@ -555,7 +656,7 @@ async fn deck_energy_remove(ctx: &Context, msg: &Message, mut args: Args) -> Com
 	deck_update.insert("cards", deck_card_update);
 	update_deck(&deck, doc! { "$set": deck_update }).await;
 
-	msg.reply(&ctx.http, format!{"You removed **{} {}** energies from **{}**", amount, energy_type, deck.name}).await?;
+	msg.reply(&ctx.http, format!("You removed **{} {}** energies from **{}**", amount, energy_type, deck.name)).await?;
 
 	Ok(())
 }
@@ -563,7 +664,34 @@ async fn deck_energy_remove(ctx: &Context, msg: &Message, mut args: Args) -> Com
 #[command("display")]
 #[aliases("d")]
 async fn deck_display(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	let deck_name = args.find::<String>().unwrap_or(String::from(""));
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
+		return Ok(());
+	}
+	let card_id = args.find::<String>().unwrap_or(String::from(""));
+	if card_id == "" {
+		msg.reply(&ctx.http, "You didn't provide a card.").await?;
+		return Ok(());
+	}
+	let player = get_player(msg.author.id.0).await;
+	let deck = get_deck(player.discord_id, deck_name.clone()).await;
+	match deck {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You don't have a deck with that name.").await?;
+			return Ok(());
+		}
+	}
+	let mut deck = deck.unwrap();
+	if deck.cards.contains_key(&card_id) {
+		deck.display_card = String::from(&card_id);
+	}
+	let mut deck_update = Document::new();
+	deck_update.insert("display_card", &deck.display_card);
+	update_deck(&deck, doc! { "$set": deck_update }).await;
 
+	msg.reply(&ctx.http, format!("You set **{}** display card to **{}**", deck.name, card_id)).await?;
 
 	Ok(())
 }
