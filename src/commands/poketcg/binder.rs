@@ -14,6 +14,7 @@ use super::{
 	CardInfo,
 	player_card,
 	HasSet,
+	Scrollable,
 };
 use serenity::{
 	framework::{

@@ -545,7 +545,7 @@ pub async fn update_cached_cards(cards: Vec<Card>) {
 
 #[command("card")]
 async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
+	let _player = player::get_player(msg.author.id.0).await;
 	let search_str = args.rest();
 	let cards = get_cards_with_query(&format!("{}", search_str))
 		.await;

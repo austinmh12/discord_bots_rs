@@ -1,6 +1,6 @@
 use std::collections::HashMap;
+use std::time::Duration;
 
-use async_trait::async_trait;
 use futures::TryStreamExt;
 use serde::{Serialize, Deserialize};
 use mongodb::{
@@ -21,17 +21,17 @@ use serenity::{
 			CommandResult
 		},
 	},
-	builder::{
-		CreateEmbed
-	},
+	// builder::{
+	// 	CreateEmbed
+	// },
 	model::{
 		channel::{
 			Message,
 		},
 	},
-	utils::{
-		Colour
-	},
+	// utils::{
+	// 	Colour
+	// },
 	prelude::*
 };
 
@@ -128,6 +128,17 @@ pub async fn update_deck(deck: &Deck, update: Document) {
 		.unwrap();
 }
 
+pub async fn delete_deck(deck: &Deck) {
+	let deck_collection = get_deck_collection().await;
+	deck_collection
+		.delete_one(
+			doc! { "_id": &deck.id.unwrap() },
+			None
+		)
+		.await
+		.unwrap();
+}
+
 #[command("decks")]
 #[aliases("dks")]
 async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
@@ -142,6 +153,28 @@ async fn decks_command(ctx: &Context, msg: &Message) -> CommandResult {
 			msg.reply(&ctx.http, content).await?;
 		} // Need to revamp set_paginated_embed to take Trait PaginatedEmbed + HasCards
 	}
+
+	Ok(())
+}
+
+#[command("deck")]
+#[aliases("dk")]
+#[sub_commands(deck_view, deck_create, deck_delete, deck_add, deck_remove)]
+async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let content = "Here are the available deck commands:
+	**.decks** to see all your current decks.
+	**.deck view <name>** to view a specific deck
+	**.deck create <name>** to create a new deck.
+	**.deck delete <name>** to delete a deck that you've created.
+	**.deck add <name> [<cardID:amount>/...]** to add cards to a deck.
+	**.deck remove <name> [<cardID:amount>/...]** to remove cards from a deck.
+	**.deck energy add <name> <type> [amount - Default: 1]** to add a basic energy to a deck.
+	**.deck energy remove <name> <type> [amount - Default: 1]** to remove a basic energy from a deck.
+	**.deck display <name> <cardID>** to set the display card of the deck";
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| m.content(content))
+		.await?;
 
 	Ok(())
 }
@@ -195,7 +228,34 @@ async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[command("delete")]
 #[aliases("d")]
 async fn deck_delete(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let deck_name = args.rest().to_lowercase();
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
+		return Ok(());
+	}
+	let player = get_player(msg.author.id.0).await;
+	let deck = get_deck(player.discord_id, deck_name.clone()).await;
+	match deck {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You don't have a deck with that name.").await?;
+			return Ok(());
+		}
+	}
+	let deck = deck.unwrap();
+	let _ = msg.reply(&ctx.http, format!("Are you sure you want to delete this deck?\nOnce you delete **{}** it's gone forever. (y/n)", deck.name)).await?;
+	if let Some(confirmation_reply) = &msg.author.await_reply(&ctx).timeout(Duration::from_secs(30)).await {
+		if confirmation_reply.content.to_lowercase() != "y" {
+			msg.reply(&ctx.http, format!("You did not delete **{}**.", deck.name)).await?;
+			return Ok(());
+		}
+	} else {
+		msg.reply(&ctx.http, format!("You did not delete **{}**.", deck.name)).await?;
+		return Ok(());
+	}
+	// Player said "y" to get here
+	delete_deck(&deck).await;
+	msg.reply(&ctx.http, format!("You deleted **{}**", deck.name)).await?;
 
 	Ok(())
 }
