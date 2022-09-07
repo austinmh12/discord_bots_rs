@@ -11,11 +11,12 @@ use std::{
 		Arc,
 	},
 	time::Duration,
+	collections::HashMap
 };
-
+use tokio::sync::RwLock;
 use dotenv;
 
-use serenity::{async_trait, model::channel::{Message}, framework::standard::{CommandOptions, Reason}};
+use serenity::{async_trait, model::channel::{Message}, framework::standard::{CommandOptions, Reason}, prelude::*};
 use serenity::client::{Client, Context, EventHandler};
 use serenity::model::{
 	gateway::{
@@ -31,6 +32,7 @@ use serenity::framework::standard::{
     },
 	Args,
 };
+use chrono::{DateTime, Utc};
 
 mod commands;
 
@@ -43,7 +45,8 @@ use commands::{
 		binder::*,
 		slot::*,
 		quiz::*,
-		decks::*
+		decks::*,
+		card::Card
 	}
 };
 
@@ -79,6 +82,29 @@ async fn owner_check(_: &Context, msg: &Message, _: &mut Args, _: &CommandOption
 	}
 
 	Ok(())
+}
+
+struct Cache;
+
+impl TypeMapKey for Cache {
+	type Value = Arc<RwLock<HashMap<String, CardCache>>>;
+}
+
+#[derive(Debug, Clone)]
+struct CardCache {
+	pub card: Card,
+	pub last_updated: DateTime<Utc>,
+	pub last_accessed: DateTime<Utc>
+}
+
+impl CardCache {
+	fn new(card: Card) -> Self {
+		Self {
+			card,
+			last_updated: Utc::now(),
+			last_accessed: Utc::now()
+		}
+	}
 }
 
 struct Handler {
@@ -146,6 +172,11 @@ async fn main() {
 		.event_handler(handler)
 		.await
 		.expect("Error creating client");
+
+	{
+		let mut cache = client.data.write().await;
+		cache.insert::<Cache>(Arc::new(RwLock::new(HashMap::default())));
+	}
 
 	// Finally start a shard and listen for events.
 	if let Err(why) = client.start().await {

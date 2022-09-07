@@ -84,7 +84,7 @@ impl Deck {
 		cards
 	}
 
-	pub async fn get_display_image(&self) -> String {
+	pub async fn get_display_image(&self, ctx: &Context) -> String {
 		let image: String = match self.display_card.as_str() {
 			"" => {
 				let mut ret = "".into();
@@ -96,7 +96,7 @@ impl Deck {
 				ret
 			},
 			_ => {
-				let card = get_card(&self.display_card).await;
+				let card = get_card(ctx, &self.display_card).await;
 
 				card.image
 			}
@@ -127,7 +127,7 @@ impl Scrollable for Vec<Deck> {
 		let embeds = self.iter().map(|e| e.embed()).collect::<Vec<_>>();
 		let mut idx: i16 = 0;
 		let mut deck = decks.into_iter().nth(idx as usize).unwrap();
-		let mut deck_display = deck.get_display_image().await;
+		let mut deck_display = deck.get_display_image(ctx).await;
 		let mut message = msg
 			.channel_id
 			.send_message(&ctx.http, |m| {
@@ -172,7 +172,7 @@ impl Scrollable for Vec<Deck> {
 				break;
 			}
 			deck = decks.into_iter().nth(idx as usize).unwrap();
-			deck_display = deck.get_display_image().await;
+			deck_display = deck.get_display_image(ctx).await;
 			message.edit(&ctx, |m| {
 				let mut cur_embed = embeds[idx as usize].clone();
 				if embeds.len() > 1 {

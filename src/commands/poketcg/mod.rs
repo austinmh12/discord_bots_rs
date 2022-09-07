@@ -57,7 +57,7 @@ use serde_json;
 use rand::{
 	Rng
 };
-use crate::BOTTEST_CHECK;
+use crate::{BOTTEST_CHECK, Cache};
 
 async fn api_call(endpoint: &str, params: Option<Vec<(&str, &str)>>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
@@ -425,7 +425,7 @@ async fn sell_card(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 	if player.cards.contains_key(&card_id) {
 		let amounts = vec![amount, *player.cards.get(&card_id).unwrap()];
 		let amount = *amounts.iter().min().unwrap();
-		let card = card::get_card(&card_id).await;
+		let card = card::get_card(ctx, &card_id).await;
 		let mut update = Document::new();
 		*player.cards.entry(card_id.clone()).or_insert(0) -= amount;
 		if *player.cards.entry(card_id.clone()).or_insert(0) == 0 {
@@ -709,7 +709,7 @@ async fn trade_main(ctx: &Context, msg: &Message) -> CommandResult {
 
 // ADMIN COMMANDS (FOR TESTING)
 #[command("admin")]
-#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens, admin_set_cards)]
+#[sub_commands(admin_show_pack, admin_add_cash, admin_mock_slot, admin_add_tokens, admin_set_cards, admin_cache)]
 #[checks(BotTest)]
 async fn admin_main() -> CommandResult {
 	Ok(())
@@ -830,6 +830,21 @@ async fn admin_set_cards(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 	player_update.insert("cards", player_cards);
 	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("Added all the cards for **{}**", set.name)).await?;
+
+	Ok(())
+}
+
+#[command("cache")]
+#[checks(BotTest)]
+async fn admin_cache(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+	{
+		let cache_read = ctx.data.read().await;
+		let cache_lock = cache_read.get::<Cache>().expect("Expected Cache in TypeMap").clone();
+		let cache = cache_lock.read().await;
+
+		println!("{:?}", cache.iter());
+
+	}
 
 	Ok(())
 }

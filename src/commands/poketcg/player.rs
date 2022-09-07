@@ -746,7 +746,7 @@ async fn savelist_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		return Ok(());
 	}
 	let mut player = get_player(msg.author.id.0).await;
-	let card = get_card(&card_id).await;
+	let card = get_card(ctx, &card_id).await;
 	if player.savelist.contains(&card_id) {
 		msg.reply(&ctx.http, format!("**{}** is already in your savelist", card.name)).await?;
 		return Ok(());
@@ -770,7 +770,7 @@ async fn savelist_remove(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 		return Ok(());
 	}
 	let mut player = get_player(msg.author.id.0).await;
-	let card = get_card(&card_id).await;
+	let card = get_card(ctx, &card_id).await;
 	if !player.savelist.contains(&card_id) {
 		msg.reply(&ctx.http, format!("**{}** is not in your savelist", card.name)).await?;
 		return Ok(());

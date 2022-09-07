@@ -256,7 +256,7 @@ impl TokenShop {
 		}
 	}
 
-	pub async fn embed_with_player(&self, player: Player) -> CreateEmbed {
+	pub async fn embed_with_player(&self, ctx: &Context, player: Player) -> CreateEmbed {
 		let mut ret = CreateEmbed::default();
 		let mut desc = String::from("Welcome to the **Token Shop**! Here you can spend tokens for prized\n");
 		desc.push_str(&format!("You have **{}** tokens\n", player.tokens));
@@ -267,9 +267,9 @@ impl TokenShop {
 			let set = get_set(set_id).await.unwrap();
 			desc.push_str(&format!("**{}:** {} (_{}_) - {} tokens\n", num, set.name, set.id(), (to_tokens(set.pack_price()) as f64 / discount) as i64));
 		}
-		let rare_card = get_card(&self.rare_card).await;
+		let rare_card = get_card(ctx, &self.rare_card).await;
 		desc.push_str(&format!("**4:** {} (_{}_) - {} tokens\n", rare_card.name, rare_card.id(), ((to_tokens(rare_card.price) * 10) as f64 / discount) as i64));
-		let rainbow_card = get_card(&self.rainbow_card).await;
+		let rainbow_card = get_card(ctx, &self.rainbow_card).await;
 		desc.push_str(&format!("**5:** {} (_{}_) - {} tokens", rainbow_card.name, rainbow_card.id(), ((to_tokens(rainbow_card.price) * 10) as f64 / discount) as i64));
 		ret
 			.description(&desc)
@@ -482,7 +482,7 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 async fn game_corner_tokens_main(ctx: &Context, msg: &Message) -> CommandResult {
 	let token_shop = get_token_shop().await;
 	let player = get_player(msg.author.id.0).await;
-	let embed = token_shop.embed_with_player(player).await;
+	let embed = token_shop.embed_with_player(ctx, player).await;
 	let _ = msg
 		.channel_id
 		.send_message(&ctx.http, |m| {
@@ -539,8 +539,8 @@ async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) ->
 		update.insert("packs", player_packs);
 	} else {
 		let card = match selection {
-			4 => get_card(&token_shop.rare_card).await,
-			_ => get_card(&token_shop.rainbow_card).await
+			4 => get_card(ctx, &token_shop.rare_card).await,
+			_ => get_card(ctx, &token_shop.rainbow_card).await
 		};
 		let base_cost = ((to_tokens(card.price) * 10) as f64 / discount) as i64;
 		if player.tokens < base_cost {

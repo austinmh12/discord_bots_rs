@@ -149,7 +149,7 @@ async fn binder_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 		msg.reply(&ctx.http, "No card was provided.").await?;
 		return Ok(());
 	}
-	let card = card::get_card(&card_id).await;
+	let card = card::get_card(ctx, &card_id).await;
 	let mut player = player::get_player(msg.author.id.0).await;
 	if player.current_binder.set.as_str() == "" {
 		msg.reply(&ctx.http, "You don't have a binder started! Use **.binder start <set id>** to start one!").await?;

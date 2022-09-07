@@ -41,6 +41,7 @@ use serenity::{
 	},
 	prelude::*
 };
+use crate::{Cache, CardCache};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Card {
@@ -348,8 +349,8 @@ pub async fn get_multiple_cards_by_id_without_cache(card_ids: Vec<String>) -> Ha
 	ret
 }
 
-pub async fn get_card(id: &str) -> Card {
-	let cached_card = get_card_from_cache(id).await;
+pub async fn get_card(ctx: &Context, id: &str) -> Card {
+	let cached_card = get_card_from_cache(ctx, id).await;
 	match cached_card {
 		Some(c) => c,
 		None => {
@@ -358,7 +359,7 @@ pub async fn get_card(id: &str) -> Card {
 				.unwrap();
 			let card_data = &data["data"];
 			let card = Card::from_json(&card_data);
-			add_card(&card).await;
+			add_card(ctx, card.clone()).await;
 		
 			card
 		}
@@ -428,12 +429,25 @@ async fn get_card_collection() -> Collection<Card> {
 	collection
 }
 
-async fn add_card(card: &Card) {
-	let card_collection = get_card_collection().await;
-	card_collection
-		.insert_one(card, None)
-		.await
-		.unwrap();
+// async fn add_card(card: &Card) {
+// 	let card_collection = get_card_collection().await;
+// 	card_collection
+// 		.insert_one(card, None)
+// 		.await
+// 		.unwrap();
+// }
+
+async fn add_card(ctx: &Context, card: Card) {
+	let card_cache = CardCache::new(card.clone());
+	let cache_lock = {
+		let cache_read = ctx.data.read().await;
+		
+		cache_read.get::<Cache>().expect("Expected a Cache in TypeMap").clone()
+	};
+	{
+		let mut cache = cache_lock.write().await;
+		cache.insert(card.card_id, card_cache);
+	}
 }
 
 async fn add_cards(cards: &Vec<Card>) {
@@ -457,14 +471,30 @@ async fn add_cards(cards: &Vec<Card>) {
 		.unwrap();
 }
 
-async fn get_card_from_cache(id: &str) -> Option<Card> {
-	let card_collection = get_card_collection().await;
-	let card = card_collection
-		.find_one(doc! { "card_id": id }, None)
-		.await
-		.unwrap();
+// async fn get_card_from_cache(id: &str) -> Option<Card> {
+// 	let card_collection = get_card_collection().await;
+// 	let card = card_collection
+// 		.find_one(doc! { "card_id": id }, None)
+// 		.await
+// 		.unwrap();
 
-	card
+// 	card
+// }
+
+async fn get_card_from_cache(ctx: &Context, id: &str) -> Option<Card> {
+	let cached_card = {
+		let cache_read = ctx.data.read().await;
+		let cache_lock = cache_read.get::<Cache>().expect("Expected Cache in TypeMap").clone();
+		let cache = cache_lock.read().await;
+
+		cache.get(id).map_or(None, |x| Some(x.clone()))
+	};
+	let ret = match cached_card {
+		Some(x) => Some(x.card),
+		None => None
+	};
+
+	ret
 }
 
 async fn get_cards_from_cache() -> Vec<Card> {
