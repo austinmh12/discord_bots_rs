@@ -38,12 +38,16 @@ use serenity::{
 use crate::{
 	commands::get_client,
 	player::{
-		get_player
+		get_player,
+		update_player,
+		Player
 	},
-	card::get_multiple_cards_by_id,
+	card::{
+		get_multiple_cards_by_id,
+		Card
+	},
 	commands::poketcg::Scrollable,
 };
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Deck {
@@ -77,6 +81,8 @@ impl Deck {
 		cards
 	}
 }
+
+// TODO: Implement Scrollable for deck
 
 async fn get_deck_collection() -> Collection<Deck> {
 	let client = get_client().await.unwrap();
@@ -181,7 +187,7 @@ async fn deck_main(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("view")]
 #[aliases("v")]
-async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn deck_view(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	let deck_name = args.rest().to_lowercase();
 	let player = get_player(msg.author.id.0).await;
 	if deck_name == String::from("") {
@@ -196,7 +202,13 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		}
 	}
 	let deck = deck.unwrap();
-	let cards: Vec<super::card::Card> = vec![];
+	let card_ids = deck.cards
+		.keys()
+		.into_iter()
+		.map(|c| c.into())
+		.collect::<Vec<String>>();
+	let cards = get_multiple_cards_by_id(card_ids).await;
+	// let cards: Vec<super::card::Card> = vec![];
 	cards.scroll_through(ctx, msg).await?;
 	
 	Ok(())
@@ -204,7 +216,7 @@ async fn deck_view(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 
 #[command("create")]
 #[aliases("c")]
-async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn deck_create(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	let deck_name = args.rest().to_lowercase();
 	if deck_name == String::from("") {
 		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
@@ -227,13 +239,13 @@ async fn deck_create(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command("delete")]
 #[aliases("d")]
-async fn deck_delete(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn deck_delete(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	let deck_name = args.rest().to_lowercase();
 	if deck_name == String::from("") {
 		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
 		return Ok(());
 	}
-	let player = get_player(msg.author.id.0).await;
+	let mut player = get_player(msg.author.id.0).await;
 	let deck = get_deck(player.discord_id, deck_name.clone()).await;
 	match deck {
 		Some(_) => (),
@@ -254,6 +266,17 @@ async fn deck_delete(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 		return Ok(());
 	}
 	// Player said "y" to get here
+	for (crd, amt) in deck.cards.iter() {
+		*player.cards.entry(crd.clone()).or_insert(0) += amt;
+	}
+	// Update the player
+	let mut player_update = Document::new();
+	let mut player_cards_update = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_cards_update.insert(crd, amt);
+	}
+	player_update.insert("cards", player_cards_update);
+	update_player(&player, doc! { "$set": player_update }).await;
 	delete_deck(&deck).await;
 	msg.reply(&ctx.http, format!("You deleted **{}**", deck.name)).await?;
 
@@ -263,7 +286,62 @@ async fn deck_delete(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[command("add")]
 #[aliases("a")]
 async fn deck_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let deck_name = args.find::<String>().unwrap_or(String::from(""));
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
+		return Ok(());
+	}
+	let card_str = args.rest();
+	if card_str == "" {
+		msg.reply(&ctx.http, "You didn't provide cards to add.").await?;
+		return Ok(());
+	}
+	let mut player = get_player(msg.author.id.0).await;
+	let deck = get_deck(player.discord_id, deck_name.clone()).await;
+	match deck {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You don't have a deck with that name.").await?;
+			return Ok(());
+		}
+	}
+	let mut deck = deck.unwrap();
+	let deckcards = DeckCards::from_card_str(card_str);
+	if !deckcards.player_has_all(&player) {
+		msg.reply(&ctx.http, "You don't own all of what you're putting in the deck!").await?;
+		return Ok(());
+	}
+	if !deckcards.is_valid_addition(&deck) {
+		// Maybe update this to list what's not valid
+		msg.reply(&ctx.http, "You have invalid additions to this deck!").await?;
+		return Ok(());
+	}
+	for (card_id, amt) in deckcards.cards {
+		*player.cards.entry(card_id.clone()).or_insert(0) -= amt;
+		if *player.cards.entry(card_id.clone()).or_insert(0) == 0 {
+			player.cards.remove(&card_id);
+		}
+		*deck.cards.entry(card_id.clone()).or_insert(0) += amt;
+	}
+	// Update the player
+	let mut player_update = Document::new();
+	let mut player_cards_update = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_cards_update.insert(crd, amt);
+	}
+	player_update.insert("cards", player_cards_update);
+	update_player(&player, doc! { "$set": player_update }).await;
+
+	// Update the deck
+	let mut deck_update = Document::new();
+	let mut deck_card_update = Document::new();
+	for (crd, amt) in deck.cards.iter() {
+		deck_card_update.insert(crd, amt);
+	}
+	deck_update.insert("cards", deck_card_update);
+	update_deck(&deck, doc! { "$set": deck_update }).await;
+
+	msg.reply(&ctx.http, format!{"You added **{}** to **{}**", card_str, deck.name}).await?;
 
 	Ok(())
 }
@@ -271,7 +349,127 @@ async fn deck_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[command("remove")]
 #[aliases("r")]
 async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	
+	let deck_name = args.find::<String>().unwrap_or(String::from(""));
+	if deck_name == String::from("") {
+		msg.reply(&ctx.http, "You didn't provide a deck name.").await?;
+		return Ok(());
+	}
+	let card_str = args.rest();
+	if card_str == "" {
+		msg.reply(&ctx.http, "You didn't provide cards to remove.").await?;
+		return Ok(());
+	}
+	let mut player = get_player(msg.author.id.0).await;
+	let deck = get_deck(player.discord_id, deck_name.clone()).await;
+	match deck {
+		Some(_) => (),
+		None => {
+			msg.reply(&ctx.http, "You don't have a deck with that name.").await?;
+			return Ok(());
+		}
+	}
+	let mut deck = deck.unwrap();
+	let deckcards = DeckCards::from_card_str(card_str);
+	if !deckcards.deck_has_all(&deck) {
+		msg.reply(&ctx.http, "The deck doesn't have all of what you're removing!").await?;
+		return Ok(());
+	}
+	for (card_id, amt) in deckcards.cards {
+		*deck.cards.entry(card_id.clone()).or_insert(0) -= amt;
+		if *deck.cards.entry(card_id.clone()).or_insert(0) == 0 {
+			deck.cards.remove(&card_id);
+		}
+		*player.cards.entry(card_id.clone()).or_insert(0) += amt;
+	}
+	// Update the player
+	let mut player_update = Document::new();
+	let mut player_cards_update = Document::new();
+	for (crd, amt) in player.cards.iter() {
+		player_cards_update.insert(crd, amt);
+	}
+	player_update.insert("cards", player_cards_update);
+	update_player(&player, doc! { "$set": player_update }).await;
+
+	// Update the deck
+	let mut deck_update = Document::new();
+	let mut deck_card_update = Document::new();
+	for (crd, amt) in deck.cards.iter() {
+		deck_card_update.insert(crd, amt);
+	}
+	deck_update.insert("cards", deck_card_update);
+	update_deck(&deck, doc! { "$set": deck_update }).await;
+
+	msg.reply(&ctx.http, format!{"You removed **{}** from **{}**", card_str, deck.name}).await?;
 
 	Ok(())
+}
+
+pub struct DeckCards {
+	pub cards: Vec<(String, i64)>
+}
+
+impl DeckCards {
+	pub fn from_card_str(card_str: &str) -> Self {
+		let inputs = card_str.split("/").collect::<Vec<&str>>();
+		let mut cards = vec![];
+		for input in inputs {
+			let card_amt = input
+				.split(":")
+				.collect::<Vec<&str>>();
+			let card = String::from(card_amt[0]);
+			if card_amt.len() == 1 {
+				cards.push((card, 1));
+			} else {
+				let mut amt = card_amt[1].parse::<i64>().unwrap_or(1);
+				if amt > 4 {
+					amt = 4;
+				}
+				cards.push((card, amt));
+			}
+		}
+
+		Self {
+			cards
+		}
+	}
+
+	pub fn player_has_all(&self, player: &Player) -> bool {
+		for (card_id, amt) in &self.cards {
+			if player.cards.get(card_id).unwrap_or(&0) < amt {
+				return false;
+			}
+		}
+
+		true
+	}
+
+	pub fn is_valid_addition(&self, deck: &Deck) -> bool {
+		let deckcards_sum = self.cards
+			.iter()
+			.map(|ca| ca.1)
+			.collect::<Vec<i64>>()
+			.iter()
+			.sum::<i64>();
+		let deck_sum = deck.cards.values().sum::<i64>();
+		if deckcards_sum + deck_sum > 60 {
+			return false;
+		}
+		for (card_id, amt) in &self.cards {
+			if deck.cards.get(card_id).unwrap_or(&0) + amt > 4 {
+				return false;
+			}
+		}
+
+		true
+	}
+
+	pub fn deck_has_all(&self, deck: &Deck) -> bool {
+		for (card_id, amt) in &self.cards {
+			if deck.cards.get(card_id).unwrap_or(&0) < amt {
+				return false;
+			}
+		}
+
+		true
+	}
 }
