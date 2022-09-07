@@ -406,9 +406,30 @@ async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command("energy")]
 #[aliases("e")]
-#[subcommands(deck_energy_add, deck_energy_remove)]
+#[sub_commands(deck_energy_add, deck_energy_remove)]
 async fn deck_energy_main(ctx: &Context, msg: &Message) -> CommandResult {
+	let content = "Here are the available deck energy commands:
+	**.deck energy add <name> <type> [amount - Default: 1]** to add a basic energy to a deck.
+	**.deck energy remove <name> <type> [amount - Default: 1]** to remove a basic energy from a deck.
 
+	Energy types are:
+		- Colorless/Normal
+		- Darkness/Dark
+		- Dragon
+		- Fairy
+		- Fighting
+		- Fire
+		- Grass
+		- Lightning/Electric
+		- Metal/Steel
+		- Psychic
+		- Water
+	
+	For non-basic energies, those must be added via **.deck add <name> <card str>";
+	msg
+		.channel_id
+		.send_message(&ctx.http, |m| m.content(content))
+		.await?;
 
 	Ok(())
 }
