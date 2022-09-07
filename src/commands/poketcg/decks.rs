@@ -404,6 +404,39 @@ async fn deck_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 	Ok(())
 }
 
+#[command("energy")]
+#[aliases("e")]
+#[subcommands(deck_energy_add, deck_energy_remove)]
+async fn deck_energy_main(ctx: &Context, msg: &Message) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("add")]
+#[aliases("a")]
+async fn deck_energy_add(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("remove")]
+#[aliases("r")]
+async fn deck_energy_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+
+
+	Ok(())
+}
+
+#[command("display")]
+#[aliases("d")]
+async fn deck_display(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+
+
+	Ok(())
+}
+
 pub struct DeckCards {
 	pub cards: Vec<(String, i64)>
 }
