@@ -310,9 +310,9 @@ impl Scrollable for Vec<Card> {
 // 	ret
 // }
 
-pub async fn get_multiple_cards_by_id(card_ids: Vec<String>) -> Vec<Card> {
+pub async fn get_multiple_cards_by_id(ctx: &Context, card_ids: Vec<String>) -> Vec<Card> {
 	let mut ret = vec![];
-	let cached_cards = get_multiple_cards_from_cache(&card_ids).await;
+	let cached_cards = get_multiple_cards_from_cache(ctx, &card_ids).await;
 	if cached_cards.len() == card_ids.len() {
 		return cached_cards;
 	}
@@ -323,11 +323,11 @@ pub async fn get_multiple_cards_by_id(card_ids: Vec<String>) -> Vec<Card> {
 			.map(|c| format!("id:{}", c))
 			.collect::<Vec<String>>()
 			.join(" OR ");
-		let chunk_cards = get_cards_with_query(&format!("({})", inner_query)).await;
+		let chunk_cards = get_cards_with_query(ctx, &format!("({})", inner_query)).await;
 		ret.extend(chunk_cards);
 	}
 	// If we've gotten here there are cards to cache
-	add_cards(&ret).await;
+	add_cards(ctx, ret.clone()).await;
 	ret.extend(cached_cards);
 
 	ret
@@ -342,7 +342,7 @@ pub async fn get_multiple_cards_by_id_without_cache(card_ids: Vec<String>) -> Ha
 			.map(|c| format!("id:{}", c))
 			.collect::<Vec<String>>()
 			.join(" OR ");
-		let chunk_cards = get_cards_with_query(&format!("({})", inner_query)).await;
+		let chunk_cards = get_cards_with_query_without_cache_add(&format!("({})", inner_query)).await;
 		ret.extend(chunk_cards.iter().map(|c| (c.id(), c.clone())));
 	}
 
@@ -366,7 +366,7 @@ pub async fn get_card(ctx: &Context, id: &str) -> Card {
 	}
 }
 
-pub async fn get_cards_with_query(query: &str) -> Vec<Card> {
+pub async fn get_cards_with_query(ctx: &Context, query: &str) -> Vec<Card> {
 	let mut ret = <Vec<Card>>::new();
 	let mut data = api_call("cards", Some(vec![("q", query)])).await.unwrap();
 	let card_data = data["data"].as_array().unwrap();
@@ -384,14 +384,37 @@ pub async fn get_cards_with_query(query: &str) -> Vec<Card> {
 			ret.push(card);
 		}
 	}
-	add_cards(&ret).await;
+	add_cards(ctx, ret.clone()).await;
 
 	ret
 }
 
-pub async fn get_cards_by_set(set: &Set) -> Vec<Card> {
+pub async fn get_cards_with_query_without_cache_add(query: &str) -> Vec<Card> {
+	let mut ret = <Vec<Card>>::new();
+	let mut data = api_call("cards", Some(vec![("q", query)])).await.unwrap();
+	let card_data = data["data"].as_array().unwrap();
+	for cd in card_data {
+		let card = Card::from_json(cd);
+		ret.push(card);
+	}
+	let mut page = 1;
+	while data["count"].as_i64().unwrap() > 0 {
+		page += 1;
+		data = api_call("cards", Some(vec![("q", query), ("page", page.to_string().as_str())])).await.unwrap();
+		let card_data = data["data"].as_array().unwrap();
+		for cd in card_data {
+			let card = Card::from_json(cd);
+			ret.push(card);
+		}
+	}
+
+	ret
+}
+
+
+pub async fn get_cards_by_set(ctx: &Context, set: &Set) -> Vec<Card> {
 	let mut ret = vec![];
-	let cached_cards = get_cards_from_cache_by_set(set).await;
+	let cached_cards = get_cards_from_cache_by_set(ctx, set).await;
 	if cached_cards.len() >= set.total as usize {
 		return cached_cards;
 	}
@@ -416,7 +439,7 @@ pub async fn get_cards_by_set(set: &Set) -> Vec<Card> {
 		}
 	}
 	// If we've gotten here there are cards to cache
-	add_cards(&ret).await;
+	add_cards(ctx, ret.clone()).await;
 	ret.extend(cached_cards);
 
 	ret
@@ -679,7 +702,7 @@ pub async fn update_cached_cards(ctx: &Context, cards: Vec<CardCache>) {
 async fn search_card(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 	let _player = player::get_player(msg.author.id.0).await;
 	let search_str = args.rest();
-	let cards = get_cards_with_query(&format!("{}", search_str))
+	let cards = get_cards_with_query(ctx, &format!("{}", search_str))
 		.await;
 	if cards.len() == 0 {
 		msg.reply(&ctx.http, "No cards found.").await?;
