@@ -450,25 +450,43 @@ async fn add_card(ctx: &Context, card: Card) {
 	}
 }
 
-async fn add_cards(cards: &Vec<Card>) {
-	if cards.len() <= 0 {
-		return;
-	}
-	let cached_cards = get_cards_from_cache().await;
-	let mut new_cards = vec![];
-	for card in cards {
-		if !cached_cards.contains(card) {
-			new_cards.push(card);
+// async fn add_cards(cards: &Vec<Card>) {
+// 	if cards.len() <= 0 {
+// 		return;
+// 	}
+// 	let cached_cards = get_cards_from_cache().await;
+// 	let mut new_cards = vec![];
+// 	for card in cards {
+// 		if !cached_cards.contains(card) {
+// 			new_cards.push(card);
+// 		}
+// 	}
+// 	if new_cards.len() <= 0 {
+// 		return;
+// 	}
+// 	let card_collection = get_card_collection().await;
+// 	card_collection
+// 		.insert_many(new_cards, None)
+// 		.await
+// 		.unwrap();
+// }
+
+async fn add_cards(ctx: &Context, cards: Vec<Card>) {
+	let card_caches = cards
+		.iter()
+		.map(|c| (c.clone(), CardCache::new(c.clone())))
+		.collect::<Vec<(Card, CardCache)>>();
+	let cache_lock = {
+		let cache_read = ctx.data.read().await;
+		
+		cache_read.get::<Cache>().expect("Expected a Cache in TypeMap").clone()
+	};
+	{
+		let mut cache = cache_lock.write().await;
+		for (card, card_cache) in card_caches {
+			cache.insert(card.card_id, card_cache);
 		}
 	}
-	if new_cards.len() <= 0 {
-		return;
-	}
-	let card_collection = get_card_collection().await;
-	card_collection
-		.insert_many(new_cards, None)
-		.await
-		.unwrap();
 }
 
 // async fn get_card_from_cache(id: &str) -> Option<Card> {
@@ -497,79 +515,163 @@ async fn get_card_from_cache(ctx: &Context, id: &str) -> Option<Card> {
 	ret
 }
 
-async fn get_cards_from_cache() -> Vec<Card> {
-	let card_collection = get_card_collection().await;
-	let cards = card_collection
-		.find(None, None)
-		.await
-		.unwrap()
-		.try_collect::<Vec<Card>>()
-		.await
-		.unwrap();
+// async fn get_cards_from_cache() -> Vec<Card> {
+// 	let card_collection = get_card_collection().await;
+// 	let cards = card_collection
+// 		.find(None, None)
+// 		.await
+// 		.unwrap()
+// 		.try_collect::<Vec<Card>>()
+// 		.await
+// 		.unwrap();
+
+// 	cards
+// }
+
+async fn get_cards_from_cache(ctx: &Context) -> Vec<Card> {
+	let cards = {
+		let cache_read = ctx.data.read().await;
+		let cache_lock = cache_read.get::<Cache>().expect("Expected Cache in TypeMap").clone();
+		let cache = cache_lock.read().await;
+
+		cache
+			.values()
+			.into_iter()
+			.map(|cc| cc.card.clone())
+			.collect::<Vec<Card>>()
+	};
 
 	cards
 }
 
-async fn get_multiple_cards_from_cache(card_ids: &Vec<String>) -> Vec<Card> {
+// async fn get_multiple_cards_from_cache(card_ids: &Vec<String>) -> Vec<Card> {
+// 	if card_ids.len() == 0 {
+// 		return vec![];
+// 	}
+// 	let card_collection = get_card_collection().await;
+// 	let mut docs = vec![];
+// 	for card_id in card_ids {
+// 		docs.push(doc!{"card_id": card_id});
+// 	}
+// 	let cards = card_collection
+// 		.find(doc! { "$or": docs }, None)
+// 		.await
+// 		.unwrap()
+// 		.try_collect::<Vec<Card>>()
+// 		.await
+// 		.unwrap();
+
+// 	cards
+// }
+
+async fn get_multiple_cards_from_cache(ctx: &Context, card_ids: &Vec<String>) -> Vec<Card> {
 	if card_ids.len() == 0 {
 		return vec![];
 	}
-	let card_collection = get_card_collection().await;
-	let mut docs = vec![];
-	for card_id in card_ids {
-		docs.push(doc!{"card_id": card_id});
-	}
-	let cards = card_collection
-		.find(doc! { "$or": docs }, None)
-		.await
-		.unwrap()
-		.try_collect::<Vec<Card>>()
-		.await
-		.unwrap();
+	let cards = {
+		let cache_read = ctx.data.read().await;
+		let cache_lock = cache_read.get::<Cache>().expect("Expected Cache in TypeMap").clone();
+		let cache = cache_lock.read().await;
+
+		cache
+			.iter()
+			.filter(|(cid, _)| card_ids.contains(cid))
+			.map(|(_, cc)| cc.card.clone())
+			.collect::<Vec<Card>>()
+	};
 
 	cards
 }
 
-async fn get_cards_from_cache_by_set(set: &Set) -> Vec<Card> {
-	let card_collection = get_card_collection().await;
-	let cards = card_collection
-		.find(doc!{"set.set_id": set.id()}, None)
-		.await
-		.unwrap()
-		.try_collect::<Vec<Card>>()
-		.await
-		.unwrap();
+// async fn get_cards_from_cache_by_set(set: &Set) -> Vec<Card> {
+// 	let card_collection = get_card_collection().await;
+// 	let cards = card_collection
+// 		.find(doc!{"set.set_id": set.id()}, None)
+// 		.await
+// 		.unwrap()
+// 		.try_collect::<Vec<Card>>()
+// 		.await
+// 		.unwrap();
+
+// 	cards
+// }
+
+async fn get_cards_from_cache_by_set(ctx: &Context, set: &Set) -> Vec<Card> {
+	let cards = {
+		let cache_read = ctx.data.read().await;
+		let cache_lock = cache_read.get::<Cache>().expect("Expected Cache in TypeMap").clone();
+		let cache = cache_lock.read().await;
+
+		cache
+			.iter()
+			.filter(|(_, cc)| cc.card.set().id() == set.id())
+			.map(|(_, cc)| cc.card.clone())
+			.collect::<Vec<Card>>()
+	};
 
 	cards
 }
 
-pub async fn get_outdated_cards() -> Vec<Card> {
-	let card_collection = get_card_collection().await;
-	let cards = card_collection
-		.find(doc!{"last_check": {"$lt": Utc::now()}}, None)
-		.await
-		.unwrap()
-		.try_collect::<Vec<Card>>()
-		.await
-		.unwrap();
+// pub async fn get_outdated_cards() -> Vec<Card> {
+// 	let card_collection = get_card_collection().await;
+// 	let cards = card_collection
+// 		.find(doc!{"last_check": {"$lt": Utc::now()}}, None)
+// 		.await
+// 		.unwrap()
+// 		.try_collect::<Vec<Card>>()
+// 		.await
+// 		.unwrap();
+
+// 	cards
+// }
+
+pub async fn get_outdated_cards(ctx: &Context) -> Vec<CardCache> {
+	let cards = {
+		let cache_read = ctx.data.read().await;
+		let cache_lock = cache_read.get::<Cache>().expect("Expected Cache in TypeMap").clone();
+		let cache = cache_lock.read().await;
+
+		cache
+			.iter()
+			.filter(|(_, cc)| cc.last_updated < Utc::now())
+			.map(|(_, cc)| cc.clone())
+			.collect::<Vec<CardCache>>()
+	};
 
 	cards
 }
 
-pub async fn update_cached_cards(cards: Vec<Card>) {
-	let card_collection = get_card_collection().await;
-	let mut threads = vec![];
-	for card in cards {
-		let card_col = card_collection.clone();
-		threads.push(task::spawn(async move {
-			card_col.update_one(
-				doc! {"_id": card.id},
-				doc! {"$set": { "price": card.price, "last_check": card.last_check }}, 
-				None
-			)
-				.await
-				.unwrap();
-		}))
+// pub async fn update_cached_cards(cards: Vec<Card>) {
+// 	let card_collection = get_card_collection().await;
+// 	let mut threads = vec![];
+// 	for card in cards {
+// 		let card_col = card_collection.clone();
+// 		threads.push(task::spawn(async move {
+// 			card_col.update_one(
+// 				doc! {"_id": card.id},
+// 				doc! {"$set": { "price": card.price, "last_check": card.last_check }}, 
+// 				None
+// 			)
+// 				.await
+// 				.unwrap();
+// 		}))
+// 	}
+// }
+
+pub async fn update_cached_cards(ctx: &Context, cards: Vec<CardCache>) {
+	let cache_lock = {
+		let cache_read = ctx.data.read().await;
+		
+		cache_read.get::<Cache>().expect("Expected a Cache in TypeMap").clone()
+	};
+	{
+		let mut cache = cache_lock.write().await;
+		for card_cache in cards {
+			cache
+				.entry(card_cache.clone().card.card_id)
+				.or_insert(card_cache).last_updated = Utc::now() + Duration::days(1);
+		}
+		cache.retain(|cid, cc| cc.last_accessed > Utc::now() - Duration::days(3));
 	}
 }
 
