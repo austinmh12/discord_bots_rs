@@ -10,8 +10,8 @@ use std::{
 		atomic::{AtomicBool, Ordering},
 		Arc,
 	},
-	time::Duration,
-	collections::HashMap
+	time::Duration as StdDuration,
+	collections::HashMap, fmt::Write
 };
 use tokio::sync::RwLock;
 use dotenv;
@@ -32,7 +32,9 @@ use serenity::framework::standard::{
     },
 	Args,
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Duration};
+use indicatif::*;
+use rand::prelude::*;
 
 mod commands;
 
@@ -91,17 +93,20 @@ impl TypeMapKey for Cache {
 }
 
 #[derive(Debug, Clone)]
-struct CardCache {
+pub struct CardCache {
 	pub card: Card,
-	pub last_updated: DateTime<Utc>,
+	pub next_update: DateTime<Utc>,
 	pub last_accessed: DateTime<Utc>
 }
 
 impl CardCache {
 	fn new(card: Card) -> Self {
+		let hour_range = (0..23).collect::<Vec<i64>>();
+		let rand_hours = hour_range.choose(&mut rand::thread_rng()).unwrap().clone();
+
 		Self {
 			card,
-			last_updated: Utc::now(),
+			next_update: Utc::now() + Duration::hours(rand_hours),
 			last_accessed: Utc::now()
 		}
 	}
@@ -116,26 +121,38 @@ impl EventHandler for Handler {
 	// Set the handler to be called on the `ready` event. This is called when a shard is booted, and a READY payload is sent by Discord.
 	// This payload contains a bunch of data.
 	async fn ready(&self, _ctx: Context, ready: Ready) {
-		println!("{} is connected!", ready.user.name);
-
+		let sets = get_sets().await;
+		let pb = ProgressBar::new(sets.len() as u64);
+		pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] ({eta})")
+			.unwrap()
+			.with_key("eta", |state: &ProgressState, w: &mut dyn Write| write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
+			.progress_chars("=> "));
+		for set in sets {
+			// This ensures that all the rare/rainbow cards are in the cache before starting.
+			_ = card::get_cards_with_query(&_ctx, &format!("set.id:{} AND -rarity:Common AND -rarity:Uncommon AND -rarity:Promo", set.set_id)).await;
+			pb.inc(1);
+		}
+		pb.finish_with_message("Fetched all the rare and rainbow cards.");
 		let ctx = Arc::new(_ctx);
-
+		
 		if !self.is_loop_running.load(Ordering::Relaxed) {
 			let ctx1 = Arc::clone(&ctx);
 			tokio::spawn(async move {
 				loop {
 					commands::poketcg::refresh_dailys(Arc::clone(&ctx1)).await;
-					tokio::time::sleep(Duration::from_secs(60)).await;
+					tokio::time::sleep(StdDuration::from_secs(60)).await;
 				}
 			});
 			let ctx2 = Arc::clone(&ctx);
 			tokio::spawn(async move {
 				loop {
 					commands::poketcg::refresh_card_prices(Arc::clone(&ctx2)).await;
-					tokio::time::sleep(Duration::from_secs(3600)).await;
+					tokio::time::sleep(StdDuration::from_secs(3600)).await;
 				}
 			});
 		}
+
+		println!("{} is connected and ready!", ready.user.name);
 	}
 
 	// Here for getting custom emoji IDs

@@ -52,7 +52,8 @@ use crate::{
 		get_set
 	},
 	card::{
-		get_cards_with_query,
+		get_rare_cards_from_cache,
+		get_rainbow_cards_from_cache,
 		get_card,
 	},
 	player::{
@@ -193,7 +194,7 @@ pub struct TokenShop {
 }
 
 impl TokenShop {
-	async fn new() -> Self {
+	async fn new(ctx: &Context) -> Self {
 		let sets = get_sets().await;
 		let mut weighted_sets = vec![];
 		for set in sets {
@@ -214,13 +215,9 @@ impl TokenShop {
 			.iter()
 			.map(|s| s.id())
 			.collect();
-		let letters = "abcdefghijklmnopqrstuvwxyz";
-		let rand_letter_start = letters.chars().choose(&mut thread_rng()).unwrap();
-		let rare_cards_no_rainbow = get_cards_with_query(&format!("name:{}* AND -rarity:Common AND -rarity:Uncommon AND -rarity:*Rainbow", rand_letter_start))
-			.await;
-		let rainbows = get_cards_with_query("rarity:*Rainbow")
-			.await;
-		let rare_card = rare_cards_no_rainbow
+		let rare_cards = get_rare_cards_from_cache(ctx).await;
+		let rainbows = get_rainbow_cards_from_cache(ctx).await;
+		let rare_card = rare_cards
 			.iter()
 			.choose(&mut thread_rng())
 			.unwrap()
@@ -243,8 +240,8 @@ impl TokenShop {
 		}
 	}
 
-	async fn update_shop(&self) -> Self {
-		let tmp_tokenshop = TokenShop::new().await;
+	async fn update_shop(&self, ctx: &Context) -> Self {
+		let tmp_tokenshop = TokenShop::new(ctx).await;
 		let now = Utc::now() + Duration::days(1);
 
 		Self {
@@ -301,7 +298,7 @@ async fn get_token_shop_collection() -> Collection<TokenShop> {
 	collection
 }
 
-pub async fn get_token_shop() -> TokenShop {
+pub async fn get_token_shop(ctx: &Context) -> TokenShop {
 	let token_shop_collection = get_token_shop_collection().await;
 	let token_shop = token_shop_collection
 		.find_one(None, None)
@@ -309,10 +306,10 @@ pub async fn get_token_shop() -> TokenShop {
 		.unwrap();
 	let token_shop = match token_shop {
 		Some(x) => x,
-		None => add_token_shop().await
+		None => add_token_shop(ctx).await
 	};
 	if token_shop.reset < Utc::now() {
-		let token_shop = token_shop.update_shop().await;
+		let token_shop = token_shop.update_shop(ctx).await;
 		update_token_shop(&token_shop).await;
 		return token_shop;
 	}
@@ -320,8 +317,8 @@ pub async fn get_token_shop() -> TokenShop {
 	token_shop
 }
 
-async fn add_token_shop() -> TokenShop {
-	let ret = TokenShop::new().await;
+async fn add_token_shop(ctx: &Context) -> TokenShop {
+	let ret = TokenShop::new(ctx).await;
 	let token_shop_collection = get_token_shop_collection().await;
 	token_shop_collection
 		.insert_one(&ret, None)
@@ -480,7 +477,7 @@ async fn game_corner_slots(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 #[aliases("ts", "tokens")]
 #[sub_commands(game_corner_tokens_buy, game_corner_tokens_convert)]
 async fn game_corner_tokens_main(ctx: &Context, msg: &Message) -> CommandResult {
-	let token_shop = get_token_shop().await;
+	let token_shop = get_token_shop(ctx).await;
 	let player = get_player(msg.author.id.0).await;
 	let embed = token_shop.embed_with_player(ctx, player).await;
 	let _ = msg
@@ -502,7 +499,7 @@ async fn game_corner_tokens_buy(ctx: &Context, msg: &Message, mut args: Args) ->
 		Ok(x) => x,
 		Err(_) => 0
 	};
-	let token_shop = get_token_shop().await;
+	let token_shop = get_token_shop(ctx).await;
 	if !(1..=5).contains(&selection) {
 		msg.channel_id.send_message(&ctx.http, |m| m.content("A selection was not made.")).await?;
 		return Ok(());

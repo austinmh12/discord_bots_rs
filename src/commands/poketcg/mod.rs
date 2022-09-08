@@ -718,7 +718,7 @@ async fn admin_main() -> CommandResult {
 #[command("pack")]
 #[checks(BotTest)]
 async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-	let player = player::get_player(msg.author.id.0).await;
+	let _player = player::get_player(msg.author.id.0).await;
 	let set_id = args.find::<String>().unwrap();
 	let amount = match args.find::<i32>() {
 		Ok(x) => x as usize,
@@ -836,7 +836,7 @@ async fn admin_set_cards(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 
 #[command("cache")]
 #[checks(BotTest)]
-async fn admin_cache(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn admin_cache(ctx: &Context) -> CommandResult {
 	{
 		let cache_read = ctx.data.read().await;
 		let cache_lock = cache_read.get::<Cache>().expect("Expected Cache in TypeMap").clone();
@@ -883,7 +883,7 @@ pub async fn refresh_card_prices(ctx: Arc<Context>) {
 	for mut cached_card in cached_cards {
 		let refreshed_card = refreshed_cards.get(&cached_card.card.id()).unwrap();
 		cached_card.card.price = refreshed_card.price;
-		cached_card.last_updated = Utc::now() + Duration::days(1);
+		cached_card.next_update = Utc::now() + Duration::days(1);
 		updated_cards.push(cached_card);
 	}
 	card::update_cached_cards(&ctx, updated_cards).await;

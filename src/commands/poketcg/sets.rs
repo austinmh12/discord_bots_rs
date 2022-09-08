@@ -108,6 +108,16 @@ impl Idable for Set {
 	}
 }
 
+impl PartialEq for Set {
+	fn eq(&self, other: &Self) -> bool {
+		self.set_id == other.set_id
+	}
+
+	fn ne(&self, other: &Self) -> bool {
+		self.set_id != other.set_id
+	}
+}
+
 #[async_trait]
 impl Scrollable for Vec<Set> {
 	async fn scroll_through(&self, ctx: &Context, msg: &Message) -> Result<(), String> {
@@ -185,7 +195,7 @@ impl Scrollable for Vec<Set> {
 
 pub async fn get_sets() -> Vec<Set> {
 	let mut ret = vec![];
-	let cached_sets = get_sets_from_cache().await;
+	let cached_sets = get_sets_from_db().await;
 	let inner_query = cached_sets
 		.iter()
 		.map(|s| format!("-id:{}", s.id()))
@@ -207,7 +217,7 @@ pub async fn get_sets() -> Vec<Set> {
 }
 
 pub async fn get_set(id: &str) -> Option<Set> {
-	let cached_set = get_set_from_cache(id).await;
+	let cached_set = get_set_from_db(id).await;
 	match cached_set {
 		Some(s) => Some(s),
 		None => {
@@ -268,7 +278,7 @@ async fn add_sets(sets: &Vec<Set>) {
 		.unwrap();
 }
 
-async fn get_set_from_cache(id: &str) -> Option<Set> {
+async fn get_set_from_db(id: &str) -> Option<Set> {
 	let set_collection = get_set_collection().await;
 	let set = set_collection
 		.find_one(doc! { "set_id": id }, None)
@@ -278,7 +288,7 @@ async fn get_set_from_cache(id: &str) -> Option<Set> {
 	set
 }
 
-async fn get_sets_from_cache() -> Vec<Set> {
+async fn get_sets_from_db() -> Vec<Set> {
 	let set_collection = get_set_collection().await;
 	let sets = set_collection
 		.find(None, None)
