@@ -57,7 +57,7 @@ use serde_json;
 use rand::{
 	Rng
 };
-use crate::{BOTTEST_CHECK, Cache};
+use crate::{BOTTEST_CHECK, Cache, CardCache};
 
 async fn api_call(endpoint: &str, params: Option<Vec<(&str, &str)>>) -> Option<serde_json::Value> {
 	dotenv::dotenv().ok();
@@ -173,7 +173,7 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::P
 	let left_arrow = ReactionType::try_from("⬅️").expect("No left arrow");
 	let right_arrow = ReactionType::try_from("➡️").expect("No right arrow");
 	let set = sets::get_set(&player.current_binder.set).await.unwrap();
-	let mut set_cards = card::get_cards_by_set(&set).await;
+	let mut set_cards = card::get_cards_by_set(ctx, &set).await;
 	set_cards.sort_by(|c1, c2| {
 		if c1.set().id() == c2.set().id() {
 			let c1_num = c1.id().split("-").collect::<Vec<&str>>()[1].parse::<i64>().unwrap_or(999);
@@ -279,8 +279,8 @@ async fn binder_paginated_embeds(ctx: &Context, msg: &Message, player: player::P
 	Ok(())
 }
 
-async fn get_set_average_price(set: &sets::Set) -> f64 {
-	let all_cards = card::get_cards_by_set(set).await;
+async fn get_set_average_price(ctx: &Context, set: &sets::Set) -> f64 {
+	let all_cards = card::get_cards_by_set(ctx, set).await;
 	let rares = all_cards
 		.iter()
 		.filter(|c| c.rarity != "Common" || c.rarity != "Uncommon" || c.rarity != "Promo")
@@ -343,10 +343,10 @@ async fn sell_main(ctx: &Context, msg: &Message) -> CommandResult {
 	Ok(())
 }
 
-async fn sell_cards_helper(mut player: player::Player, mode: SellMode, rares: bool) -> (Vec<player_card::PlayerCard>, i64, f64, Document) {
+async fn sell_cards_helper(ctx: &Context, mut player: player::Player, mode: SellMode, rares: bool) -> (Vec<player_card::PlayerCard>, i64, f64, Document) {
 	// Does the actual removal and calculation of the cards worths
 	// Returns the list of cards sold, total sold, total earned, and the document to update the player with
-	let player_cards = player_card::player_cards(player.cards.clone()).await;
+	let player_cards = player_card::player_cards(ctx, player.cards.clone()).await;
 	let mut cards_to_sell = vec![];
 	for player_card in player_cards {
 		let sellable = match mode {
@@ -463,7 +463,7 @@ async fn sell_under(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 		Err(_) => false
 	};
 	let player = player::get_player(msg.author.id.0).await;
-	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::Under(value), rares).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(ctx, player.clone(), SellMode::Under(value), rares).await;
 	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
@@ -478,7 +478,7 @@ async fn sell_dups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 		Err(_) => false
 	};
 	let player = player::get_player(msg.author.id.0).await;
-	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::Duplicates, rares).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(ctx, player.clone(), SellMode::Duplicates, rares).await;
 	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
@@ -493,7 +493,7 @@ async fn sell_all(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		Err(_) => false
 	};
 	let player = player::get_player(msg.author.id.0).await;
-	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::All, rares).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(ctx, player.clone(), SellMode::All, rares).await;
 	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
@@ -520,7 +520,7 @@ async fn sell_set(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 		Err(_) => false
 	};
 	let player = player::get_player(msg.author.id.0).await;
-	let (_, total_sold, total_cash, player_update) = sell_cards_helper(player.clone(), SellMode::BySet(set.id()), rares).await;
+	let (_, total_sold, total_cash, player_update) = sell_cards_helper(ctx, player.clone(), SellMode::BySet(set.id()), rares).await;
 	player::update_player(&player, doc! { "$set": player_update }).await;
 	msg.reply(&ctx.http, format!("You sold **{}** cards for **${:.2}**", total_sold, total_cash)).await?;
 
@@ -605,7 +605,7 @@ async fn open_pack_command(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 	if player.packs.contains_key(&set_id) {
 		let amounts = vec![player.daily_packs, amount, *player.packs.get(&set_id).unwrap()]; 
 		let amount = *amounts.iter().min().unwrap();
-		let pack = packs::Pack::from_set_id(&set_id, amount as usize).await?;
+		let pack = packs::Pack::from_set_id(ctx, &set_id, amount as usize).await?;
 		let mut update = Document::new();
 		player.total_cards += pack.cards.len() as i64;
 		player.packs_opened += amount;
@@ -724,7 +724,7 @@ async fn admin_show_pack(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 		Ok(x) => x as usize,
 		Err(_) => 1usize
 	};
-	let pack = packs::Pack::from_set_id(set_id.as_str(), amount).await.unwrap();
+	let pack = packs::Pack::from_set_id(ctx, set_id.as_str(), amount).await.unwrap();
 	pack.cards.scroll_through(ctx, msg).await?;
 
 	Ok(())
@@ -815,7 +815,7 @@ async fn admin_set_cards(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 		}
 	}
 	let set = set.unwrap();
-	let cards = card::get_cards_by_set(&set).await;
+	let cards = card::get_cards_by_set(ctx, &set).await;
 	for card in cards {
 		*player.cards.entry(card.card_id()).or_insert(0) += 1;
 		if *player.cards.entry(card.card_id()).or_insert(0) == 0 {
@@ -871,22 +871,22 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 	}
 }
 
-pub async fn refresh_card_prices(_ctx: Arc<Context>) {
-	let cards = card::get_outdated_cards().await;
-	print!("Updating {} outdated cards... ", &cards.len());
-	let card_ids = cards
+pub async fn refresh_card_prices(ctx: Arc<Context>) {
+	let cached_cards = card::get_outdated_cards(&ctx).await;
+	print!("Updating {} outdated cards... ", &cached_cards.len());
+	let card_ids = cached_cards
 		.iter()
-		.map(|c| c.id())
+		.map(|c| c.card.id())
 		.collect::<Vec<String>>();
 	let refreshed_cards = card::get_multiple_cards_by_id_without_cache(card_ids).await;
-	let mut updated_cards = vec![];
-	for mut card in cards {
-		let refreshed_card = refreshed_cards.get(&card.id()).unwrap();
-		card.price = refreshed_card.price;
-		card.last_check = Utc::now() + Duration::days(1);
-		updated_cards.push(card);
+	let mut updated_cards: Vec<CardCache> = vec![];
+	for mut cached_card in cached_cards {
+		let refreshed_card = refreshed_cards.get(&cached_card.card.id()).unwrap();
+		cached_card.card.price = refreshed_card.price;
+		cached_card.last_updated = Utc::now() + Duration::days(1);
+		updated_cards.push(cached_card);
 	}
-	card::update_cached_cards(updated_cards).await;
+	card::update_cached_cards(&ctx, updated_cards).await;
 	println!("Updated cached cards!");
 }
 

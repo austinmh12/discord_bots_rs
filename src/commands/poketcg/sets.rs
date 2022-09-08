@@ -118,7 +118,7 @@ impl Scrollable for Vec<Set> {
 		let embeds = self.iter().map(|e| e.embed()).collect::<Vec<_>>();
 		let mut idx: i16 = 0;
 		let mut set = sets.into_iter().nth(idx as usize).unwrap();
-		let mut set_avg_price = super::get_set_average_price(set).await;
+		let mut set_avg_price = super::get_set_average_price(ctx, set).await;
 		let mut message = msg
 			.channel_id
 			.send_message(&ctx.http, |m| {
@@ -152,7 +152,7 @@ impl Scrollable for Vec<Set> {
 					"➡️" => idx = (idx + 1) % embeds.len() as i16,
 					"poketcg:965802882433703936" => {
 						let set = sets.into_iter().nth(idx as usize).unwrap();
-						let cards = card::get_cards_by_set(set).await;
+						let cards = card::get_cards_by_set(ctx, set).await;
 						message.delete_reactions(&ctx).await.expect("Couldn't remove arrows");
 						
 						// Skip for now
@@ -166,7 +166,7 @@ impl Scrollable for Vec<Set> {
 				break;
 			}
 			set = sets.into_iter().nth(idx as usize).unwrap();
-			set_avg_price = get_set_average_price(set).await;
+			set_avg_price = get_set_average_price(ctx, set).await;
 			message.edit(&ctx, |m| {
 				let mut cur_embed = embeds[idx as usize].clone();
 				if embeds.len() > 1 {
