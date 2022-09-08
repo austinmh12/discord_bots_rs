@@ -620,6 +620,7 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 	m.insert(8, "quiz_time_reset");
 	m.insert(9, "quiz_question_amount");
 	m.insert(10, "quiz_mult_limit");
+	m.insert(11, "pack_limit");
 	let mut selection = match args.single::<i32>() {
 		Ok(x) => x,
 		Err(_) => 0
@@ -628,7 +629,7 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 		Ok(x) => x,
 		Err(_) => String::from("")
 	};
-	let upgrades = vec!["dailytime", "dailyreward", "dailypacks", "storediscount", "tokenshopdiscount", "slotreward", "dailyslots", "quizreset", "quizattempts", "quizmultiplier"];
+	let upgrades = vec!["dailytime", "dailyreward", "dailypacks", "storediscount", "tokenshopdiscount", "slotreward", "dailyslots", "quizreset", "quizattempts", "quizmultiplier", "packlimit"];
 	if selection_str != "" && selection == 0 {
 		selection = (upgrades.iter().position(|r| r == &selection_str).unwrap_or(upgrades.len()) + 1) as i32;
 	}
@@ -690,6 +691,7 @@ async fn upgrades_buy(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 				player.quiz_questions += 1;
 			},
 			"quiz_mult_limit" => player.upgrades.quiz_mult_limit += 1,
+			"pack_limit" => player.upgrades.pack_limit += 1,
 			_ => ()
 		}
 		count += 1;

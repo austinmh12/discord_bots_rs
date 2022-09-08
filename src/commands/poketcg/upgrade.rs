@@ -22,7 +22,9 @@ pub struct Upgrade {
 	#[serde(default = "def_0")]
 	pub quiz_question_amount: i64,
 	#[serde(default = "def_0")]
-	pub quiz_mult_limit: i64
+	pub quiz_mult_limit: i64,
+	#[serde(default = "def_0")]
+	pub pack_limit: i64
 }
 
 impl Upgrade {
@@ -37,7 +39,8 @@ impl Upgrade {
 			daily_slot_amount: 0,
 			quiz_time_reset: 0,
 			quiz_question_amount: 0,
-			quiz_mult_limit: 0
+			quiz_mult_limit: 0,
+			pack_limit: 0
 		}
 	}
 
@@ -53,6 +56,7 @@ impl Upgrade {
 			"quiz_time_reset" =>  300.0,
 			"quiz_question_amount" =>  500.0 + (100.0 * self.quiz_question_amount as f64),
 			"quiz_mult_limit" => 400.0 + (250.0 * self.quiz_mult_limit as f64),
+			"pack_limit" => (2500 + (0..=self.pack_limit).map(|i| i * 1250).sum::<i64>()) as f64,
 			_ => 0.0
 		}
 	}
@@ -69,6 +73,7 @@ impl Upgrade {
 			"quiz_time_reset" => self.quiz_time_reset >= 9,
 			"quiz_question_amount" => self.quiz_question_amount >= 5,
 			"quiz_mult_limit" => self.quiz_mult_limit >= 5,
+			"pack_limit" => self.pack_limit >= 15,
 			_ => false
 		}
 	}
@@ -108,6 +113,9 @@ impl Upgrade {
 		if !self.is_max_upgrade("quiz_mult_limit") {
 			desc.push_str(&format!("**10 quizmultiplier:** Increases your max quiz multiplier - ${:.2} _(lvl {})_\n", self.upgrade_cost("quiz_mult_limit"), self.quiz_mult_limit));
 		}
+		if !self.is_max_upgrade("pack_limit") {
+			desc.push_str(&format!("**11 packlimit:** Increases your max pack storage limit - ${:.2} _(lvl {})_\n", self.upgrade_cost("pack_limit"), self.pack_limit));
+		}
 		ret
 			.title("Upgrade Shop")
 			.description(&desc)
@@ -128,6 +136,7 @@ impl Upgrade {
 		d.insert("quiz_time_reset", self.quiz_time_reset);
 		d.insert("quiz_question_amount", self.quiz_question_amount);
 		d.insert("quiz_mult_limit", self.quiz_mult_limit);
+		d.insert("pack_limit", self.pack_limit);
 
 		d
 	}
@@ -173,6 +182,10 @@ impl Upgrade {
 		match self.is_max_upgrade("quiz_mult_limit") {
 			true => ret.push_str(&format!("**quizmultiplier:** {} ***MAX***\n", self.quiz_mult_limit)),
 			false => ret.push_str(&format!("**quizmultiplier:** {}\n", self.quiz_mult_limit))
+		}
+		match self.is_max_upgrade("pack_limit") {
+			true => ret.push_str(&format!("**packlimit:** {} ***MAX***\n", self.pack_limit)),
+			false => ret.push_str(&format!("**packlimit:** {}\n", self.pack_limit))
 		}
 
 		ret
