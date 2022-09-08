@@ -123,12 +123,15 @@ impl EventHandler for Handler {
 	async fn ready(&self, _ctx: Context, ready: Ready) {
 		let sets = get_sets().await;
 		let pb = ProgressBar::new(sets.len() as u64);
-		pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] ({eta})")
+		pb.set_style(
+			ProgressStyle::default_bar()
+			.template("[{elapsed_precise}] [{bar:30.cyan/blue}] [{pos}/{len} (ETA {eta})] {msg}")
 			.unwrap()
-			.with_key("eta", |state: &ProgressState, w: &mut dyn Write| write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
-			.progress_chars("=> "));
+			.progress_chars("=> ")
+		);
 		for set in sets {
 			// This ensures that all the rare/rainbow cards are in the cache before starting.
+			pb.set_message(format!("Fetching cards for: {}", &set.name));
 			_ = card::get_cards_with_query(&_ctx, &format!("set.id:{} AND -rarity:Common AND -rarity:Uncommon AND -rarity:Promo", set.set_id)).await;
 			pb.inc(1);
 		}
