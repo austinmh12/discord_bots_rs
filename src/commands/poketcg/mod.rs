@@ -659,14 +659,17 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 	}
 	let mut update = Document::new();
 	let r: i64 = rand::thread_rng().gen_range(0..100);
-	if r <= 2 {
+	let pack_reset = std::cmp::min(10, 2 + player.daily_streak);
+	if r <= pack_reset {
 		let player_daily_packs = 50 + (player.upgrades.daily_pack_amount * 10);
 		player.daily_packs += player_daily_packs;
 		update.insert("daily_packs", player.daily_packs);
-		msg.reply(&ctx.http, "***WOAH!*** Your daily packs were reset!").await?;
+		msg.reply(&ctx.http, format!("***WOAH!*** You got **{}** daily packs!", player_daily_packs)).await?;
 	} else {
 		let player_mult = 1.0 + player.upgrades.daily_reward_mult as f64 * 0.1;
-		let cash: f64 = rand::thread_rng().gen_range(5..=20) as f64 * player_mult;
+		let min_cash = std::cmp::min(5 + player.daily_streak, 15) as i32;
+		let max_cash = std::cmp::min(20 + player.daily_streak, 40) as i32;
+		let cash: f64 = rand::thread_rng().gen_range(min_cash..=max_cash) as f64 * player_mult;
 		player.cash += cash;
 		player.total_cash += cash;
 		update.insert("cash", player.cash);
@@ -676,7 +679,10 @@ async fn daily_command(ctx: &Context, msg: &Message) -> CommandResult {
 	let hours_til_update = 24 - player.upgrades.daily_time_reset;
 	player.daily_reset = Utc::now() + Duration::hours(hours_til_update);
 	update.insert("daily_reset", player.daily_reset);
+	player.daily_streak += 1;
+	update.insert("daily_streak", player.daily_streak);
 	player::update_player(&player, doc!{ "$set": update }).await;
+	msg.channel_id.say(&ctx.http, format!("Your daily streak is now **{}**", player.daily_streak)).await?;
 
 	Ok(())
 }
@@ -890,6 +896,21 @@ pub async fn refresh_card_prices(ctx: Arc<Context>) {
 	}
 	card::update_cached_cards(&ctx, updated_cards).await;
 	// println!("Updated cached cards!");
+}
+
+pub async fn check_daily_streaks(ctx: Arc<Context>) {
+	println!("Checking daily streaks");
+	let players = player::get_players().await;
+	let now = Utc::now();
+	for mut player in players {
+		let hours_til_update = 24 - player.upgrades.daily_time_reset; // for the next reset
+		if player.daily_reset + Duration::hours(hours_til_update) < now {
+			player.daily_streak = 0;
+			let mut update = Document::new();
+			update.insert("daily_streak", player.daily_streak);
+			player::update_player(&player, doc!{"$set": update }).await;
+		}
+	}
 }
 
 /* Tasks

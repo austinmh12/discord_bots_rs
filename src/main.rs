@@ -153,6 +153,13 @@ impl EventHandler for Handler {
 					tokio::time::sleep(StdDuration::from_secs(3600)).await;
 				}
 			});
+			let ctx3 = Arc::clone(&ctx);
+			tokio::spawn(async move {
+				loop {
+					commands::poketcg::check_daily_streaks(Arc::clone(&ctx3)).await;
+					tokio::time::sleep(StdDuration::from_secs(1800)).await;
+				}
+			});
 		}
 
 		println!("{} is connected and ready!", ready.user.name);

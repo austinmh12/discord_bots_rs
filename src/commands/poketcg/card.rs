@@ -11,7 +11,7 @@ use mongodb::{
 };
 use serde::{Serialize, Deserialize};
 use chrono::{
-	DateTime, 
+	// DateTime, 
 	Utc,
 };
 use serenity::{
@@ -49,9 +49,7 @@ pub struct Card {
 	pub number: String,
 	pub price: f64,
 	pub image: String,
-	pub rarity: String,
-	#[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
-	pub last_check: DateTime<Utc>
+	pub rarity: String
 }
 
 impl Card {
@@ -92,10 +90,9 @@ impl Card {
 			name: String::from(obj["name"].as_str().unwrap()),
 			set: Set::from_json(obj.get("set").unwrap()),
 			number: String::from(obj["number"].as_str().unwrap()),
-			price: price,
+			price,
 			image: String::from(obj["images"]["large"].as_str().unwrap()),
-			rarity,
-			last_check: Utc::now()
+			rarity
 		}
 	}
 }

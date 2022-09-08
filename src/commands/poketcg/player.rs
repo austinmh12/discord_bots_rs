@@ -129,7 +129,9 @@ pub struct Player {
 	#[serde(default = "def_binder")]
 	pub current_binder: Binder,
 	#[serde(default = "def_empty_vec_str")]
-	pub completed_binders: Vec<String>
+	pub completed_binders: Vec<String>,
+	#[serde(default = "def_0")]
+	pub daily_streak: i64
 }
 
 impl Player {
@@ -163,6 +165,7 @@ impl Player {
 			light_mode: false,
 			current_binder: Binder::empty(),
 			completed_binders: vec![],
+			daily_streak: 0,
 		}
 	}
 }
@@ -185,7 +188,7 @@ impl PaginateEmbed for Player {
 			_ => desc.push_str(&format!("**Current Binder:** {} | **Completed Binders:** {}\n\n", &self.current_binder.set, &self.completed_binders.len()))
 		}
 		desc.push_str(&format!("Quiz resets at **{}**\n", quiz_reset_local.format("%m/%d %H:%M")));
-		desc.push_str(&format!("Daily reset at **{}**", daily_reset_local.format("%m/%d %H:%M")));
+		desc.push_str(&format!("Daily reset at **{}** | Current Streak: **{}**", daily_reset_local.format("%m/%d %H:%M"), &self.daily_streak));
 		let mut ret = CreateEmbed::default();
 		ret
 			.description(desc)
