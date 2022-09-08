@@ -121,21 +121,21 @@ impl EventHandler for Handler {
 	// Set the handler to be called on the `ready` event. This is called when a shard is booted, and a READY payload is sent by Discord.
 	// This payload contains a bunch of data.
 	async fn ready(&self, _ctx: Context, ready: Ready) {
-		let sets = get_sets().await;
-		let pb = ProgressBar::new(sets.len() as u64);
-		pb.set_style(
-			ProgressStyle::default_bar()
-			.template("[{elapsed_precise}] [{bar:30.cyan/blue}] [{pos}/{len} (ETA {eta})] {msg}")
-			.unwrap()
-			.progress_chars("=> ")
-		);
-		for set in sets {
-			// This ensures that all the rare/rainbow cards are in the cache before starting.
-			pb.set_message(format!("Fetching cards for: {}", &set.name));
-			_ = card::get_cards_with_query(&_ctx, &format!("set.id:{} AND -rarity:Common AND -rarity:Uncommon AND -rarity:Promo", set.set_id)).await;
-			pb.inc(1);
-		}
-		pb.finish_with_message("Fetched all the rare and rainbow cards.");
+		// let sets = get_sets().await;
+		// let pb = ProgressBar::new(sets.len() as u64);
+		// pb.set_style(
+		// 	ProgressStyle::default_bar()
+		// 	.template("[{elapsed_precise}] [{bar:30.cyan/blue}] [{pos}/{len} (ETA {eta})] {msg}")
+		// 	.unwrap()
+		// 	.progress_chars("=> ")
+		// );
+		// for set in sets {
+		// 	// This ensures that all the rare/rainbow cards are in the cache before starting.
+		// 	pb.set_message(format!("Fetching cards for {}", &set.name));
+		// 	_ = card::get_cards_with_query(&_ctx, &format!("set.id:{} AND -rarity:Common AND -rarity:Uncommon AND -rarity:Promo", set.set_id)).await;
+		// 	pb.inc(1);
+		// }
+		// pb.finish_with_message("Fetched all the rare and rainbow cards.");
 		let ctx = Arc::new(_ctx);
 		
 		if !self.is_loop_running.load(Ordering::Relaxed) {

@@ -68,11 +68,11 @@ impl Upgrade {
 			"daily_pack_amount" => self.daily_pack_amount >= 5,
 			"store_discount" => self.store_discount >= 5,
 			"tokenshop_discount" => self.tokenshop_discount >= 5,
-			"slot_reward_mult" => self.slot_reward_mult >= 10,
-			"daily_slot_amount" => self.daily_slot_amount >= 10,
+			"slot_reward_mult" => self.slot_reward_mult >= 20,
+			"daily_slot_amount" => self.daily_slot_amount >= 90,
 			"quiz_time_reset" => self.quiz_time_reset >= 9,
-			"quiz_question_amount" => self.quiz_question_amount >= 5,
-			"quiz_mult_limit" => self.quiz_mult_limit >= 5,
+			"quiz_question_amount" => self.quiz_question_amount >= 20,
+			"quiz_mult_limit" => self.quiz_mult_limit >= 50,
 			"pack_limit" => self.pack_limit >= 15,
 			_ => false
 		}

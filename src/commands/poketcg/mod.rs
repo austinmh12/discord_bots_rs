@@ -858,11 +858,13 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 		for mut player in players {
 			let mut update = Document::new();
 			let player_daily_packs = 50 + (player.upgrades.daily_pack_amount * 10);
+			let player_pack_limit = 500 + (player.upgrades.pack_limit * 100);
 			let player_daily_slots = 10 + player.upgrades.daily_slot_amount;
-			if player.daily_packs < player_daily_packs {
-				player.daily_packs = player_daily_packs;
-				update.insert("daily_packs", player.daily_packs);
+			player.daily_packs += player_daily_packs;
+			if player.daily_packs > player_pack_limit {
+				player.daily_packs = player_pack_limit;
 			}
+			update.insert("daily_packs", player.daily_packs);
 			player.daily_slots = player_daily_slots;
 			update.insert("daily_slots", player.daily_slots);
 			player::update_player(&player, doc!{"$set": update }).await;
@@ -873,7 +875,7 @@ pub async fn refresh_dailys(_ctx: Arc<Context>) {
 
 pub async fn refresh_card_prices(ctx: Arc<Context>) {
 	let cached_cards = card::get_outdated_cards(&ctx).await;
-	print!("Updating {} outdated cards... ", &cached_cards.len());
+	println!("Updating {} outdated cards... ", &cached_cards.len());
 	let card_ids = cached_cards
 		.iter()
 		.map(|c| c.card.id())
@@ -887,7 +889,7 @@ pub async fn refresh_card_prices(ctx: Arc<Context>) {
 		updated_cards.push(cached_card);
 	}
 	card::update_cached_cards(&ctx, updated_cards).await;
-	println!("Updated cached cards!");
+	// println!("Updated cached cards!");
 }
 
 /* Tasks
